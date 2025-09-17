@@ -519,6 +519,41 @@ export default function CampaignsPage() {
     }
   };
 
+  // Function to calculate filtered campaign data based on date range
+  const getFilteredCampaignData = (campaign) => {
+    // Get multiplier based on selected range
+    const rangeMultipliers = {
+      "Today": 0.1,
+      "Yesterday": 0.15,
+      "Last 7 Days": 0.3,
+      "Last 14 Days": 0.5,
+      "Last 30 Days": 0.7,
+      "Last 60 Days": 0.85,
+      "Last 90 Days": 0.95,
+      "This Month": 0.6,
+      "Last Month": 0.4,
+      "All Time": 1.0
+    };
+    
+    const multiplier = rangeMultipliers[selectedRange] || 1;
+    
+    // Calculate filtered metrics
+    const filteredTotalClicks = Math.floor(campaign.totalClicks * multiplier);
+    const filteredTotalViews = Math.floor(campaign.totalViews * multiplier);
+    const filteredConversionRate = filteredTotalViews > 0 
+      ? ((filteredTotalClicks / filteredTotalViews) * 100).toFixed(1)
+      : campaign.conversionRate;
+    const filteredSpent = Math.floor(campaign.spent * multiplier);
+    
+    return {
+      ...campaign,
+      totalClicks: filteredTotalClicks,
+      totalViews: filteredTotalViews,
+      conversionRate: parseFloat(filteredConversionRate),
+      spent: filteredSpent
+    };
+  };
+
   // Get metrics based on selected range and campaign
   const { permanentMetrics, traineeMetrics } = selectedCampaign 
     ? getMetricsForRange(selectedRange, selectedCampaign.workers)
@@ -1073,6 +1108,89 @@ export default function CampaignsPage() {
           </Button>
         </div>
 
+        {/* Date Range Filters */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Date Range Filters</CardTitle>
+            <CardDescription>
+              Select a date range to filter your campaigns data
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="from-date">From</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !fromDate && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {fromDate ? format(fromDate, "PPP") : <span>Pick a date</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                    <Calendar
+                      mode="single"
+                      selected={fromDate}
+                      onSelect={setFromDate}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="to-date">To</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !toDate && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {toDate ? format(toDate, "PPP") : <span>Pick a date</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                    <Calendar
+                      mode="single"
+                      selected={toDate}
+                      onSelect={setToDate}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div className="space-y-2">
+                <Label>Quick Range</Label>
+                <Select value={selectedRange} onValueChange={handleQuickRange}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select range" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {quickDateRanges.map((range) => (
+                      <SelectItem key={range} value={range}>
+                        {range}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-end gap-2">
+                <Button onClick={handleShowData}>Show Data</Button>
+                <Button variant="outline" onClick={handleReset}>Reset</Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Campaigns Table */}
         <Card>
           <CardContent className="p-0">
@@ -1088,31 +1206,40 @@ export default function CampaignsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {campaigns.map((campaign) => (
-                  <TableRow key={campaign.id} className="cursor-pointer hover:bg-muted/50" onClick={() => handleCampaignClick(campaign)}>
-                    <TableCell className="font-medium">{campaign.name}</TableCell>
-                    <TableCell>
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        campaign.status === 'active' ? 'bg-green-100 text-green-800' :
-                        campaign.status === 'paused' ? 'bg-yellow-100 text-yellow-800' :
-                        'bg-gray-100 text-gray-800'
-                      }`}>
-                        {campaign.status}
-                      </span>
-                    </TableCell>
-                    <TableCell>{campaign.totalClicks.toLocaleString()}</TableCell>
-                    <TableCell>{campaign.conversionRate}%</TableCell>
-                    <TableCell>${campaign.spent.toLocaleString()} / ${campaign.budget.toLocaleString()}</TableCell>
-                    <TableCell>
-                      <Button variant="outline" size="sm">
-                        View Details
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {campaigns.map((campaign) => {
+                  const filteredCampaign = getFilteredCampaignData(campaign);
+                  return (
+                    <TableRow key={campaign.id} className="cursor-pointer hover:bg-muted/50" onClick={() => handleCampaignClick(campaign)}>
+                      <TableCell className="font-medium">{filteredCampaign.name}</TableCell>
+                      <TableCell>
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          filteredCampaign.status === 'active' ? 'bg-green-100 text-green-800' :
+                          filteredCampaign.status === 'paused' ? 'bg-yellow-100 text-yellow-800' :
+                          'bg-gray-100 text-gray-800'
+                        }`}>
+                          {filteredCampaign.status}
+                        </span>
+                      </TableCell>
+                      <TableCell>{filteredCampaign.totalClicks.toLocaleString()}</TableCell>
+                      <TableCell>{filteredCampaign.conversionRate}%</TableCell>
+                      <TableCell>${filteredCampaign.spent.toLocaleString()} / ${filteredCampaign.budget.toLocaleString()}</TableCell>
+                      <TableCell>
+                        <Button variant="outline" size="sm">
+                          View Details
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           </CardContent>
+          <div className="px-6 py-3 border-t bg-muted/30">
+            <p className="text-sm text-muted-foreground">
+              Showing data for: <span className="font-medium">{selectedRange}</span> 
+              ({format(fromDate, "MMM dd")} - {format(toDate, "MMM dd, yyyy")})
+            </p>
+          </div>
         </Card>
       </div>
     </MainLayout>
