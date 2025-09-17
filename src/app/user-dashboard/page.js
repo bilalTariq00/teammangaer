@@ -179,7 +179,7 @@ export default function UserDashboardPage() {
           <div>
             <h1 className="text-3xl font-bold tracking-tight">My Dashboard</h1>
             <p className="text-muted-foreground">
-              Welcome back, {user?.name}! Here's your personal click activity.
+              Welcome back, {user?.name}! Here&apos;s your personal click activity.
             </p>
           </div>
         </div>

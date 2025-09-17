@@ -155,7 +155,7 @@ export default function UserTasksPage() {
             {/* Profile Creation */}
             <div className="space-y-3">
               <p className="text-sm">
-                Make your Ad's power profile using the proxy provided above in the IP Block. Follow this to make a profile, if you don't know how to make it:
+                Make your Ad&apos;s power profile using the proxy provided above in the IP Block. Follow this to make a profile, if you don&apos;t know how to make it:
               </p>
               <div className="bg-blue-50 p-2 rounded">
                 <a 
@@ -187,7 +187,7 @@ export default function UserTasksPage() {
             {/* User Agents */}
             <div className="space-y-3">
               <p className="text-sm">
-                Please open or copy and paste this link in your browser to get the list of user agents you'll be using for iOS and Android profiles.
+                Please open or copy and paste this link in your browser to get the list of user agents you&apos;ll be using for iOS and Android profiles.
               </p>
               <div className="bg-blue-50 p-2 rounded">
                 <a 
@@ -221,14 +221,14 @@ export default function UserTasksPage() {
             {/* Target Breakdown */}
             <div className="space-y-3">
               <p className="text-sm">
-                Among the {userTaskInstructions.sessionInstructions.targetProfiles} target, you'll work on {userTaskInstructions.sessionInstructions.iosProfiles} iOS profiles, {userTaskInstructions.sessionInstructions.androidProfiles} Android profiles, and {userTaskInstructions.sessionInstructions.windowsMacProfiles} Windows/Mac profiles.
+                Among the {userTaskInstructions.sessionInstructions.targetProfiles} target, you&apos;ll work on {userTaskInstructions.sessionInstructions.iosProfiles} iOS profiles, {userTaskInstructions.sessionInstructions.androidProfiles} Android profiles, and {userTaskInstructions.sessionInstructions.windowsMacProfiles} Windows/Mac profiles.
               </p>
             </div>
 
             {/* Steps */}
             <div className="space-y-3">
               <ul className="list-disc list-inside space-y-1 text-sm ml-4">
-                <li>You'll choose the iOS or Android and copy the user agent from the sheet and paste it in Ads Power.</li>
+                <li>You&apos;ll choose the iOS or Android and copy the user agent from the sheet and paste it in Ads Power.</li>
                 <li>Check your profile settings and click on OK to create a profile.</li>
                 <li>Continue your work like normal.</li>
               </ul>
@@ -256,7 +256,7 @@ export default function UserTasksPage() {
             <div className="bg-gray-50 p-4 rounded-lg">
               <p className="text-sm">
                 Copy the tracking link from above and open Ads Power and paste that link.
-                It will do some checks and take you to a Facebook Page. If you are working on Android and iOS and using the User Agents, you won't see any pop-up, but if you do, close it, click <strong>I couldn't complete</strong>, click Others and write "Facebook Popup error." You'll need to click on the <strong>Learn More</strong> button, if you don't see it, scroll down and it will be visible.
+                It will do some checks and take you to a Facebook Page. If you are working on Android and iOS and using the User Agents, you won&apos;t see any pop-up, but if you do, close it, click <strong>I couldn&apos;t complete</strong>, click Others and write &quot;Facebook Popup error.&quot; You&apos;ll need to click on the <strong>Learn More</strong> button, if you don&apos;t see it, scroll down and it will be visible.
                 Continue your work like normal.
               </p>
             </div>
@@ -339,7 +339,7 @@ export default function UserTasksPage() {
 
             {/* Submission Info */}
             <div className="text-sm text-gray-600">
-              If there is a recent link visit for your exit IP, we'll attach it; otherwise the submission is saved without a visit.
+              If there is a recent link visit for your exit IP, we&apos;ll attach it; otherwise the submission is saved without a visit.
             </div>
 
             {/* Submit Button */}

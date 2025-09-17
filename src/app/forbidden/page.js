@@ -24,7 +24,7 @@ export default function ForbiddenPage() {
           <AlertCircle className="h-24 w-24 text-red-500 mx-auto" />
           <h1 className="text-4xl font-bold text-gray-900">Access Denied</h1>
           <p className="text-xl text-gray-600 max-w-md mx-auto">
-            You don't have permission to access this page. This area is restricted to administrators only.
+            You don&apos;t have permission to access this page. This area is restricted to administrators only.
           </p>
         </div>
         
