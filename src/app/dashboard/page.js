@@ -31,7 +31,7 @@ const quickDateRanges = [
 
 const permanentMetrics = [
   {
-    title: "Permanent Viewers",
+    title: "Viewers",
     icon: Users,
     metrics: {
       activeWorkers: 2,
@@ -42,7 +42,7 @@ const permanentMetrics = [
     }
   },
   {
-    title: "Permanent Clickers",
+    title: "Clickers",
     icon: MousePointer,
     metrics: {
       activeWorkers: 3,
@@ -56,7 +56,7 @@ const permanentMetrics = [
 
 const traineeMetrics = [
   {
-    title: "Trainee Viewers",
+    title: "Viewers",
     icon: Users,
     metrics: {
       activeWorkers: 2,
@@ -67,7 +67,7 @@ const traineeMetrics = [
     }
   },
   {
-    title: "Trainee Clickers",
+    title: "Clickers",
     icon: MousePointer,
     metrics: {
       activeWorkers: 1,
@@ -545,26 +545,35 @@ export default function DashboardPage() {
                     <item.icon className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                 <CardContent>
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Active workers:</span>
-                      <span className="font-medium">{item.metrics.activeWorkers}</span>
+                  <div className="grid grid-cols-2 gap-4">
+                    {/* Active Workers */}
+                    <div className="text-center">
+                      <div className="text-3xl font-bold text-blue-600 mb-1">{item.metrics.activeWorkers}</div>
+                      <div className="text-sm text-muted-foreground font-medium">Active Workers</div>
                     </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Total clicks:</span>
-                      <span className="font-medium">{item.metrics.totalClicks}</span>
+                    
+                    {/* Total Clicks */}
+                    <div className="text-center">
+                      <div className="text-4xl font-bold text-gray-900 mb-1">{item.metrics.totalClicks.toLocaleString()}</div>
+                      <div className="text-sm text-muted-foreground font-medium">Total Clicks</div>
                     </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Good clicks:</span>
-                      <span className="font-medium text-green-600">{item.metrics.goodClicks}</span>
+                    
+                    {/* Good Clicks */}
+                    <div className="text-center">
+                      <div className="text-3xl font-bold text-green-600 mb-1">{item.metrics.goodClicks.toLocaleString()}</div>
+                      <div className="text-sm text-muted-foreground font-medium">Good Clicks</div>
                     </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Bad clicks:</span>
-                      <span className="font-medium text-red-600">{item.metrics.badClicks}</span>
+                    
+                    {/* Bad Clicks */}
+                    <div className="text-center">
+                      <div className="text-3xl font-bold text-red-600 mb-1">{item.metrics.badClicks.toLocaleString()}</div>
+                      <div className="text-sm text-muted-foreground font-medium">Bad Clicks</div>
                     </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Form fills:</span>
-                      <span className="font-medium">{item.metrics.formFills}</span>
+                    
+                    {/* Form Fills - spans full width */}
+                    <div className="text-center col-span-2">
+                      <div className="text-3xl font-bold text-purple-600 mb-1">{item.metrics.formFills}</div>
+                      <div className="text-sm text-muted-foreground font-medium">Form Fills</div>
                     </div>
                   </div>
                   <div className="mt-4 pt-4 border-t">
@@ -594,26 +603,35 @@ export default function DashboardPage() {
                     <item.icon className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                 <CardContent>
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Active workers:</span>
-                      <span className="font-medium">{item.metrics.activeWorkers}</span>
+                  <div className="grid grid-cols-2 gap-4">
+                    {/* Active Workers */}
+                    <div className="text-center">
+                      <div className="text-3xl font-bold text-blue-600 mb-1">{item.metrics.activeWorkers}</div>
+                      <div className="text-sm text-muted-foreground font-medium">Active Workers</div>
                     </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Total clicks:</span>
-                      <span className="font-medium">{item.metrics.totalClicks}</span>
+                    
+                    {/* Total Clicks */}
+                    <div className="text-center">
+                      <div className="text-4xl font-bold text-gray-900 mb-1">{item.metrics.totalClicks.toLocaleString()}</div>
+                      <div className="text-sm text-muted-foreground font-medium">Total Clicks</div>
                     </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Good clicks:</span>
-                      <span className="font-medium text-green-600">{item.metrics.goodClicks}</span>
+                    
+                    {/* Good Clicks */}
+                    <div className="text-center">
+                      <div className="text-3xl font-bold text-green-600 mb-1">{item.metrics.goodClicks.toLocaleString()}</div>
+                      <div className="text-sm text-muted-foreground font-medium">Good Clicks</div>
                     </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Bad clicks:</span>
-                      <span className="font-medium text-red-600">{item.metrics.badClicks}</span>
+                    
+                    {/* Bad Clicks */}
+                    <div className="text-center">
+                      <div className="text-3xl font-bold text-red-600 mb-1">{item.metrics.badClicks.toLocaleString()}</div>
+                      <div className="text-sm text-muted-foreground font-medium">Bad Clicks</div>
                     </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Form fills:</span>
-                      <span className="font-medium">{item.metrics.formFills}</span>
+                    
+                    {/* Form Fills - spans full width */}
+                    <div className="text-center col-span-2">
+                      <div className="text-3xl font-bold text-purple-600 mb-1">{item.metrics.formFills}</div>
+                      <div className="text-sm text-muted-foreground font-medium">Form Fills</div>
                     </div>
                   </div>
                   <div className="mt-4 pt-4 border-t">
