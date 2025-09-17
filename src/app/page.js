@@ -12,7 +12,12 @@ export default function Home() {
   useEffect(() => {
     if (!loading) {
       if (user) {
-        router.push("/dashboard");
+        // Redirect based on user role
+        if (user.role === "admin") {
+          router.push("/dashboard");
+        } else if (user.role === "user") {
+          router.push("/user-dashboard");
+        }
       } else {
         router.push("/login");
       }

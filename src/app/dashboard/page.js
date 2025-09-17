@@ -29,55 +29,75 @@ const quickDateRanges = [
   "All Time"
 ];
 
-const permanentMetrics = [
-  {
-    title: "Viewers",
-    icon: Users,
-    metrics: {
-      activeWorkers: 2,
-      totalClicks: 1250,
-      goodClicks: 1100,
-      badClicks: 150,
-      formFills: 45
-    }
-  },
-  {
-    title: "Clickers",
-    icon: MousePointer,
-    metrics: {
-      activeWorkers: 3,
-      totalClicks: 2100,
-      goodClicks: 1850,
-      badClicks: 250,
-      formFills: 78
-    }
-  }
-];
+// Function to get metrics based on date range
+const getMetricsForRange = (selectedRange) => {
+  const rangeMultipliers = {
+    "Today": 1,
+    "Yesterday": 0.8,
+    "Last 7 Days": 1.2,
+    "Last 14 Days": 1.5,
+    "Last 30 Days": 2,
+    "Last 60 Days": 2.5,
+    "Last 90 Days": 3,
+    "This Month": 1.8,
+    "Last Month": 1.6,
+    "All Time": 3.5
+  };
 
-const traineeMetrics = [
-  {
-    title: "Viewers",
-    icon: Users,
-    metrics: {
-      activeWorkers: 2,
-      totalClicks: 450,
-      goodClicks: 380,
-      badClicks: 70,
-      formFills: 12
+  const multiplier = rangeMultipliers[selectedRange] || 1;
+
+  const permanentMetrics = [
+    {
+      title: "Viewers",
+      icon: Users,
+      metrics: {
+        activeWorkers: 2,
+        totalClicks: Math.floor(1250 * multiplier),
+        goodClicks: Math.floor(1100 * multiplier),
+        badClicks: Math.floor(150 * multiplier),
+        formFills: Math.floor(45 * multiplier)
+      }
+    },
+    {
+      title: "Clickers",
+      icon: MousePointer,
+      metrics: {
+        activeWorkers: 3,
+        totalClicks: Math.floor(2100 * multiplier),
+        goodClicks: Math.floor(1850 * multiplier),
+        badClicks: Math.floor(250 * multiplier),
+        formFills: Math.floor(78 * multiplier)
+      }
     }
-  },
-  {
-    title: "Clickers",
-    icon: MousePointer,
-    metrics: {
-      activeWorkers: 1,
-      totalClicks: 320,
-      goodClicks: 280,
-      badClicks: 40,
-      formFills: 8
+  ];
+
+  const traineeMetrics = [
+    {
+      title: "Viewers",
+      icon: Users,
+      metrics: {
+        activeWorkers: 2,
+        totalClicks: Math.floor(450 * multiplier),
+        goodClicks: Math.floor(380 * multiplier),
+        badClicks: Math.floor(70 * multiplier),
+        formFills: Math.floor(12 * multiplier)
+      }
+    },
+    {
+      title: "Clickers",
+      icon: MousePointer,
+      metrics: {
+        activeWorkers: 1,
+        totalClicks: Math.floor(320 * multiplier),
+        goodClicks: Math.floor(280 * multiplier),
+        badClicks: Math.floor(40 * multiplier),
+        formFills: Math.floor(8 * multiplier)
+      }
     }
-  }
-];
+  ];
+
+  return { permanentMetrics, traineeMetrics };
+};
 
 // Mock data for detailed worker views
 const permanentViewers = [
@@ -228,6 +248,10 @@ export default function DashboardPage() {
   const [detailedView, setDetailedView] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [pageSize, setPageSize] = useState("100");
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Get metrics based on selected range
+  const { permanentMetrics, traineeMetrics } = getMetricsForRange(selectedRange);
 
   const handleCardClick = (cardType) => {
     setDetailedView(cardType);
@@ -235,6 +259,86 @@ export default function DashboardPage() {
 
   const handleWorkerClick = (workerId) => {
     router.push(`/worker/${workerId}`);
+  };
+
+  const handleShowData = () => {
+    setIsLoading(true);
+    // Simulate API call
+    setTimeout(() => {
+      setIsLoading(false);
+    }, 1000);
+  };
+
+  const handleReset = () => {
+    setFromDate(new Date());
+    setToDate(new Date());
+    setSelectedRange("Today");
+  };
+
+  const handleQuickRange = (range) => {
+    setSelectedRange(range);
+    const today = new Date();
+    
+    switch (range) {
+      case "Today":
+        setFromDate(new Date(today));
+        setToDate(new Date(today));
+        break;
+      case "Yesterday":
+        const yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+        setFromDate(new Date(yesterday));
+        setToDate(new Date(yesterday));
+        break;
+      case "Last 7 Days":
+        const last7Days = new Date(today);
+        last7Days.setDate(last7Days.getDate() - 7);
+        setFromDate(last7Days);
+        setToDate(today);
+        break;
+      case "Last 14 Days":
+        const last14Days = new Date(today);
+        last14Days.setDate(last14Days.getDate() - 14);
+        setFromDate(last14Days);
+        setToDate(today);
+        break;
+      case "Last 30 Days":
+        const last30Days = new Date(today);
+        last30Days.setDate(last30Days.getDate() - 30);
+        setFromDate(last30Days);
+        setToDate(today);
+        break;
+      case "Last 60 Days":
+        const last60Days = new Date(today);
+        last60Days.setDate(last60Days.getDate() - 60);
+        setFromDate(last60Days);
+        setToDate(today);
+        break;
+      case "Last 90 Days":
+        const last90Days = new Date(today);
+        last90Days.setDate(last90Days.getDate() - 90);
+        setFromDate(last90Days);
+        setToDate(today);
+        break;
+      case "This Month":
+        const thisMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+        setFromDate(thisMonth);
+        setToDate(today);
+        break;
+      case "Last Month":
+        const lastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+        const lastMonthEnd = new Date(today.getFullYear(), today.getMonth(), 0);
+        setFromDate(lastMonth);
+        setToDate(lastMonthEnd);
+        break;
+      case "All Time":
+        const allTime = new Date(2024, 0, 1); // January 1, 2024
+        setFromDate(allTime);
+        setToDate(today);
+        break;
+      default:
+        break;
+    }
   };
 
   const getWorkerData = () => {
@@ -486,7 +590,7 @@ export default function DashboardPage() {
                 key={range}
                 variant={selectedRange === range ? "default" : "outline"}
                 size="sm"
-                onClick={() => setSelectedRange(range)}
+                onClick={() => handleQuickRange(range)}
                 className="text-xs"
               >
                 {range}
@@ -495,8 +599,10 @@ export default function DashboardPage() {
           </div>
 
           <div className="flex gap-2">
-            <Button>Show</Button>
-            <Button variant="outline">Reset</Button>
+            <Button onClick={handleShowData} disabled={isLoading}>
+              {isLoading ? "Loading..." : "Show"}
+            </Button>
+            <Button variant="outline" onClick={handleReset}>Reset</Button>
           </div>
         </CardContent>
       </Card>
