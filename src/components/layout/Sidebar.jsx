@@ -27,11 +27,7 @@ const navigation = [
     href: "/campaigns",
     icon: Target,
   },
-  {
-    name: "Create Campaign",
-    href: "/create-campaign",
-    icon: Plus,
-  },
+  
   {
     name: "Users",
     href: "/users",
