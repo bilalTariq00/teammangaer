@@ -2,13 +2,10 @@
 
 import React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import UserTabs from "./UserTabs";
+import UserTable from "./UserTable";
 
 const UserContent = ({
-  activeTab,
-  onTabChange,
-  permanentUsers,
-  traineeUsers,
+  filteredUsers,
   onEditUser,
   onDeleteUser,
   onWorkerClick
@@ -20,11 +17,8 @@ const UserContent = ({
         <CardDescription>Manage your team members and their permissions</CardDescription>
       </CardHeader>
       <CardContent className="p-0 h-full">
-        <UserTabs
-          activeTab={activeTab}
-          onTabChange={onTabChange}
-          permanentUsers={permanentUsers}
-          traineeUsers={traineeUsers}
+        <UserTable
+          users={filteredUsers}
           onEditUser={onEditUser}
           onDeleteUser={onDeleteUser}
           onWorkerClick={onWorkerClick}

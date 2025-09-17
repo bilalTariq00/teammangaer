@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, Search, Edit, Ban, ExternalLink } from "lucide-react";
+import { Plus, Search, Edit, Ban, ExternalLink, Trash2, AlertTriangle } from "lucide-react";
 
 const mockLinks = [
   {
@@ -95,14 +95,25 @@ export default function LinksPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedLinks, setSelectedLinks] = useState([]);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [editingLink, setEditingLink] = useState(null);
+  const [deletingLink, setDeletingLink] = useState(null);
+  const [links, setLinks] = useState(mockLinks);
   const [newLink, setNewLink] = useState({
     destination: "",
     worker: "",
     country: "US",
     min: ""
   });
+  const [editLink, setEditLink] = useState({
+    destination: "",
+    worker: "",
+    country: "US",
+    min: ""
+  });
 
-  const filteredLinks = mockLinks.filter(link =>
+  const filteredLinks = links.filter(link =>
     link.slug.toLowerCase().includes(searchTerm.toLowerCase()) ||
     link.worker.toLowerCase().includes(searchTerm.toLowerCase()) ||
     link.workerEmail.toLowerCase().includes(searchTerm.toLowerCase())
@@ -125,8 +136,25 @@ export default function LinksPage() {
   };
 
   const handleCreateLink = () => {
-    // Handle link creation logic here
-    console.log("Creating link:", newLink);
+    // Generate a new slug and create the link
+    const newSlug = Math.random().toString(36).substring(2, 12).toUpperCase();
+    const newLinkData = {
+      id: Math.max(...links.map(link => link.id)) + 1,
+      slug: newSlug,
+      publicUrl: `/I/${newSlug}`,
+      destination: newLink.destination,
+      worker: newLink.worker,
+      workerEmail: `${newLink.worker.toLowerCase().replace(/\s+/g, '')}@joyapps.net`,
+      country: newLink.country,
+      ip: "Yes",
+      min: newLink.min || "—",
+      status: "active",
+      allowed: 0,
+      blocked: 0,
+      created: new Date().toISOString().slice(0, 19).replace('T', ' ')
+    };
+    
+    setLinks([...links, newLinkData]);
     setIsCreateDialogOpen(false);
     setNewLink({
       destination: "",
@@ -134,6 +162,54 @@ export default function LinksPage() {
       country: "US",
       min: ""
     });
+  };
+
+  const handleEditLink = (link) => {
+    setEditingLink(link);
+    setEditLink({
+      destination: link.destination,
+      worker: link.worker,
+      country: link.country,
+      min: link.min
+    });
+    setIsEditDialogOpen(true);
+  };
+
+  const handleUpdateLink = () => {
+    // Update the link in the state
+    setLinks(links.map(link => 
+      link.id === editingLink.id 
+        ? {
+            ...link,
+            destination: editLink.destination,
+            worker: editLink.worker,
+            workerEmail: `${editLink.worker.toLowerCase().replace(/\s+/g, '')}@joyapps.net`,
+            country: editLink.country,
+            min: editLink.min || "—"
+          }
+        : link
+    ));
+    
+    setIsEditDialogOpen(false);
+    setEditingLink(null);
+    setEditLink({
+      destination: "",
+      worker: "",
+      country: "US",
+      min: ""
+    });
+  };
+
+  const handleDeleteLink = (link) => {
+    setDeletingLink(link);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const confirmDeleteLink = () => {
+    // Remove the link from the state
+    setLinks(links.filter(link => link.id !== deletingLink.id));
+    setIsDeleteDialogOpen(false);
+    setDeletingLink(null);
   };
 
   return (
@@ -190,11 +266,11 @@ export default function LinksPage() {
                         <SelectValue placeholder="Select a worker" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="muhammad-shahood">Muhammad Shahood</SelectItem>
-                        <SelectItem value="abid">Abid</SelectItem>
-                        <SelectItem value="hassan">Hassan</SelectItem>
-                        <SelectItem value="zaim">Zaim</SelectItem>
-                        <SelectItem value="hamza-farid">Hamza Farid</SelectItem>
+                        <SelectItem value="Muhammad Shahood">Muhammad Shahood</SelectItem>
+                        <SelectItem value="Abid">Abid</SelectItem>
+                        <SelectItem value="Hassan">Hassan</SelectItem>
+                        <SelectItem value="Zaim">Zaim</SelectItem>
+                        <SelectItem value="Hamza Farid">Hamza Farid</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -235,6 +311,129 @@ export default function LinksPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Edit Link Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Link</DialogTitle>
+            <DialogDescription>
+              Update the tracking link configuration
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-destination">Destination URL</Label>
+              <Input
+                id="edit-destination"
+                value={editLink.destination}
+                onChange={(e) => setEditLink({...editLink, destination: e.target.value})}
+                placeholder="https://example.com"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-worker">Worker</Label>
+              <Select value={editLink.worker} onValueChange={(value) => setEditLink({...editLink, worker: value})}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a worker" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Muhammad Shahood">Muhammad Shahood</SelectItem>
+                  <SelectItem value="Abid">Abid</SelectItem>
+                  <SelectItem value="Hassan">Hassan</SelectItem>
+                  <SelectItem value="Zaim">Zaim</SelectItem>
+                  <SelectItem value="Hamza Farid">Hamza Farid</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-country">Country</Label>
+              <Select value={editLink.country} onValueChange={(value) => setEditLink({...editLink, country: value})}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="US">US</SelectItem>
+                  <SelectItem value="CA">CA</SelectItem>
+                  <SelectItem value="UK">UK</SelectItem>
+                  <SelectItem value="AU">AU</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-min">Min (minutes)</Label>
+              <Input
+                id="edit-min"
+                value={editLink.min}
+                onChange={(e) => setEditLink({...editLink, min: e.target.value})}
+                placeholder="3"
+              />
+            </div>
+            <div className="flex justify-end gap-2 pt-4">
+              <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleUpdateLink}>
+                Update Link
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-red-500" />
+              Delete Link
+            </DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this tracking link? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          {deletingLink && (
+            <div className="space-y-4">
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="font-medium">Slug:</span>
+                    <span className="text-sm">{deletingLink.slug}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="font-medium">Worker:</span>
+                    <span className="text-sm">{deletingLink.worker}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="font-medium">Country:</span>
+                    <span className="text-sm">{deletingLink.country}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="font-medium">Status:</span>
+                    <Badge variant="default" className="bg-green-500 text-xs">
+                      {deletingLink.status}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+              <div className="flex justify-end gap-2 pt-4">
+                <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button 
+                  variant="destructive" 
+                  onClick={confirmDeleteLink}
+                  className="bg-red-600 hover:bg-red-700"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete Link
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Links Table */}
       <Card>
@@ -315,11 +514,20 @@ export default function LinksPage() {
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-2">
-                      <Button variant="outline" size="sm">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleEditLink(link)}
+                      >
                         <Edit className="h-4 w-4" />
                       </Button>
-                      <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700">
-                        <Ban className="h-4 w-4" />
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="text-red-600 hover:text-red-700"
+                        onClick={() => handleDeleteLink(link)}
+                      >
+                        <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
                   </TableCell>

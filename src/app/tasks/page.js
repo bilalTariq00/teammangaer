@@ -10,7 +10,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Eye, Edit, Ban } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Eye, Edit, Ban, Trash2, AlertTriangle } from "lucide-react";
 
 const mockTaskers = [
   {
@@ -34,7 +35,20 @@ const mockTaskers = [
 ];
 
 export default function TasksPage() {
+  const [taskers, setTaskers] = useState(mockTaskers);
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [viewingTasker, setViewingTasker] = useState(null);
+  const [editingTasker, setEditingTasker] = useState(null);
+  const [deletingTasker, setDeletingTasker] = useState(null);
   const [newTasker, setNewTasker] = useState({
+    title: "",
+    slug: "",
+    content: "",
+    screenshot: false
+  });
+  const [editTasker, setEditTasker] = useState({
     title: "",
     slug: "",
     content: "",
@@ -42,8 +56,18 @@ export default function TasksPage() {
   });
 
   const handleCreateTasker = () => {
-    // Handle tasker creation logic here
-    console.log("Creating tasker:", newTasker);
+    // Create new tasker with generated data
+    const newTaskerData = {
+      id: Math.max(...taskers.map(tasker => tasker.id)) + 1,
+      title: newTasker.title,
+      slug: newTasker.slug || newTasker.title.toLowerCase().replace(/\s+/g, '-'),
+      screenshot: newTasker.screenshot,
+      status: "active",
+      created: new Date().toISOString().slice(0, 19).replace('T', ' '),
+      updated: new Date().toISOString().slice(0, 19).replace('T', ' ')
+    };
+    
+    setTaskers([...taskers, newTaskerData]);
     setNewTasker({
       title: "",
       slug: "",
@@ -55,6 +79,67 @@ export default function TasksPage() {
   const handleTitleChange = (title) => {
     setNewTasker({
       ...newTasker,
+      title,
+      slug: title.toLowerCase().replace(/\s+/g, '-')
+    });
+  };
+
+  const handleViewTasker = (tasker) => {
+    setViewingTasker(tasker);
+    setIsViewDialogOpen(true);
+  };
+
+  const handleEditTasker = (tasker) => {
+    setEditingTasker(tasker);
+    setEditTasker({
+      title: tasker.title,
+      slug: tasker.slug,
+      content: tasker.content || "",
+      screenshot: tasker.screenshot
+    });
+    setIsEditDialogOpen(true);
+  };
+
+  const handleUpdateTasker = () => {
+    // Update the tasker in the state
+    setTaskers(taskers.map(tasker => 
+      tasker.id === editingTasker.id 
+        ? {
+            ...tasker,
+            title: editTasker.title,
+            slug: editTasker.slug || editTasker.title.toLowerCase().replace(/\s+/g, '-'),
+            content: editTasker.content,
+            screenshot: editTasker.screenshot,
+            updated: new Date().toISOString().slice(0, 19).replace('T', ' ')
+          }
+        : tasker
+    ));
+    
+    setIsEditDialogOpen(false);
+    setEditingTasker(null);
+    setEditTasker({
+      title: "",
+      slug: "",
+      content: "",
+      screenshot: false
+    });
+  };
+
+  const handleDeleteTasker = (tasker) => {
+    setDeletingTasker(tasker);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const confirmDeleteTasker = () => {
+    // Remove the tasker from the state
+    setTaskers(taskers.filter(tasker => tasker.id !== deletingTasker.id));
+    setIsDeleteDialogOpen(false);
+    setDeletingTasker(null);
+  };
+
+  const handleEditTitleChange = (title) => {
+    setEditTasker({
+      ...editTasker,
       title,
       slug: title.toLowerCase().replace(/\s+/g, '-')
     });
@@ -175,7 +260,7 @@ export default function TasksPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {mockTaskers.map((tasker) => (
+                {taskers.map((tasker) => (
                   <TableRow key={tasker.id}>
                     <TableCell>
                       <div>
@@ -201,14 +286,27 @@ export default function TasksPage() {
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-2">
-                        <Button variant="outline" size="sm">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleViewTasker(tasker)}
+                        >
                           <Eye className="h-4 w-4" />
                         </Button>
-                        <Button variant="outline" size="sm">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleEditTasker(tasker)}
+                        >
                           <Edit className="h-4 w-4" />
                         </Button>
-                        <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700">
-                          <Ban className="h-4 w-4" />
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="text-red-600 hover:text-red-700"
+                          onClick={() => handleDeleteTasker(tasker)}
+                        >
+                          <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
                     </TableCell>
@@ -219,6 +317,208 @@ export default function TasksPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* View Tasker Dialog */}
+      <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>View Tasker</DialogTitle>
+            <DialogDescription>
+              Tasker details and content
+            </DialogDescription>
+          </DialogHeader>
+          {viewingTasker && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-sm font-medium">Title</Label>
+                  <p className="text-sm text-muted-foreground">{viewingTasker.title}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium">Slug</Label>
+                  <p className="text-sm text-muted-foreground">{viewingTasker.slug}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium">Screenshot Required</Label>
+                  <Badge variant={viewingTasker.screenshot ? "default" : "secondary"}>
+                    {viewingTasker.screenshot ? "Yes" : "No"}
+                  </Badge>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium">Status</Label>
+                  <Badge variant="default" className="bg-green-500">
+                    {viewingTasker.status}
+                  </Badge>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium">Created</Label>
+                  <p className="text-sm text-muted-foreground">{viewingTasker.created}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium">Updated</Label>
+                  <p className="text-sm text-muted-foreground">{viewingTasker.updated}</p>
+                </div>
+              </div>
+              {viewingTasker.content && (
+                <div>
+                  <Label className="text-sm font-medium">Content</Label>
+                  <div className="mt-2 p-4 bg-gray-50 rounded-md">
+                    <pre className="text-sm whitespace-pre-wrap">{viewingTasker.content}</pre>
+                  </div>
+                </div>
+              )}
+              <div className="flex justify-end">
+                <Button variant="outline" onClick={() => setIsViewDialogOpen(false)}>
+                  Close
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Tasker Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Edit Tasker</DialogTitle>
+            <DialogDescription>
+              Update the tasker configuration
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-title">Title</Label>
+              <Input
+                id="edit-title"
+                value={editTasker.title}
+                onChange={(e) => handleEditTitleChange(e.target.value)}
+                placeholder="Enter tasker title"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="edit-slug">Slug (optional)</Label>
+              <Input
+                id="edit-slug"
+                value={editTasker.slug}
+                onChange={(e) => setEditTasker({...editTasker, slug: e.target.value})}
+                placeholder="auto from title if empty"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="edit-content">Tasker Content</Label>
+              <div className="border rounded-md">
+                <div className="flex items-center gap-2 p-2 border-b bg-gray-50">
+                  <Button variant="ghost" size="sm">
+                    <span className="text-sm">↶</span>
+                  </Button>
+                  <Button variant="ghost" size="sm">
+                    <span className="text-sm">↷</span>
+                  </Button>
+                  <div className="w-px h-4 bg-gray-300" />
+                  <Button variant="ghost" size="sm">
+                    <span className="font-bold text-sm">B</span>
+                  </Button>
+                  <Button variant="ghost" size="sm">
+                    <span className="italic text-sm">I</span>
+                  </Button>
+                  <Button variant="ghost" size="sm">
+                    <span className="underline text-sm">U</span>
+                  </Button>
+                  <Button variant="ghost" size="sm">
+                    <span className="text-sm">⋯</span>
+                  </Button>
+                </div>
+                <Textarea
+                  id="edit-content"
+                  value={editTasker.content}
+                  onChange={(e) => setEditTasker({...editTasker, content: e.target.value})}
+                  placeholder="Enter tasker content..."
+                  className="min-h-[200px] border-0 resize-none"
+                />
+              </div>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="edit-screenshot"
+                checked={editTasker.screenshot}
+                onCheckedChange={(checked) => setEditTasker({...editTasker, screenshot: checked})}
+              />
+              <Label htmlFor="edit-screenshot" className="text-sm">
+                Ask workers to upload a screenshot on completion
+              </Label>
+            </div>
+            
+            <div className="flex justify-end gap-2 pt-4">
+              <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleUpdateTasker}>
+                Update Tasker
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-red-500" />
+              Delete Tasker
+            </DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this tasker? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          {deletingTasker && (
+            <div className="space-y-4">
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="font-medium">Title:</span>
+                    <span className="text-sm">{deletingTasker.title}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="font-medium">Slug:</span>
+                    <span className="text-sm">{deletingTasker.slug}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="font-medium">Screenshot:</span>
+                    <Badge variant={deletingTasker.screenshot ? "default" : "secondary"} className="text-xs">
+                      {deletingTasker.screenshot ? "Yes" : "No"}
+                    </Badge>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="font-medium">Status:</span>
+                    <Badge variant="default" className="bg-green-500 text-xs">
+                      {deletingTasker.status}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+              <div className="flex justify-end gap-2 pt-4">
+                <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button 
+                  variant="destructive" 
+                  onClick={confirmDeleteTasker}
+                  className="bg-red-600 hover:bg-red-700"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete Tasker
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
       </div>
     </MainLayout>
   );

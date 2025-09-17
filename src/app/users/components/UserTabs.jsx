@@ -15,11 +15,11 @@ const UserTabs = ({
 }) => {
   return (
     <Tabs value={activeTab} onValueChange={onTabChange} className="h-full flex flex-col">
-      <div className="px-6 pt-2 pb-4 border-b bg-gray-50">
+      <div className="px-6 pt-2 pb-4 border-b bg-gray-50 flex  justify-between">
         <div className="flex items-center justify-between mb-2">
-          <div className="text-sm text-gray-600">
+          {/* <div className="text-sm text-gray-600">
             Active Tab: <span className="font-semibold text-blue-600">{activeTab}</span>
-          </div>
+          </div> */}
           <div className="text-sm text-gray-500">
             {activeTab === "permanent" ? permanentUsers.length : traineeUsers.length} users
           </div>

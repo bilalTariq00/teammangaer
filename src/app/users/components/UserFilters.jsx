@@ -10,7 +10,9 @@ const UserFilters = ({
   searchTerm, 
   onSearchChange, 
   pageSize, 
-  onPageSizeChange 
+  onPageSizeChange,
+  statusFilter,
+  onStatusFilterChange
 }) => {
   // Helper function to ensure Select values are never empty strings
   const getSafeSelectValue = (value, fallback) => {
@@ -30,6 +32,22 @@ const UserFilters = ({
           onChange={onSearchChange}
           className="pl-10"
         />
+      </div>
+      <div className="flex items-center gap-2">
+        <Label htmlFor="status-filter">Status</Label>
+        <Select 
+          value={getSafeSelectValue(statusFilter, "all")} 
+          onValueChange={(value) => onStatusFilterChange(getSafeSelectValue(value, "all"))}
+        >
+          <SelectTrigger className="w-32">
+            <SelectValue placeholder="All users" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Users</SelectItem>
+            <SelectItem value="permanent">Permanent</SelectItem>
+            <SelectItem value="trainee">Trainee</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
       <div className="flex items-center gap-2">
         <Label htmlFor="page-size">Show</Label>

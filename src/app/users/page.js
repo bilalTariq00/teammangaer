@@ -82,7 +82,7 @@ export default function UsersPage() {
   const [editingUser, setEditingUser] = useState(null);
   const [userToDelete, setUserToDelete] = useState(null);
   const [users, setUsers] = useState(mockUsers);
-  const [activeTab, setActiveTab] = useState("permanent");
+  const [statusFilter, setStatusFilter] = useState("all");
   const [newUser, setNewUser] = useState({
     name: "",
     email: "admin_test_a52fcb@example.com",
@@ -109,13 +109,10 @@ export default function UsersPage() {
       user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.role.toLowerCase().includes(searchTerm.toLowerCase());
     
-    const matchesTab = activeTab === "permanent" ? user.status === "permanent" : user.status === "trainee";
+    const matchesStatus = statusFilter === "all" || user.status === statusFilter;
     
-    return matchesSearch && matchesTab;
+    return matchesSearch && matchesStatus;
   });
-
-  const permanentUsers = users.filter(user => user.status === "permanent");
-  const traineeUsers = users.filter(user => user.status === "trainee");
 
   const handleCreateUser = () => {
     const newId = Math.max(...users.map(u => u.id)) + 1;
@@ -144,7 +141,14 @@ export default function UsersPage() {
   };
 
   const handleEditUser = (user) => {
-    setEditingUser({...user});
+    // Map the display values back to select values for the edit form
+    const editUser = {
+      ...user,
+      defaultTasker: user.defaultTasker === "— none —" ? "none" : 
+                    user.defaultTasker === "Tasker Click" ? "tasker-click" : 
+                    user.defaultTasker === "Tasker Views" ? "tasker-views" : "none"
+    };
+    setEditingUser(editUser);
     setIsEditDialogOpen(true);
   };
 
@@ -202,6 +206,8 @@ export default function UsersPage() {
           onSearchChange={(e) => setSearchTerm(e.target.value)}
           pageSize={pageSize}
           onPageSizeChange={setPageSize}
+          statusFilter={statusFilter}
+          onStatusFilterChange={setStatusFilter}
           isCreateDialogOpen={isCreateDialogOpen}
           setIsCreateDialogOpen={setIsCreateDialogOpen}
           isEditDialogOpen={isEditDialogOpen}
@@ -219,10 +225,7 @@ export default function UsersPage() {
         />
 
         <UserContent
-          activeTab={activeTab}
-          onTabChange={setActiveTab}
-          permanentUsers={permanentUsers}
-          traineeUsers={traineeUsers}
+          filteredUsers={filteredUsers}
           onEditUser={handleEditUser}
           onDeleteUser={handleDeleteUser}
           onWorkerClick={handleWorkerClick}

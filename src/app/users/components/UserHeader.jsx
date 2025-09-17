@@ -10,6 +10,8 @@ const UserHeader = ({
   onSearchChange,
   pageSize,
   onPageSizeChange,
+  statusFilter,
+  onStatusFilterChange,
   isCreateDialogOpen,
   setIsCreateDialogOpen,
   isEditDialogOpen,
@@ -61,6 +63,8 @@ const UserHeader = ({
             onSearchChange={onSearchChange}
             pageSize={pageSize}
             onPageSizeChange={onPageSizeChange}
+            statusFilter={statusFilter}
+            onStatusFilterChange={onStatusFilterChange}
           />
         </CardContent>
       </Card>
