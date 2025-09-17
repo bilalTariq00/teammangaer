@@ -11,7 +11,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Eye, Edit, Ban, Trash2, AlertTriangle } from "lucide-react";
+import { Eye, Edit, Ban, Trash2, AlertTriangle, Power, PowerOff } from "lucide-react";
 
 const mockTaskers = [
   {
@@ -38,10 +38,10 @@ export default function TasksPage() {
   const [taskers, setTaskers] = useState(mockTaskers);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isDeactivateDialogOpen, setIsDeactivateDialogOpen] = useState(false);
   const [viewingTasker, setViewingTasker] = useState(null);
   const [editingTasker, setEditingTasker] = useState(null);
-  const [deletingTasker, setDeletingTasker] = useState(null);
+  const [deactivatingTasker, setDeactivatingTasker] = useState(null);
   const [newTasker, setNewTasker] = useState({
     title: "",
     slug: "",
@@ -125,16 +125,29 @@ export default function TasksPage() {
     });
   };
 
-  const handleDeleteTasker = (tasker) => {
-    setDeletingTasker(tasker);
-    setIsDeleteDialogOpen(true);
+  const handleDeactivateTasker = (tasker) => {
+    setDeactivatingTasker(tasker);
+    setIsDeactivateDialogOpen(true);
   };
 
-  const confirmDeleteTasker = () => {
-    // Remove the tasker from the state
-    setTaskers(taskers.filter(tasker => tasker.id !== deletingTasker.id));
-    setIsDeleteDialogOpen(false);
-    setDeletingTasker(null);
+  const confirmDeactivateTasker = () => {
+    // Update the tasker status to inactive
+    setTaskers(taskers.map(tasker => 
+      tasker.id === deactivatingTasker.id 
+        ? { ...tasker, status: "inactive", updated: new Date().toISOString().slice(0, 19).replace('T', ' ') }
+        : tasker
+    ));
+    setIsDeactivateDialogOpen(false);
+    setDeactivatingTasker(null);
+  };
+
+  const handleReactivateTasker = (taskerToReactivate) => {
+    // Reactivate the tasker
+    setTaskers(taskers.map(tasker => 
+      tasker.id === taskerToReactivate.id 
+        ? { ...tasker, status: "active", updated: new Date().toISOString().slice(0, 19).replace('T', ' ') }
+        : tasker
+    ));
   };
 
   const handleEditTitleChange = (title) => {
@@ -274,7 +287,10 @@ export default function TasksPage() {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="default" className="bg-green-500">
+                      <Badge 
+                        variant={tasker.status === "active" ? "default" : "secondary"}
+                        className={tasker.status === "active" ? "bg-green-500" : "bg-gray-500"}
+                      >
                         {tasker.status}
                       </Badge>
                     </TableCell>
@@ -290,6 +306,7 @@ export default function TasksPage() {
                           variant="outline" 
                           size="sm"
                           onClick={() => handleViewTasker(tasker)}
+                          title="View Tasker"
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
@@ -297,17 +314,31 @@ export default function TasksPage() {
                           variant="outline" 
                           size="sm"
                           onClick={() => handleEditTasker(tasker)}
+                          title="Edit Tasker"
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          className="text-red-600 hover:text-red-700"
-                          onClick={() => handleDeleteTasker(tasker)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        {tasker.status === "active" ? (
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="text-orange-600 hover:text-orange-700"
+                            onClick={() => handleDeactivateTasker(tasker)}
+                            title="Deactivate Tasker"
+                          >
+                            <PowerOff className="h-4 w-4" />
+                          </Button>
+                        ) : (
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="text-green-600 hover:text-green-700"
+                            onClick={() => handleReactivateTasker(tasker)}
+                            title="Reactivate Tasker"
+                          >
+                            <Power className="h-4 w-4" />
+                          </Button>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
@@ -464,55 +495,55 @@ export default function TasksPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+      {/* Deactivate Confirmation Dialog */}
+      <Dialog open={isDeactivateDialogOpen} onOpenChange={setIsDeactivateDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-red-500" />
-              Delete Tasker
+              <AlertTriangle className="h-5 w-5 text-orange-500" />
+              Deactivate Tasker
             </DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete this tasker? This action cannot be undone.
+              Are you sure you want to deactivate this tasker? You can reactivate it later if needed.
             </DialogDescription>
           </DialogHeader>
-          {deletingTasker && (
+          {deactivatingTasker && (
             <div className="space-y-4">
               <div className="bg-gray-50 p-4 rounded-lg">
                 <div className="space-y-2">
                   <div className="flex justify-between">
                     <span className="font-medium">Title:</span>
-                    <span className="text-sm">{deletingTasker.title}</span>
+                    <span className="text-sm">{deactivatingTasker.title}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="font-medium">Slug:</span>
-                    <span className="text-sm">{deletingTasker.slug}</span>
+                    <span className="text-sm">{deactivatingTasker.slug}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="font-medium">Screenshot:</span>
-                    <Badge variant={deletingTasker.screenshot ? "default" : "secondary"} className="text-xs">
-                      {deletingTasker.screenshot ? "Yes" : "No"}
+                    <Badge variant={deactivatingTasker.screenshot ? "default" : "secondary"} className="text-xs">
+                      {deactivatingTasker.screenshot ? "Yes" : "No"}
                     </Badge>
                   </div>
                   <div className="flex justify-between">
                     <span className="font-medium">Status:</span>
                     <Badge variant="default" className="bg-green-500 text-xs">
-                      {deletingTasker.status}
+                      {deactivatingTasker.status}
                     </Badge>
                   </div>
                 </div>
               </div>
               <div className="flex justify-end gap-2 pt-4">
-                <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
+                <Button variant="outline" onClick={() => setIsDeactivateDialogOpen(false)}>
                   Cancel
                 </Button>
                 <Button 
                   variant="destructive" 
-                  onClick={confirmDeleteTasker}
-                  className="bg-red-600 hover:bg-red-700"
+                  onClick={confirmDeactivateTasker}
+                  className="bg-orange-600 hover:bg-orange-700"
                 >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Delete Tasker
+                  <PowerOff className="h-4 w-4 mr-2" />
+                  Deactivate Tasker
                 </Button>
               </div>
             </div>
