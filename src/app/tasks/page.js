@@ -18,6 +18,7 @@ const mockTaskers = [
     id: 1,
     title: "Tasker Views",
     slug: "tasker-views",
+    content: "**How to Add User Agents To Ads Power:** https://youtu.be/mfbiD0Gjhl8\n\n• **If you are working on Android, use Android User Agents, If you are using iOS, use iPhone User Agents**\n\nPlease open or copy paste this link in your browser to get the list of user agents you'll be using for iOS and Android profiles.\nhttps://docs.google.com/spreadsheets/d/1xoKRqP0e3wW_iTWU-nqG1PcBk8_ILLj3m-_K-Hm8kfs/edit?usp=drivesdk\n\n• **Among the 200 target, you'll work on 120 iOS profiles, 40 Android profiles and 40 windows/mac profiles.**\n\n**Steps for Ads Power:**\n• You'll choose the iOS or Android and copy the user agent from the sheet and paste it in ads power.\n• Check your profile settings and click on OK to create a profile.\n• Copy the tracking link from above and open Ads Power and paste that link.\n• It will do some checks and take you to a Facebook Page. If you are working on Android and iOS and using the User Agents, you won't see any pop-up, but if you do, close it, click **I couldn't complete**, click Others and write \"Facebook Popup error.\" You'll need to click on the **Learn More** button, if you don't see it, scroll down and it will be visible.\n• Continue your work like normal.",
     screenshot: false,
     status: "active",
     created: "2025-08-22 20:29:07",
@@ -27,6 +28,7 @@ const mockTaskers = [
     id: 2,
     title: "Tasker Click",
     slug: "tasker-click",
+    content: "**How to Add User Agents To Ads Power:** https://youtu.be/mfbiD0Gjhl8\n\n• **If you are working on Android, use Android User Agents, If you are using iOS, use iPhone User Agents**\n\nPlease open or copy paste this link in your browser to get the list of user agents you'll be using for iOS and Android profiles.\nhttps://docs.google.com/spreadsheets/d/1xoKRqP0e3wW_iTWU-nqG1PcBk8_ILLj3m-_K-Hm8kfs/edit?usp=drivesdk\n\n• **Among the 200 target, you'll work on 120 iOS profiles, 40 Android profiles and 40 windows/mac profiles.**\n\n**Steps for Ads Power:**\n• You'll choose the iOS or Android and copy the user agent from the sheet and paste it in ads power.\n• Check your profile settings and click on OK to create a profile.\n• Copy the tracking link from above and open Ads Power and paste that link.\n• It will do some checks and take you to a Facebook Page. If you are working on Android and iOS and using the User Agents, you won't see any pop-up, but if you do, close it, click **I couldn't complete**, click Others and write \"Facebook Popup error.\" You'll need to click on the **Learn More** button, if you don't see it, scroll down and it will be visible.\n• Continue your work like normal.",
     screenshot: true,
     status: "active",
     created: "2025-08-21 16:35:37",
@@ -351,54 +353,86 @@ export default function TasksPage() {
 
       {/* View Tasker Dialog */}
       <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
-        <DialogContent className="sm:max-w-2xl">
+        <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>View Tasker</DialogTitle>
-            <DialogDescription>
-              Tasker details and content
-            </DialogDescription>
+            <DialogTitle className="flex items-center gap-2">
+              Preview · {viewingTasker?.title}
+            </DialogTitle>
           </DialogHeader>
           {viewingTasker && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label className="text-sm font-medium">Title</Label>
-                  <p className="text-sm text-muted-foreground">{viewingTasker.title}</p>
+            <div className="space-y-6">
+              {/* Tasker Metadata */}
+              <div className="flex items-center gap-4 text-sm">
+                <div className="flex items-center gap-2">
+                  <span className="text-muted-foreground">Slug:</span>
+                  <span className="font-mono text-pink-600">{viewingTasker.slug}</span>
                 </div>
-                <div>
-                  <Label className="text-sm font-medium">Slug</Label>
-                  <p className="text-sm text-muted-foreground">{viewingTasker.slug}</p>
+                <div className="flex items-center gap-2">
+                  <span className="text-muted-foreground">Status:</span>
+                  <Badge 
+                    variant={viewingTasker.status === "active" ? "default" : "secondary"}
+                    className={viewingTasker.status === "active" ? "bg-green-500" : "bg-gray-500"}
+                  >
+                    {viewingTasker.status}
+                  </Badge>
                 </div>
-                <div>
-                  <Label className="text-sm font-medium">Screenshot Required</Label>
+                <div className="flex items-center gap-2">
+                  <span className="text-muted-foreground">Screenshot required on completion:</span>
                   <Badge variant={viewingTasker.screenshot ? "default" : "secondary"}>
                     {viewingTasker.screenshot ? "Yes" : "No"}
                   </Badge>
                 </div>
-                <div>
-                  <Label className="text-sm font-medium">Status</Label>
-                  <Badge variant="default" className="bg-green-500">
-                    {viewingTasker.status}
-                  </Badge>
-                </div>
-                <div>
-                  <Label className="text-sm font-medium">Created</Label>
-                  <p className="text-sm text-muted-foreground">{viewingTasker.created}</p>
-                </div>
-                <div>
-                  <Label className="text-sm font-medium">Updated</Label>
-                  <p className="text-sm text-muted-foreground">{viewingTasker.updated}</p>
-                </div>
               </div>
+
+              {/* Tasker Content */}
               {viewingTasker.content && (
-                <div>
-                  <Label className="text-sm font-medium">Content</Label>
-                  <div className="mt-2 p-4 bg-gray-50 rounded-md">
-                    <pre className="text-sm whitespace-pre-wrap">{viewingTasker.content}</pre>
+                <div className="space-y-4">
+                  <div className="prose prose-sm max-w-none">
+                    <div 
+                      className="text-sm leading-relaxed"
+                      dangerouslySetInnerHTML={{ 
+                        __html: (viewingTasker.content || '')
+                          .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                          .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                          .replace(/\n/g, '<br/>')
+                          .replace(/• /g, '• ')
+                      }}
+                    />
                   </div>
                 </div>
               )}
-              <div className="flex justify-end">
+
+              {/* Default Content if no custom content */}
+              {!viewingTasker.content && (
+                <div className="space-y-4">
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <h3 className="font-semibold text-sm mb-2">Default Instructions</h3>
+                    <div className="text-sm space-y-2">
+                      <p><strong>How to Add User Agents To Ads Power:</strong> <a href="https://youtu.be/mfbiD0Gjhl8" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">https://youtu.be/mfbiD0Gjhl8</a></p>
+                      
+                      <p><strong>• If you are working on Android, use Android User Agents, If you are using iOS, use iPhone User Agents</strong></p>
+                      
+                      <p>Please open or copy paste this link in your browser to get the list of user agents you&apos;ll be using for iOS and Android profiles.</p>
+                      <p><a href="https://docs.google.com/spreadsheets/d/1xoKRqP0e3wW_iTWU-nqG1PcBk8_ILLj3m-_K-Hm8kfs/edit?usp=drivesdk" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">https://docs.google.com/spreadsheets/d/1xoKRqP0e3wW_iTWU-nqG1PcBk8_ILLj3m-_K-Hm8kfs/edit?usp=drivesdk</a></p>
+                      
+                      <p><strong>• Among the 200 target, you&apos;ll work on 120 iOS profiles, 40 Android profiles and 40 windows/mac profiles.</strong></p>
+                      
+                      <div className="space-y-1">
+                        <p><strong>Steps for Ads Power:</strong></p>
+                        <ul className="list-disc list-inside ml-4 space-y-1">
+                          <li>You&apos;ll choose the iOS or Android and copy the user agent from the sheet and paste it in ads power.</li>
+                          <li>Check your profile settings and click on OK to create a profile.</li>
+                          <li>Copy the tracking link from above and open Ads Power and paste that link.</li>
+                          <li>It will do some checks and take you to a Facebook Page. If you are working on Android and iOS and using the User Agents, you won&apos;t see any pop-up, but if you do, close it, click <strong>I couldn&apos;t complete</strong>, click Others and write &quot;Facebook Popup error.&quot; You&apos;ll need to click on the <strong>Learn More</strong> button, if you don&apos;t see it, scroll down and it will be visible.</li>
+                          <li>Continue your work like normal.</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex justify-end pt-4 border-t">
                 <Button variant="outline" onClick={() => setIsViewDialogOpen(false)}>
                   Close
                 </Button>
@@ -410,87 +444,146 @@ export default function TasksPage() {
 
       {/* Edit Tasker Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="sm:max-w-2xl">
+        <DialogContent className="sm:max-w-6xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Edit Tasker</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              Edit Tasker · {editingTasker?.title}
+            </DialogTitle>
             <DialogDescription>
-              Update the tasker configuration
+              Update the tasker configuration and preview the content
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="edit-title">Title</Label>
-              <Input
-                id="edit-title"
-                value={editTasker.title}
-                onChange={(e) => handleEditTitleChange(e.target.value)}
-                placeholder="Enter tasker title"
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="edit-slug">Slug (optional)</Label>
-              <Input
-                id="edit-slug"
-                value={editTasker.slug}
-                onChange={(e) => setEditTasker({...editTasker, slug: e.target.value})}
-                placeholder="auto from title if empty"
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="edit-content">Tasker Content</Label>
-              <div className="border rounded-md">
-                <div className="flex items-center gap-2 p-2 border-b bg-gray-50">
-                  <Button variant="ghost" size="sm">
-                    <span className="text-sm">↶</span>
-                  </Button>
-                  <Button variant="ghost" size="sm">
-                    <span className="text-sm">↷</span>
-                  </Button>
-                  <div className="w-px h-4 bg-gray-300" />
-                  <Button variant="ghost" size="sm">
-                    <span className="font-bold text-sm">B</span>
-                  </Button>
-                  <Button variant="ghost" size="sm">
-                    <span className="italic text-sm">I</span>
-                  </Button>
-                  <Button variant="ghost" size="sm">
-                    <span className="underline text-sm">U</span>
-                  </Button>
-                  <Button variant="ghost" size="sm">
-                    <span className="text-sm">⋯</span>
-                  </Button>
-                </div>
-                <Textarea
-                  id="edit-content"
-                  value={editTasker.content}
-                  onChange={(e) => setEditTasker({...editTasker, content: e.target.value})}
-                  placeholder="Enter tasker content..."
-                  className="min-h-[200px] border-0 resize-none"
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Edit Form */}
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-title">Title</Label>
+                <Input
+                  id="edit-title"
+                  value={editTasker.title}
+                  onChange={(e) => handleEditTitleChange(e.target.value)}
+                  placeholder="Enter tasker title"
                 />
               </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="edit-slug">Slug (optional)</Label>
+                <Input
+                  id="edit-slug"
+                  value={editTasker.slug}
+                  onChange={(e) => setEditTasker({...editTasker, slug: e.target.value})}
+                  placeholder="auto from title if empty"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="edit-content">Tasker Content</Label>
+                <div className="border rounded-md">
+                  <div className="flex items-center gap-2 p-2 border-b bg-gray-50">
+                    <Button variant="ghost" size="sm">
+                      <span className="text-sm">↶</span>
+                    </Button>
+                    <Button variant="ghost" size="sm">
+                      <span className="text-sm">↷</span>
+                    </Button>
+                    <div className="w-px h-4 bg-gray-300" />
+                    <Button variant="ghost" size="sm">
+                      <span className="font-bold text-sm">B</span>
+                    </Button>
+                    <Button variant="ghost" size="sm">
+                      <span className="italic text-sm">I</span>
+                    </Button>
+                    <Button variant="ghost" size="sm">
+                      <span className="underline text-sm">U</span>
+                    </Button>
+                    <Button variant="ghost" size="sm">
+                      <span className="text-sm">⋯</span>
+                    </Button>
+                  </div>
+                  <Textarea
+                    id="edit-content"
+                    value={editTasker.content}
+                    onChange={(e) => setEditTasker({...editTasker, content: e.target.value})}
+                    placeholder="Enter tasker content..."
+                    className="min-h-[300px] border-0 resize-none"
+                  />
+                </div>
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="edit-screenshot"
+                  checked={editTasker.screenshot}
+                  onCheckedChange={(checked) => setEditTasker({...editTasker, screenshot: checked})}
+                />
+                <Label htmlFor="edit-screenshot" className="text-sm">
+                  Ask workers to upload a screenshot on completion
+                </Label>
+              </div>
             </div>
-            
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="edit-screenshot"
-                checked={editTasker.screenshot}
-                onCheckedChange={(checked) => setEditTasker({...editTasker, screenshot: checked})}
-              />
-              <Label htmlFor="edit-screenshot" className="text-sm">
-                Ask workers to upload a screenshot on completion
-              </Label>
+
+            {/* Preview Section */}
+            <div className="space-y-4">
+              <div className="border rounded-lg p-4 bg-gray-50">
+                <h3 className="font-semibold text-sm mb-4 flex items-center gap-2">
+                  Preview · {editTasker.title || "Untitled Tasker"}
+                </h3>
+                
+                {/* Tasker Metadata Preview */}
+                <div className="flex items-center gap-4 text-sm mb-4">
+                  <div className="flex items-center gap-2">
+                    <span className="text-muted-foreground">Slug:</span>
+                    <span className="font-mono text-pink-600">{editTasker.slug || "auto-generated"}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-muted-foreground">Status:</span>
+                    <Badge 
+                      variant={editingTasker?.status === "active" ? "default" : "secondary"}
+                      className={editingTasker?.status === "active" ? "bg-green-500" : "bg-gray-500"}
+                    >
+                      {editingTasker?.status || "active"}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-muted-foreground">Screenshot:</span>
+                    <Badge variant={editTasker.screenshot ? "default" : "secondary"}>
+                      {editTasker.screenshot ? "Yes" : "No"}
+                    </Badge>
+                  </div>
+                </div>
+
+                {/* Content Preview */}
+                <div className="space-y-4">
+                  {editTasker.content ? (
+                    <div className="prose prose-sm max-w-none">
+                      <div 
+                        className="text-sm leading-relaxed"
+                        dangerouslySetInnerHTML={{ 
+                          __html: (editTasker.content || '')
+                            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                            .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                            .replace(/\n/g, '<br/>')
+                            .replace(/• /g, '• ')
+                        }}
+                      />
+                    </div>
+                  ) : (
+                    <div className="text-sm text-gray-500 italic">
+                      No content added yet. Start typing in the editor to see a preview here.
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
-            
-            <div className="flex justify-end gap-2 pt-4">
-              <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
-                Cancel
-              </Button>
-              <Button onClick={handleUpdateTasker}>
-                Update Tasker
-              </Button>
-            </div>
+          </div>
+          
+          <div className="flex justify-end gap-2 pt-4 border-t">
+            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleUpdateTasker}>
+              Update Tasker
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
