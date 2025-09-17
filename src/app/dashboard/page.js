@@ -46,27 +46,54 @@ const getMetricsForRange = (selectedRange) => {
 
   const multiplier = rangeMultipliers[selectedRange] || 1;
 
+  // Calculate actual worker counts and metrics from the data
+  const permanentViewersCount = permanentViewers.length;
+  const permanentClickersCount = permanentClickers.length;
+  const traineeViewersCount = traineeViewers.length;
+  const traineeClickersCount = traineeClickers.length;
+
+  // Calculate total clicks for each category
+  const permanentViewersClicks = permanentViewers.reduce((sum, worker) => sum + worker.clicks, 0);
+  const permanentViewersSuccess = permanentViewers.reduce((sum, worker) => sum + worker.success, 0);
+  const permanentViewersFailed = permanentViewers.reduce((sum, worker) => sum + worker.failed, 0);
+  const permanentViewersFormFills = permanentViewers.reduce((sum, worker) => sum + worker.formFills, 0);
+
+  const permanentClickersClicks = permanentClickers.reduce((sum, worker) => sum + worker.clicks, 0);
+  const permanentClickersSuccess = permanentClickers.reduce((sum, worker) => sum + worker.success, 0);
+  const permanentClickersFailed = permanentClickers.reduce((sum, worker) => sum + worker.failed, 0);
+  const permanentClickersFormFills = permanentClickers.reduce((sum, worker) => sum + worker.formFills, 0);
+
+  const traineeViewersClicks = traineeViewers.reduce((sum, worker) => sum + worker.clicks, 0);
+  const traineeViewersSuccess = traineeViewers.reduce((sum, worker) => sum + worker.success, 0);
+  const traineeViewersFailed = traineeViewers.reduce((sum, worker) => sum + worker.failed, 0);
+  const traineeViewersFormFills = traineeViewers.reduce((sum, worker) => sum + worker.formFills, 0);
+
+  const traineeClickersClicks = traineeClickers.reduce((sum, worker) => sum + worker.clicks, 0);
+  const traineeClickersSuccess = traineeClickers.reduce((sum, worker) => sum + worker.success, 0);
+  const traineeClickersFailed = traineeClickers.reduce((sum, worker) => sum + worker.failed, 0);
+  const traineeClickersFormFills = traineeClickers.reduce((sum, worker) => sum + worker.formFills, 0);
+
   const permanentMetrics = [
     {
       title: "Viewers",
       icon: Users,
       metrics: {
-        activeWorkers: 2,
-        totalClicks: Math.floor(1250 * multiplier),
-        goodClicks: Math.floor(1100 * multiplier),
-        badClicks: Math.floor(150 * multiplier),
-        formFills: Math.floor(45 * multiplier)
+        activeWorkers: permanentViewersCount,
+        totalClicks: Math.floor(permanentViewersClicks * multiplier),
+        goodClicks: Math.floor(permanentViewersSuccess * multiplier),
+        badClicks: Math.floor(permanentViewersFailed * multiplier),
+        formFills: Math.floor(permanentViewersFormFills * multiplier)
       }
     },
     {
       title: "Clickers",
       icon: MousePointer,
       metrics: {
-        activeWorkers: 3,
-        totalClicks: Math.floor(2100 * multiplier),
-        goodClicks: Math.floor(1850 * multiplier),
-        badClicks: Math.floor(250 * multiplier),
-        formFills: Math.floor(78 * multiplier)
+        activeWorkers: permanentClickersCount,
+        totalClicks: Math.floor(permanentClickersClicks * multiplier),
+        goodClicks: Math.floor(permanentClickersSuccess * multiplier),
+        badClicks: Math.floor(permanentClickersFailed * multiplier),
+        formFills: Math.floor(permanentClickersFormFills * multiplier)
       }
     }
   ];
@@ -76,22 +103,22 @@ const getMetricsForRange = (selectedRange) => {
       title: "Viewers",
       icon: Users,
       metrics: {
-        activeWorkers: 2,
-        totalClicks: Math.floor(450 * multiplier),
-        goodClicks: Math.floor(380 * multiplier),
-        badClicks: Math.floor(70 * multiplier),
-        formFills: Math.floor(12 * multiplier)
+        activeWorkers: traineeViewersCount,
+        totalClicks: Math.floor(traineeViewersClicks * multiplier),
+        goodClicks: Math.floor(traineeViewersSuccess * multiplier),
+        badClicks: Math.floor(traineeViewersFailed * multiplier),
+        formFills: Math.floor(traineeViewersFormFills * multiplier)
       }
     },
     {
       title: "Clickers",
       icon: MousePointer,
       metrics: {
-        activeWorkers: 1,
-        totalClicks: Math.floor(320 * multiplier),
-        goodClicks: Math.floor(280 * multiplier),
-        badClicks: Math.floor(40 * multiplier),
-        formFills: Math.floor(8 * multiplier)
+        activeWorkers: traineeClickersCount,
+        totalClicks: Math.floor(traineeClickersClicks * multiplier),
+        goodClicks: Math.floor(traineeClickersSuccess * multiplier),
+        badClicks: Math.floor(traineeClickersFailed * multiplier),
+        formFills: Math.floor(traineeClickersFormFills * multiplier)
       }
     }
   ];
@@ -102,22 +129,9 @@ const getMetricsForRange = (selectedRange) => {
 // Mock data for detailed worker views
 const permanentViewers = [
   {
-    id: 1,
-    name: "Adnan Amir",
-    email: "adnan@joyapps.net",
-    clicks: 26,
-    success: 21,
-    formFills: 18,
-    failed: 5,
-    avgGapLast5: "10h 50m 31s",
-    avgGapAll: "1h 52m 32s",
-    avgSubmitDelta: "6m 54s",
-    workTime: "2h 33m 42s"
-  },
-  {
     id: 2,
-    name: "Waleed Bin Shakeel",
-    email: "waleed@joyapps.net",
+    name: "Muhammad Shahood",
+    email: "Shahood1@joyapps.net",
     clicks: 139,
     success: 123,
     formFills: 0,
@@ -126,14 +140,40 @@ const permanentViewers = [
     avgGapAll: "20m 07s",
     avgSubmitDelta: "1m 01s",
     workTime: "3h 03m 11s"
+  },
+  {
+    id: 4,
+    name: "Sarah Johnson",
+    email: "sarah.johnson@joyapps.net",
+    clicks: 45,
+    success: 38,
+    formFills: 0,
+    failed: 7,
+    avgGapLast5: "12h 30m 45s",
+    avgGapAll: "2h 15m 30s",
+    avgSubmitDelta: "8m 30s",
+    workTime: "1h 45m 20s"
+  },
+  {
+    id: 7,
+    name: "Emma Wilson",
+    email: "emma.wilson@joyapps.net",
+    clicks: 92,
+    success: 78,
+    formFills: 0,
+    failed: 14,
+    avgGapLast5: "9h 20m 15s",
+    avgGapAll: "1h 15m 30s",
+    avgSubmitDelta: "2m 45s",
+    workTime: "11h 30m"
   }
 ];
 
 const permanentClickers = [
   {
-    id: 3,
+    id: 1,
     name: "Hasan Abbas",
-    email: "hasan@joyapps.net",
+    email: "abbas_hasan12@joysapps.com",
     clicks: 89,
     success: 78,
     formFills: 12,
@@ -144,75 +184,88 @@ const permanentClickers = [
     workTime: "4h 12m 33s"
   },
   {
-    id: 4,
-    name: "Muhammad Shahood",
-    email: "shahood@joyapps.net",
-    clicks: 156,
-    success: 142,
-    formFills: 8,
-    failed: 14,
-    avgGapLast5: "7h 30m 15s",
-    avgGapAll: "1h 15m 30s",
-    avgSubmitDelta: "2m 45s",
-    workTime: "5h 45m 20s"
+    id: 6,
+    name: "Alex Rodriguez",
+    email: "alex.rodriguez@joyapps.net",
+    clicks: 67,
+    success: 58,
+    formFills: 15,
+    failed: 9,
+    avgGapLast5: "7h 30m 10s",
+    avgGapAll: "1h 20m 45s",
+    avgSubmitDelta: "2m 15s",
+    workTime: "9h 20m"
   },
   {
-    id: 5,
-    name: "Abid",
-    email: "abid@joyapps.net",
-    clicks: 203,
-    success: 189,
-    formFills: 15,
-    failed: 14,
-    avgGapLast5: "6h 45m 10s",
-    avgGapAll: "1h 30m 45s",
-    avgSubmitDelta: "4m 12s",
-    workTime: "6h 20m 15s"
+    id: 10,
+    name: "James Brown",
+    email: "james.brown@joyapps.net",
+    clicks: 156,
+    success: 134,
+    formFills: 28,
+    failed: 22,
+    avgGapLast5: "6h 30m 15s",
+    avgGapAll: "30m 45s",
+    avgSubmitDelta: "1m 45s",
+    workTime: "14h 20m"
   }
 ];
 
 const traineeViewers = [
   {
-    id: 6,
-    name: "Sarah Johnson",
-    email: "sarah@joyapps.net",
-    clicks: 45,
-    success: 38,
-    formFills: 5,
-    failed: 7,
-    avgGapLast5: "12h 30m 45s",
-    avgGapAll: "2h 15m 30s",
-    avgSubmitDelta: "8m 30s",
-    workTime: "1h 45m 20s"
-  },
-  {
-    id: 7,
-    name: "Emma Wilson",
-    email: "emma@joyapps.net",
-    clicks: 32,
-    success: 28,
-    formFills: 3,
-    failed: 4,
-    avgGapLast5: "15h 20m 10s",
-    avgGapAll: "3h 45m 15s",
-    avgSubmitDelta: "12m 15s",
-    workTime: "1h 20m 45s"
+    id: 9,
+    name: "Lisa Thompson",
+    email: "lisa.thompson@joyapps.net",
+    clicks: 12,
+    success: 9,
+    formFills: 0,
+    failed: 3,
+    avgGapLast5: "15h 45m 20s",
+    avgGapAll: "3h 30m 15s",
+    avgSubmitDelta: "4m 30s",
+    workTime: "4h 15m"
   }
 ];
 
 const traineeClickers = [
   {
-    id: 8,
+    id: 3,
+    name: "Abid",
+    email: "Abid1@joyapps.net",
+    clicks: 26,
+    success: 21,
+    formFills: 18,
+    failed: 5,
+    avgGapLast5: "10h 50m 31s",
+    avgGapAll: "1h 52m 32s",
+    avgSubmitDelta: "2m 15s",
+    workTime: "8h 30m"
+  },
+  {
+    id: 5,
     name: "Mike Chen",
-    email: "mike@joyapps.net",
-    clicks: 78,
-    success: 65,
-    formFills: 4,
-    failed: 13,
+    email: "mike.chen@joyapps.net",
+    clicks: 15,
+    success: 12,
+    formFills: 8,
+    failed: 3,
     avgGapLast5: "11h 15m 30s",
     avgGapAll: "2h 30m 45s",
-    avgSubmitDelta: "6m 45s",
-    workTime: "2h 15m 30s"
+    avgSubmitDelta: "4m 10s",
+    workTime: "7h 30m"
+  },
+  {
+    id: 8,
+    name: "David Kim",
+    email: "david.kim@joyapps.net",
+    clicks: 18,
+    success: 14,
+    formFills: 6,
+    failed: 4,
+    avgGapLast5: "12h 20m 45s",
+    avgGapAll: "2h 45m 30s",
+    avgSubmitDelta: "3m 45s",
+    workTime: "6h 45m"
   }
 ];
 
@@ -639,7 +692,7 @@ export default function DashboardPage() {
         <TabsContent value="permanent" className="space-y-6">
           <div className="grid gap-6 md:grid-cols-2 animate-fade-in">
             {permanentMetrics.map((item) => {
-              const cardType = item.title === "Permanent Viewers" ? "permanent-viewers" : "permanent-clickers";
+              const cardType = item.title === "Viewers" ? "permanent-viewers" : "permanent-clickers";
               return (
                 <Card 
                   key={item.title} 
@@ -697,7 +750,7 @@ export default function DashboardPage() {
         <TabsContent value="trainee" className="space-y-6">
           <div className="grid gap-6 md:grid-cols-2 animate-fade-in">
             {traineeMetrics.map((item) => {
-              const cardType = item.title === "Trainee Viewers" ? "trainee-viewers" : "trainee-clickers";
+              const cardType = item.title === "Viewers" ? "trainee-viewers" : "trainee-clickers";
               return (
                 <Card 
                   key={item.title} 

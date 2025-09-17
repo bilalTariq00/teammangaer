@@ -1,9 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  experimental: {
-    turbo: {
-      root: '/Users/nc/Desktop/joyapps'
-    }
+  turbopack: {
+    root: '/Users/nc/Desktop/joyapps'
   }
 };
 
