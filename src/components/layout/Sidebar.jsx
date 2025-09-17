@@ -12,6 +12,8 @@ import {
   Link as LinkIcon,
   CheckSquare,
   Settings,
+  Target,
+  Plus,
 } from "lucide-react";
 
 const navigation = [
@@ -19,6 +21,16 @@ const navigation = [
     name: "Dashboard",
     href: "/dashboard",
     icon: LayoutDashboard,
+  },
+  {
+    name: "Campaigns",
+    href: "/campaigns",
+    icon: Target,
+  },
+  {
+    name: "Create Campaign",
+    href: "/create-campaign",
+    icon: Plus,
   },
   {
     name: "Users",

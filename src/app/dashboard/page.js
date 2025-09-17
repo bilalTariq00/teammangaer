@@ -8,13 +8,30 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, TrendingUp, Users, MousePointer, CheckCircle, ArrowLeft, Search } from "lucide-react";
+import { 
+  CalendarIcon, 
+  TrendingUp, 
+  Users, 
+  MousePointer, 
+  CheckCircle, 
+  Target,
+  BarChart3,
+  Activity,
+  DollarSign,
+  Clock,
+  AlertTriangle,
+  CheckCircle2,
+  XCircle,
+  ArrowUpRight,
+  ArrowDownRight
+} from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from "recharts";
 
 const quickDateRanges = [
   "Today",
@@ -29,303 +46,104 @@ const quickDateRanges = [
   "All Time"
 ];
 
-// Function to get metrics based on date range
-const getMetricsForRange = (selectedRange) => {
-  const rangeMultipliers = {
-    "Today": 1,
-    "Yesterday": 0.8,
-    "Last 7 Days": 1.2,
-    "Last 14 Days": 1.5,
-    "Last 30 Days": 2,
-    "Last 60 Days": 2.5,
-    "Last 90 Days": 3,
-    "This Month": 1.8,
-    "Last Month": 1.6,
-    "All Time": 3.5
-  };
-
-  const multiplier = rangeMultipliers[selectedRange] || 1;
-
-  // Calculate actual worker counts and metrics from the data
-  const permanentViewersCount = permanentViewers.length;
-  const permanentClickersCount = permanentClickers.length;
-  const traineeViewersCount = traineeViewers.length;
-  const traineeClickersCount = traineeClickers.length;
-
-  // Calculate total clicks for each category
-  const permanentViewersClicks = permanentViewers.reduce((sum, worker) => sum + worker.clicks, 0);
-  const permanentViewersSuccess = permanentViewers.reduce((sum, worker) => sum + worker.success, 0);
-  const permanentViewersFailed = permanentViewers.reduce((sum, worker) => sum + worker.failed, 0);
-  const permanentViewersFormFills = permanentViewers.reduce((sum, worker) => sum + worker.formFills, 0);
-
-  const permanentClickersClicks = permanentClickers.reduce((sum, worker) => sum + worker.clicks, 0);
-  const permanentClickersSuccess = permanentClickers.reduce((sum, worker) => sum + worker.success, 0);
-  const permanentClickersFailed = permanentClickers.reduce((sum, worker) => sum + worker.failed, 0);
-  const permanentClickersFormFills = permanentClickers.reduce((sum, worker) => sum + worker.formFills, 0);
-
-  const traineeViewersClicks = traineeViewers.reduce((sum, worker) => sum + worker.clicks, 0);
-  const traineeViewersSuccess = traineeViewers.reduce((sum, worker) => sum + worker.success, 0);
-  const traineeViewersFailed = traineeViewers.reduce((sum, worker) => sum + worker.failed, 0);
-  const traineeViewersFormFills = traineeViewers.reduce((sum, worker) => sum + worker.formFills, 0);
-
-  const traineeClickersClicks = traineeClickers.reduce((sum, worker) => sum + worker.clicks, 0);
-  const traineeClickersSuccess = traineeClickers.reduce((sum, worker) => sum + worker.success, 0);
-  const traineeClickersFailed = traineeClickers.reduce((sum, worker) => sum + worker.failed, 0);
-  const traineeClickersFormFills = traineeClickers.reduce((sum, worker) => sum + worker.formFills, 0);
-
-  const permanentMetrics = [
-    {
-      title: "Viewers",
-      icon: Users,
-      metrics: {
-        activeWorkers: permanentViewersCount,
-        totalClicks: Math.floor(permanentViewersClicks * multiplier),
-        goodClicks: Math.floor(permanentViewersSuccess * multiplier),
-        badClicks: Math.floor(permanentViewersFailed * multiplier),
-        formFills: Math.floor(permanentViewersFormFills * multiplier)
-      }
-    },
-    {
-      title: "Clickers",
-      icon: MousePointer,
-      metrics: {
-        activeWorkers: permanentClickersCount,
-        totalClicks: Math.floor(permanentClickersClicks * multiplier),
-        goodClicks: Math.floor(permanentClickersSuccess * multiplier),
-        badClicks: Math.floor(permanentClickersFailed * multiplier),
-        formFills: Math.floor(permanentClickersFormFills * multiplier)
-      }
-    }
-  ];
-
-  const traineeMetrics = [
-    {
-      title: "Viewers",
-      icon: Users,
-      metrics: {
-        activeWorkers: traineeViewersCount,
-        totalClicks: Math.floor(traineeViewersClicks * multiplier),
-        goodClicks: Math.floor(traineeViewersSuccess * multiplier),
-        badClicks: Math.floor(traineeViewersFailed * multiplier),
-        formFills: Math.floor(traineeViewersFormFills * multiplier)
-      }
-    },
-    {
-      title: "Clickers",
-      icon: MousePointer,
-      metrics: {
-        activeWorkers: traineeClickersCount,
-        totalClicks: Math.floor(traineeClickersClicks * multiplier),
-        goodClicks: Math.floor(traineeClickersSuccess * multiplier),
-        badClicks: Math.floor(traineeClickersFailed * multiplier),
-        formFills: Math.floor(traineeClickersFormFills * multiplier)
-      }
-    }
-  ];
-
-  return { permanentMetrics, traineeMetrics };
-};
-
-// Mock data for detailed worker views
-const permanentViewers = [
-  {
-    id: 2,
-    name: "Muhammad Shahood",
-    email: "Shahood1@joyapps.net",
-    clicks: 139,
-    success: 123,
-    formFills: 0,
-    failed: 19,
-    avgGapLast5: "9h 44m 34s",
-    avgGapAll: "20m 07s",
-    avgSubmitDelta: "1m 01s",
-    workTime: "3h 03m 11s"
-  },
-  {
-    id: 4,
-    name: "Sarah Johnson",
-    email: "sarah.johnson@joyapps.net",
-    clicks: 45,
-    success: 38,
-    formFills: 0,
-    failed: 7,
-    avgGapLast5: "12h 30m 45s",
-    avgGapAll: "2h 15m 30s",
-    avgSubmitDelta: "8m 30s",
-    workTime: "1h 45m 20s"
-  },
-  {
-    id: 7,
-    name: "Emma Wilson",
-    email: "emma.wilson@joyapps.net",
-    clicks: 92,
-    success: 78,
-    formFills: 0,
-    failed: 14,
-    avgGapLast5: "9h 20m 15s",
-    avgGapAll: "1h 15m 30s",
-    avgSubmitDelta: "2m 45s",
-    workTime: "11h 30m"
-  }
+// Mock data for comprehensive dashboard
+const mockCampaigns = [
+  { id: 1, name: "Summer Sale Campaign", status: "active", budget: 50000, spent: 32500, clicks: 15420, views: 23450, conversionRate: 12.5 },
+  { id: 2, name: "Black Friday Blitz", status: "active", budget: 75000, spent: 68000, clicks: 28450, views: 45600, conversionRate: 18.2 },
+  { id: 3, name: "Holiday Special", status: "paused", budget: 40000, spent: 15000, clicks: 8500, views: 12000, conversionRate: 8.7 },
+  { id: 4, name: "New Year Launch", status: "active", budget: 60000, spent: 42000, clicks: 19800, views: 28900, conversionRate: 15.3 },
+  { id: 5, name: "Spring Collection", status: "completed", budget: 35000, spent: 35000, clicks: 12500, views: 18700, conversionRate: 10.8 }
 ];
 
-const permanentClickers = [
-  {
-    id: 1,
-    name: "Hasan Abbas",
-    email: "abbas_hasan12@joysapps.com",
-    clicks: 89,
-    success: 78,
-    formFills: 12,
-    failed: 11,
-    avgGapLast5: "8h 15m 22s",
-    avgGapAll: "45m 12s",
-    avgSubmitDelta: "3m 25s",
-    workTime: "4h 12m 33s"
-  },
-  {
-    id: 6,
-    name: "Alex Rodriguez",
-    email: "alex.rodriguez@joyapps.net",
-    clicks: 67,
-    success: 58,
-    formFills: 15,
-    failed: 9,
-    avgGapLast5: "7h 30m 10s",
-    avgGapAll: "1h 20m 45s",
-    avgSubmitDelta: "2m 15s",
-    workTime: "9h 20m"
-  },
-  {
-    id: 10,
-    name: "James Brown",
-    email: "james.brown@joyapps.net",
-    clicks: 156,
-    success: 134,
-    formFills: 28,
-    failed: 22,
-    avgGapLast5: "6h 30m 15s",
-    avgGapAll: "30m 45s",
-    avgSubmitDelta: "1m 45s",
-    workTime: "14h 20m"
-  }
+const mockWorkers = [
+  { id: 1, name: "Muhammad Shahood", email: "Shahood1@joyapps.net", type: "Permanent Viewer", status: "Active", totalClicks: 139, success: 123, formFills: 0, failed: 19 },
+  { id: 2, name: "Sarah Johnson", email: "sarah.johnson@joyapps.net", type: "Permanent Viewer", status: "Active", totalClicks: 45, success: 38, formFills: 0, failed: 7 },
+  { id: 3, name: "Emma Wilson", email: "emma.wilson@joyapps.net", type: "Permanent Viewer", status: "Active", totalClicks: 92, success: 78, formFills: 0, failed: 14 },
+  { id: 4, name: "Hasan Abbas", email: "hasan.abbas@joyapps.net", type: "Permanent Clicker", status: "Active", totalClicks: 156, success: 142, formFills: 28, failed: 14 },
+  { id: 5, name: "Alex Rodriguez", email: "alex.rodriguez@joyapps.net", type: "Permanent Clicker", status: "Active", totalClicks: 134, success: 118, formFills: 32, failed: 16 },
+  { id: 6, name: "James Brown", email: "james.brown@joyapps.net", type: "Permanent Clicker", status: "Active", totalClicks: 142, success: 125, formFills: 25, failed: 17 },
+  { id: 7, name: "Lisa Thompson", email: "lisa.thompson@joyapps.net", type: "Trainee Viewer", status: "Active", totalClicks: 28, success: 22, formFills: 0, failed: 6 },
+  { id: 8, name: "Abid", email: "abid1@joyapps.net", type: "Trainee Clicker", status: "Active", totalClicks: 45, success: 38, formFills: 28, failed: 7 },
+  { id: 9, name: "Mike Chen", email: "mike.chen@joyapps.net", type: "Trainee Clicker", status: "Active", totalClicks: 32, success: 26, formFills: 18, failed: 6 },
+  { id: 10, name: "David Kim", email: "david.kim@joyapps.net", type: "Trainee Clicker", status: "Active", totalClicks: 38, success: 31, formFills: 15, failed: 7 }
 ];
 
-const traineeViewers = [
-  {
-    id: 9,
-    name: "Lisa Thompson",
-    email: "lisa.thompson@joyapps.net",
-    clicks: 12,
-    success: 9,
-    formFills: 0,
-    failed: 3,
-    avgGapLast5: "15h 45m 20s",
-    avgGapAll: "3h 30m 15s",
-    avgSubmitDelta: "4m 30s",
-    workTime: "4h 15m"
-  }
+const mockTasks = [
+  { id: 1, title: "Tasker Click", status: "active", completed: 45, total: 50, priority: "high" },
+  { id: 2, title: "Tasker View", status: "active", completed: 38, total: 40, priority: "medium" },
+  { id: 3, title: "Form Fill Task", status: "active", completed: 25, total: 30, priority: "high" },
+  { id: 4, title: "Survey Task", status: "paused", completed: 15, total: 20, priority: "low" },
+  { id: 5, title: "Review Task", status: "completed", completed: 30, total: 30, priority: "medium" }
 ];
 
-const traineeClickers = [
-  {
-    id: 3,
-    name: "Abid",
-    email: "Abid1@joyapps.net",
-    clicks: 26,
-    success: 21,
-    formFills: 18,
-    failed: 5,
-    avgGapLast5: "10h 50m 31s",
-    avgGapAll: "1h 52m 32s",
-    avgSubmitDelta: "2m 15s",
-    workTime: "8h 30m"
-  },
-  {
-    id: 5,
-    name: "Mike Chen",
-    email: "mike.chen@joyapps.net",
-    clicks: 15,
-    success: 12,
-    formFills: 8,
-    failed: 3,
-    avgGapLast5: "11h 15m 30s",
-    avgGapAll: "2h 30m 45s",
-    avgSubmitDelta: "4m 10s",
-    workTime: "7h 30m"
-  },
-  {
-    id: 8,
-    name: "David Kim",
-    email: "david.kim@joyapps.net",
-    clicks: 18,
-    success: 14,
-    formFills: 6,
-    failed: 4,
-    avgGapLast5: "12h 20m 45s",
-    avgGapAll: "2h 45m 30s",
-    avgSubmitDelta: "3m 45s",
-    workTime: "6h 45m"
-  }
+// Chart data
+const performanceData = [
+  { name: "Jan", campaigns: 2, clicks: 12000, views: 18000, tasks: 15 },
+  { name: "Feb", campaigns: 3, clicks: 15000, views: 22000, tasks: 18 },
+  { name: "Mar", campaigns: 4, clicks: 18000, views: 26000, tasks: 22 },
+  { name: "Apr", campaigns: 3, clicks: 16000, views: 24000, tasks: 20 },
+  { name: "May", campaigns: 5, clicks: 22000, views: 32000, tasks: 25 },
+  { name: "Jun", campaigns: 4, clicks: 19000, views: 28000, tasks: 23 },
+  { name: "Jul", campaigns: 6, clicks: 25000, views: 38000, tasks: 28 },
+  { name: "Aug", campaigns: 5, clicks: 21000, views: 31000, tasks: 26 },
+  { name: "Sep", campaigns: 7, clicks: 28000, views: 42000, tasks: 32 },
+  { name: "Oct", campaigns: 6, clicks: 24000, views: 36000, tasks: 29 },
+  { name: "Nov", campaigns: 8, clicks: 32000, views: 48000, tasks: 35 },
+  { name: "Dec", campaigns: 5, clicks: 20000, views: 30000, tasks: 27 }
 ];
 
-const inactiveWorkers = [
-  {
-    id: 9,
-    name: "Mohsin Test",
-    email: "mohsin@joyapps.net"
-  },
-  {
-    id: 10,
-    name: "Test User",
-    email: "test@joyapps.net"
-  },
-  {
-    id: 11,
-    name: "Inactive Worker",
-    email: "inactive@joyapps.net"
-  },
-  {
-    id: 12,
-    name: "No Activity",
-    email: "noactivity@joyapps.net"
-  }
+const campaignStatusData = [
+  { name: "Active", value: 3, color: "#10b981" },
+  { name: "Paused", value: 1, color: "#f59e0b" },
+  { name: "Completed", value: 1, color: "#6b7280" }
+];
+
+const workerTypeData = [
+  { name: "Permanent Viewers", value: 3, color: "#3b82f6" },
+  { name: "Permanent Clickers", value: 3, color: "#8b5cf6" },
+  { name: "Trainee Viewers", value: 1, color: "#06b6d4" },
+  { name: "Trainee Clickers", value: 3, color: "#f59e0b" }
 ];
 
 export default function DashboardPage() {
   const router = useRouter();
   const [fromDate, setFromDate] = useState(new Date());
   const [toDate, setToDate] = useState(new Date());
-  const [selectedRange, setSelectedRange] = useState("Today");
-  const [activeTab, setActiveTab] = useState("permanent");
-  const [detailedView, setDetailedView] = useState(null);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [pageSize, setPageSize] = useState("100");
-  const [isLoading, setIsLoading] = useState(false);
+  const [selectedRange, setSelectedRange] = useState("Last 30 Days");
 
-  // Get metrics based on selected range
-  const { permanentMetrics, traineeMetrics } = getMetricsForRange(selectedRange);
-
-  const handleCardClick = (cardType) => {
-    setDetailedView(cardType);
-  };
-
-  const handleWorkerClick = (workerId) => {
-    router.push(`/worker/${workerId}`);
-  };
+  // Calculate metrics
+  const totalCampaigns = mockCampaigns.length;
+  const activeCampaigns = mockCampaigns.filter(c => c.status === "active").length;
+  const totalWorkers = mockWorkers.length;
+  const totalViewers = mockWorkers.filter(w => w.type.includes("Viewer")).length;
+  const totalClickers = mockWorkers.filter(w => w.type.includes("Clicker")).length;
+  const totalTasks = mockTasks.length;
+  const activeTasks = mockTasks.filter(t => t.status === "active").length;
+  const completedTasks = mockTasks.filter(t => t.status === "completed").length;
+  
+  const totalClicks = mockWorkers.reduce((sum, worker) => sum + worker.totalClicks, 0);
+  const totalSuccess = mockWorkers.reduce((sum, worker) => sum + worker.success, 0);
+  const totalFormFills = mockWorkers.reduce((sum, worker) => sum + worker.formFills, 0);
+  const totalFailed = mockWorkers.reduce((sum, worker) => sum + worker.failed, 0);
+  
+  const totalBudget = mockCampaigns.reduce((sum, campaign) => sum + campaign.budget, 0);
+  const totalSpent = mockCampaigns.reduce((sum, campaign) => sum + campaign.spent, 0);
+  const totalCampaignClicks = mockCampaigns.reduce((sum, campaign) => sum + campaign.clicks, 0);
+  const totalCampaignViews = mockCampaigns.reduce((sum, campaign) => sum + campaign.views, 0);
+  
+  const successRate = totalClicks > 0 ? ((totalSuccess / totalClicks) * 100).toFixed(1) : 0;
+  const budgetUtilization = totalBudget > 0 ? ((totalSpent / totalBudget) * 100).toFixed(1) : 0;
+  const conversionRate = totalCampaignViews > 0 ? ((totalCampaignClicks / totalCampaignViews) * 100).toFixed(1) : 0;
 
   const handleShowData = () => {
-    setIsLoading(true);
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false);
-    }, 1000);
+    // Handle date range filtering
+    console.log("Filtering data from", fromDate, "to", toDate);
   };
 
   const handleReset = () => {
     setFromDate(new Date());
     setToDate(new Date());
-    setSelectedRange("Today");
+    setSelectedRange("Last 30 Days");
   };
 
   const handleQuickRange = (range) => {
@@ -334,25 +152,19 @@ export default function DashboardPage() {
     
     switch (range) {
       case "Today":
-        setFromDate(new Date(today));
-        setToDate(new Date(today));
+        setFromDate(today);
+        setToDate(today);
         break;
       case "Yesterday":
         const yesterday = new Date(today);
         yesterday.setDate(yesterday.getDate() - 1);
-        setFromDate(new Date(yesterday));
-        setToDate(new Date(yesterday));
+        setFromDate(yesterday);
+        setToDate(yesterday);
         break;
       case "Last 7 Days":
         const last7Days = new Date(today);
         last7Days.setDate(last7Days.getDate() - 7);
         setFromDate(last7Days);
-        setToDate(today);
-        break;
-      case "Last 14 Days":
-        const last14Days = new Date(today);
-        last14Days.setDate(last14Days.getDate() - 14);
-        setFromDate(last14Days);
         setToDate(today);
         break;
       case "Last 30 Days":
@@ -361,31 +173,8 @@ export default function DashboardPage() {
         setFromDate(last30Days);
         setToDate(today);
         break;
-      case "Last 60 Days":
-        const last60Days = new Date(today);
-        last60Days.setDate(last60Days.getDate() - 60);
-        setFromDate(last60Days);
-        setToDate(today);
-        break;
-      case "Last 90 Days":
-        const last90Days = new Date(today);
-        last90Days.setDate(last90Days.getDate() - 90);
-        setFromDate(last90Days);
-        setToDate(today);
-        break;
-      case "This Month":
-        const thisMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-        setFromDate(thisMonth);
-        setToDate(today);
-        break;
-      case "Last Month":
-        const lastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-        const lastMonthEnd = new Date(today.getFullYear(), today.getMonth(), 0);
-        setFromDate(lastMonth);
-        setToDate(lastMonthEnd);
-        break;
       case "All Time":
-        const allTime = new Date(2024, 0, 1); // January 1, 2024
+        const allTime = new Date(2024, 0, 1);
         setFromDate(allTime);
         setToDate(today);
         break;
@@ -394,185 +183,29 @@ export default function DashboardPage() {
     }
   };
 
-  const getWorkerData = () => {
-    switch (detailedView) {
-      case "permanent-viewers":
-        return permanentViewers;
-      case "permanent-clickers":
-        return permanentClickers;
-      case "trainee-viewers":
-        return traineeViewers;
-      case "trainee-clickers":
-        return traineeClickers;
-      default:
-        return [];
-    }
+  const handleWorkerClick = (workerId) => {
+    router.push(`/worker/${workerId}`);
   };
 
-  const getViewTitle = () => {
-    switch (detailedView) {
-      case "permanent-viewers":
-        return "Workers · Viewers";
-      case "permanent-clickers":
-        return "Workers · Clickers";
-      case "trainee-viewers":
-        return "Workers · Viewers";
-      case "trainee-clickers":
-        return "Workers · Clickers";
-      default:
-        return "";
-    }
+  const handleCampaignClick = (campaignId) => {
+    router.push(`/campaigns`);
   };
 
-  const filteredWorkers = getWorkerData().filter(worker =>
-    worker.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    worker.email.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  // If detailed view is active, show the detailed table
-  if (detailedView) {
-    return (
-      <MainLayout>
-        <div className="space-y-6">
-          {/* Back Button and Title */}
-          <div className="flex items-center gap-4">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setDetailedView(null)}
-              className="flex items-center gap-2"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Back to Cards
-            </Button>
-            <h1 className="text-2xl font-bold">{getViewTitle()}</h1>
-          </div>
-
-          {/* Search and Controls */}
-          <div className="flex items-center gap-4">
-            <div className="relative flex-1 max-w-sm">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-              <Input
-                placeholder="Search name or email"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            <Select value={pageSize} onValueChange={setPageSize}>
-              <SelectTrigger className="w-32">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="25">25 / page</SelectItem>
-                <SelectItem value="50">50 / page</SelectItem>
-                <SelectItem value="100">100 / page</SelectItem>
-                <SelectItem value="200">200 / page</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Results Info */}
-          <div className="text-sm text-gray-600">
-            Showing page 1 of 1 • {filteredWorkers.length} active
-          </div>
-
-          {/* Workers Table */}
-          <Card>
-            <CardContent className="p-0">
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-[200px]">Worker</TableHead>
-                      <TableHead className="w-[100px]">Clicks</TableHead>
-                      <TableHead className="w-[100px]">Success</TableHead>
-                      <TableHead className="w-[120px]">Form fills</TableHead>
-                      <TableHead className="w-[100px]">Failed</TableHead>
-                      <TableHead className="w-[150px]">Avg gap (last 5)</TableHead>
-                      <TableHead className="w-[150px]">Avg gap (all)</TableHead>
-                      <TableHead className="w-[120px]">Avg submit Δ</TableHead>
-                      <TableHead className="w-[120px]">Work time</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredWorkers.map((worker) => (
-                      <TableRow key={worker.id}>
-                        <TableCell>
-                          <div>
-                            <div 
-                              className="font-medium text-blue-600 hover:text-blue-800 cursor-pointer"
-                              onClick={() => handleWorkerClick(worker.id)}
-                            >
-                              {worker.name}
-                            </div>
-                            <div className="text-sm text-gray-500">{worker.email}</div>
-                          </div>
-                        </TableCell>
-                        <TableCell className="font-medium">{worker.clicks}</TableCell>
-                        <TableCell className="text-green-600 font-medium">{worker.success}</TableCell>
-                        <TableCell className="font-medium">{worker.formFills}</TableCell>
-                        <TableCell className="text-red-600 font-medium">{worker.failed}</TableCell>
-                        <TableCell className="text-sm">{worker.avgGapLast5}</TableCell>
-                        <TableCell className="text-sm">{worker.avgGapAll}</TableCell>
-                        <TableCell className="text-sm">{worker.avgSubmitDelta}</TableCell>
-                        <TableCell className="text-sm font-medium">{worker.workTime}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Pagination */}
-          <div className="flex justify-end">
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" disabled>
-                &lt;&lt; Prev
-              </Button>
-              <Button variant="outline" size="sm" className="bg-blue-600 text-white">
-                1
-              </Button>
-              <Button variant="outline" size="sm" disabled>
-                Next &gt;&gt;
-              </Button>
-            </div>
-          </div>
-
-          {/* Inactive Workers */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Inactive workers (no clicks in selected range)</CardTitle>
-              <CardDescription>{inactiveWorkers.length} inactive</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Worker</TableHead>
-                    <TableHead>Email</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {inactiveWorkers.map((worker) => (
-                    <TableRow key={worker.id}>
-                      <TableCell className="font-medium">{worker.name}</TableCell>
-                      <TableCell className="text-gray-500">{worker.email}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </div>
-      </MainLayout>
-    );
-  }
+  const handleTaskClick = () => {
+    router.push(`/tasks`);
+  };
 
   return (
     <MainLayout>
       <div className="space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+            <p className="text-muted-foreground">Comprehensive overview of your platform performance</p>
+          </div>
+        </div>
+
       {/* Date Range Filters */}
       <Card>
         <CardHeader>
@@ -595,10 +228,10 @@ export default function DashboardPage() {
                     )}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {fromDate ? format(fromDate, "MM/dd/yyyy") : "Pick a date"}
+                      {fromDate ? format(fromDate, "PPP") : <span>Pick a date</span>}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
+                  <PopoverContent className="w-auto p-0">
                   <Calendar
                     mode="single"
                     selected={fromDate}
@@ -608,7 +241,6 @@ export default function DashboardPage() {
                 </PopoverContent>
               </Popover>
             </div>
-            
             <div className="space-y-2">
               <Label htmlFor="to-date">To</Label>
               <Popover>
@@ -621,10 +253,10 @@ export default function DashboardPage() {
                     )}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {toDate ? format(toDate, "MM/dd/yyyy") : "Pick a date"}
+                      {toDate ? format(toDate, "PPP") : <span>Pick a date</span>}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
+                  <PopoverContent className="w-auto p-0">
                   <Calendar
                     mode="single"
                     selected={toDate}
@@ -634,177 +266,287 @@ export default function DashboardPage() {
                 </PopoverContent>
               </Popover>
             </div>
-          </div>
-
-          {/* Quick Date Range Buttons */}
-          <div className="flex flex-wrap gap-2">
+              <div className="space-y-2">
+                <Label>Quick Range</Label>
+                <Select value={selectedRange} onValueChange={handleQuickRange}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select range" />
+                  </SelectTrigger>
+                  <SelectContent>
             {quickDateRanges.map((range) => (
-              <Button
-                key={range}
-                variant={selectedRange === range ? "default" : "outline"}
-                size="sm"
-                onClick={() => handleQuickRange(range)}
-                className="text-xs"
-              >
+                      <SelectItem key={range} value={range}>
                 {range}
-              </Button>
-            ))}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-end gap-2">
+                <Button onClick={handleShowData}>Show Data</Button>
+                <Button variant="outline" onClick={handleReset}>Reset</Button>
           </div>
-
-          <div className="flex gap-2">
-            <Button onClick={handleShowData} disabled={isLoading}>
-              {isLoading ? "Loading..." : "Show"}
-            </Button>
-            <Button variant="outline" onClick={handleReset}>Reset</Button>
           </div>
         </CardContent>
       </Card>
 
-      {/* Metrics Cards with Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <div className="flex justify-center">
-          <TabsList className="grid w-full grid-cols-2 max-w-md">
-            <TabsTrigger 
-              value="permanent"
-              className={`${
-                activeTab === "permanent" 
-                  ? "!bg-black !text-white shadow-md" 
-                  : ""
-              }`}
-              style={activeTab === "permanent" ? { backgroundColor: 'black', color: 'white' } : {}}
-            >
-              Permanent
-            </TabsTrigger>
-            <TabsTrigger 
-              value="trainee"
-              className={`${
-                activeTab === "trainee" 
-                  ? "!bg-black !text-white shadow-md" 
-                  : ""
-              }`}
-              style={activeTab === "trainee" ? { backgroundColor: 'black', color: 'white' } : {}}
-            >
-              Trainee
-            </TabsTrigger>
-          </TabsList>
+        {/* Main Stats Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {/* Total Campaigns */}
+          <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => handleCampaignClick()}>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Campaigns</CardTitle>
+              <Target className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{totalCampaigns}</div>
+              <p className="text-xs text-muted-foreground">
+                <span className="text-green-600 font-medium">{activeCampaigns} active</span>
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* Total Workers */}
+          <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => router.push('/users')}>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Workers</CardTitle>
+              <Users className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{totalWorkers}</div>
+              <p className="text-xs text-muted-foreground">
+                <span className="text-blue-600 font-medium">{totalViewers} viewers</span> • <span className="text-purple-600 font-medium">{totalClickers} clickers</span>
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* Total Tasks */}
+          <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={handleTaskClick}>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Tasks</CardTitle>
+              <CheckCircle className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{totalTasks}</div>
+              <p className="text-xs text-muted-foreground">
+                <span className="text-green-600 font-medium">{activeTasks} active</span> • <span className="text-gray-600 font-medium">{completedTasks} completed</span>
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* Total Clicks */}
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Clicks</CardTitle>
+              <MousePointer className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{totalClicks.toLocaleString()}</div>
+              <p className="text-xs text-muted-foreground">
+                <span className="text-green-600 font-medium">{successRate}% success rate</span>
+              </p>
+            </CardContent>
+          </Card>
         </div>
         
-        <TabsContent value="permanent" className="space-y-6">
-          <div className="grid gap-6 md:grid-cols-2 animate-fade-in">
-            {permanentMetrics.map((item) => {
-              const cardType = item.title === "Viewers" ? "permanent-viewers" : "permanent-clickers";
-              return (
-                <Card 
-                  key={item.title} 
-                  className="relative overflow-hidden transition-smooth hover:shadow-lg hover:scale-[1.02] cursor-pointer"
-                  onClick={() => handleCardClick(cardType)}
-                >
+        {/* Performance Metrics Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {/* Success Rate */}
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Success Rate</CardTitle>
+              <CheckCircle2 className="h-4 w-4 text-green-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-green-600">{successRate}%</div>
+              <p className="text-xs text-muted-foreground">
+                {totalSuccess.toLocaleString()} successful clicks
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* Form Fills */}
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Form Fills</CardTitle>
+              <Activity className="h-4 w-4 text-blue-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-blue-600">{totalFormFills.toLocaleString()}</div>
+              <p className="text-xs text-muted-foreground">
+                {totalClicks > 0 ? ((totalFormFills / totalClicks) * 100).toFixed(1) : 0}% of total clicks
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* Budget Utilization */}
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Budget Utilization</CardTitle>
+              <DollarSign className="h-4 w-4 text-orange-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-orange-600">{budgetUtilization}%</div>
+              <p className="text-xs text-muted-foreground">
+                ${totalSpent.toLocaleString()} of ${totalBudget.toLocaleString()}
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* Conversion Rate */}
+          <Card>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">{item.title}</CardTitle>
-                    <item.icon className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium">Conversion Rate</CardTitle>
+              <TrendingUp className="h-4 w-4 text-purple-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-purple-600">{conversionRate}%</div>
+              <p className="text-xs text-muted-foreground">
+                {totalCampaignClicks.toLocaleString()} clicks from {totalCampaignViews.toLocaleString()} views
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Charts Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Performance Trends */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Performance Trends</CardTitle>
+              <CardDescription>Monthly performance metrics over time</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={performanceData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Line type="monotone" dataKey="campaigns" stroke="#3b82f6" strokeWidth={2} />
+                  <Line type="monotone" dataKey="clicks" stroke="#10b981" strokeWidth={2} />
+                  <Line type="monotone" dataKey="views" stroke="#f59e0b" strokeWidth={2} />
+                </LineChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          {/* Campaign Status Distribution */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Campaign Status</CardTitle>
+              <CardDescription>Distribution of campaign statuses</CardDescription>
                   </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-2 gap-4">
-                    {/* Active Workers */}
-                    <div className="text-center">
-                      <div className="text-3xl font-bold text-blue-600 mb-1">{item.metrics.activeWorkers}</div>
-                      <div className="text-sm text-muted-foreground font-medium">Active Workers</div>
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={campaignStatusData}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                    outerRadius={80}
+                    fill="#8884d8"
+                    dataKey="value"
+                  >
+                    {campaignStatusData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
                     </div>
-                    
-                    {/* Total Clicks */}
-                    <div className="text-center">
-                      <div className="text-4xl font-bold text-gray-900 mb-1">{item.metrics.totalClicks.toLocaleString()}</div>
-                      <div className="text-sm text-muted-foreground font-medium">Total Clicks</div>
+
+        {/* Worker Distribution and Recent Activity */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Worker Type Distribution */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Worker Distribution</CardTitle>
+              <CardDescription>Breakdown of worker types</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={workerTypeData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" />
+                  <YAxis />
+                  <Tooltip />
+                  <Bar dataKey="value" fill="#8884d8" />
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          {/* Recent Activity */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Recent Activity</CardTitle>
+              <CardDescription>Latest worker performance</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {mockWorkers.slice(0, 5).map((worker) => (
+                  <div key={worker.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 cursor-pointer" onClick={() => handleWorkerClick(worker.id)}>
+                    <div className="flex items-center space-x-3">
+                      <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                        <Users className="w-4 h-4 text-blue-600" />
                     </div>
-                    
-                    {/* Good Clicks */}
-                    <div className="text-center">
-                      <div className="text-3xl font-bold text-green-600 mb-1">{item.metrics.goodClicks.toLocaleString()}</div>
-                      <div className="text-sm text-muted-foreground font-medium">Good Clicks</div>
+                      <div>
+                        <p className="font-medium">{worker.name}</p>
+                        <p className="text-sm text-gray-500">{worker.type}</p>
                     </div>
-                    
-                    {/* Bad Clicks */}
-                    <div className="text-center">
-                      <div className="text-3xl font-bold text-red-600 mb-1">{item.metrics.badClicks.toLocaleString()}</div>
-                      <div className="text-sm text-muted-foreground font-medium">Bad Clicks</div>
                     </div>
-                    
-                    {/* Form Fills - spans full width */}
-                    <div className="text-center col-span-2">
-                      <div className="text-3xl font-bold text-purple-600 mb-1">{item.metrics.formFills}</div>
-                      <div className="text-sm text-muted-foreground font-medium">Form Fills</div>
+                    <div className="text-right">
+                      <p className="font-medium">{worker.totalClicks} clicks</p>
+                      <p className="text-sm text-green-600">{worker.success} success</p>
                     </div>
                   </div>
-                  <div className="mt-4 pt-4 border-t">
-                    <p className="text-xs text-muted-foreground">
-                      Range: {format(fromDate, "yyyy-MM-dd")} → {format(toDate, "yyyy-MM-dd")}
-                    </p>
+                ))}
                   </div>
                 </CardContent>
               </Card>
-              );
-            })}
           </div>
-        </TabsContent>
-        
-        <TabsContent value="trainee" className="space-y-6">
-          <div className="grid gap-6 md:grid-cols-2 animate-fade-in">
-            {traineeMetrics.map((item) => {
-              const cardType = item.title === "Viewers" ? "trainee-viewers" : "trainee-clickers";
-              return (
-                <Card 
-                  key={item.title} 
-                  className="relative overflow-hidden transition-smooth hover:shadow-lg hover:scale-[1.02] cursor-pointer"
-                  onClick={() => handleCardClick(cardType)}
-                >
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">{item.title}</CardTitle>
-                    <item.icon className="h-4 w-4 text-muted-foreground" />
+
+        {/* Quick Actions */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Quick Actions</CardTitle>
+            <CardDescription>Common administrative tasks</CardDescription>
                   </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-2 gap-4">
-                    {/* Active Workers */}
-                    <div className="text-center">
-                      <div className="text-3xl font-bold text-blue-600 mb-1">{item.metrics.activeWorkers}</div>
-                      <div className="text-sm text-muted-foreground font-medium">Active Workers</div>
-                    </div>
-                    
-                    {/* Total Clicks */}
-                    <div className="text-center">
-                      <div className="text-4xl font-bold text-gray-900 mb-1">{item.metrics.totalClicks.toLocaleString()}</div>
-                      <div className="text-sm text-muted-foreground font-medium">Total Clicks</div>
-                    </div>
-                    
-                    {/* Good Clicks */}
-                    <div className="text-center">
-                      <div className="text-3xl font-bold text-green-600 mb-1">{item.metrics.goodClicks.toLocaleString()}</div>
-                      <div className="text-sm text-muted-foreground font-medium">Good Clicks</div>
-                    </div>
-                    
-                    {/* Bad Clicks */}
-                    <div className="text-center">
-                      <div className="text-3xl font-bold text-red-600 mb-1">{item.metrics.badClicks.toLocaleString()}</div>
-                      <div className="text-sm text-muted-foreground font-medium">Bad Clicks</div>
-                    </div>
-                    
-                    {/* Form Fills - spans full width */}
-                    <div className="text-center col-span-2">
-                      <div className="text-3xl font-bold text-purple-600 mb-1">{item.metrics.formFills}</div>
-                      <div className="text-sm text-muted-foreground font-medium">Form Fills</div>
-                    </div>
-                  </div>
-                  <div className="mt-4 pt-4 border-t">
-                    <p className="text-xs text-muted-foreground">
-                      Range: {format(fromDate, "yyyy-MM-dd")} → {format(toDate, "yyyy-MM-dd")}
-                    </p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Button 
+                variant="outline" 
+                className="h-20 flex flex-col items-center justify-center space-y-2"
+                onClick={() => router.push('/campaigns')}
+              >
+                <Target className="h-6 w-6" />
+                <span>Manage Campaigns</span>
+              </Button>
+              <Button 
+                variant="outline" 
+                className="h-20 flex flex-col items-center justify-center space-y-2"
+                onClick={() => router.push('/users')}
+              >
+                <Users className="h-6 w-6" />
+                <span>Manage Workers</span>
+              </Button>
+              <Button 
+                variant="outline" 
+                className="h-20 flex flex-col items-center justify-center space-y-2"
+                onClick={() => router.push('/tasks')}
+              >
+                <CheckCircle className="h-6 w-6" />
+                <span>Manage Tasks</span>
+              </Button>
                   </div>
                 </CardContent>
               </Card>
-              );
-            })}
-          </div>
-        </TabsContent>
-      </Tabs>
       </div>
     </MainLayout>
   );
