@@ -53,6 +53,8 @@ const UserForm = ({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="admin">Admin</SelectItem>
+            <SelectItem value="manager">Manager</SelectItem>
+            <SelectItem value="qc">QC (Quality Control)</SelectItem>
             <SelectItem value="worker">Worker</SelectItem>
           </SelectContent>
         </Select>
@@ -60,15 +62,19 @@ const UserForm = ({
       <div className="space-y-2">
         <Label htmlFor={isEdit ? "edit-workerType" : "workerType"}>Worker Type</Label>
         <Select 
-          value={getSafeSelectValue(user?.workerType, "task-clicker")} 
-          onValueChange={(value) => onUserChange({...user, workerType: getSafeSelectValue(value, "task-clicker")})}
+          value={getSafeSelectValue(user?.workerType, "")} 
+          onValueChange={(value) => onUserChange({...user, workerType: getSafeSelectValue(value, "")})}
         >
           <SelectTrigger>
             <SelectValue placeholder="Select worker type" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="task-clicker">Task Clicker</SelectItem>
-            <SelectItem value="task-viewer">Task Viewer</SelectItem>
+            <SelectItem value="permanent-clicker">Permanent Clicker</SelectItem>
+            <SelectItem value="permanent-viewer">Permanent Viewer</SelectItem>
+            <SelectItem value="trainee-clicker">Trainee Clicker</SelectItem>
+            <SelectItem value="trainee-viewer">Trainee Viewer</SelectItem>
+            <SelectItem value="manager">Manager</SelectItem>
+            <SelectItem value="qc">QC (Quality Control)</SelectItem>
           </SelectContent>
         </Select>
       </div>

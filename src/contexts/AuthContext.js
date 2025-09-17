@@ -32,9 +32,27 @@ export function AuthProvider({ children }) {
         role: "admin",
         avatar: null
       },
-      // Regular users (created by admin)
+      // Manager user
       {
         id: 2,
+        name: "Sarah Manager",
+        email: "manager@joyapps.com",
+        password: "manager123",
+        role: "manager",
+        avatar: null
+      },
+      // QC user
+      {
+        id: 3,
+        name: "John QC",
+        email: "qc@joyapps.com",
+        password: "qc123",
+        role: "qc",
+        avatar: null
+      },
+      // Regular users (created by admin)
+      {
+        id: 4,
         name: "Hasan Abbas",
         email: "hasan@joyapps.net",
         password: "user123",
@@ -42,7 +60,7 @@ export function AuthProvider({ children }) {
         avatar: null
       },
       {
-        id: 3,
+        id: 5,
         name: "Adnan Amir",
         email: "adnan@joyapps.net",
         password: "user123",
@@ -50,7 +68,7 @@ export function AuthProvider({ children }) {
         avatar: null
       },
       {
-        id: 4,
+        id: 6,
         name: "Waleed Bin Shakeel",
         email: "waleed@joyapps.net",
         password: "user123",
