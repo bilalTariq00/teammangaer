@@ -207,7 +207,7 @@ export default function DashboardPage() {
         </div>
 
       {/* Date Range Filters */}
-      <Card>
+      {/* <Card>
         <CardHeader>
           <CardTitle>Date Range Filters</CardTitle>
           <CardDescription>
@@ -287,7 +287,7 @@ export default function DashboardPage() {
           </div>
           </div>
         </CardContent>
-      </Card>
+      </Card> */}
 
         {/* Main Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

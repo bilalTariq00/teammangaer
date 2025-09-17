@@ -176,7 +176,7 @@ export default function TasksPage() {
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Create Tasker Form */}
         <Card>
-          <CardHeader className="bg-blue-50">
+          <CardHeader className="bg-blue-50 ">
             <CardTitle className="text-blue-900">Create Tasker</CardTitle>
             <CardDescription>
               Create a new tasker for your workers to complete
