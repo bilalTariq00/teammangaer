@@ -27,7 +27,21 @@ export default function LoginPage() {
     const result = await login(email, password);
     
     if (result.success) {
-      router.push("/dashboard");
+      // Redirect based on user role
+      const user = JSON.parse(localStorage.getItem("user"));
+      if (user.role === "admin") {
+        router.push("/dashboard");
+      } else if (user.role === "manager") {
+        router.push("/manager-dashboard");
+      } else if (user.role === "qc") {
+        router.push("/qc-dashboard");
+      } else if (user.role === "hr") {
+        router.push("/hr-dashboard");
+      } else if (user.role === "user") {
+        router.push("/user-dashboard");
+      } else {
+        router.push("/dashboard");
+      }
     } else {
       setError(result.error);
     }
@@ -100,7 +114,12 @@ export default function LoginPage() {
           </form>
           <div className="mt-6 text-center text-sm text-muted-foreground">
             <p>Demo credentials:</p>
-            <p className="font-mono">admin@joyapps.com / admin123</p>
+            <div className="space-y-1 font-mono text-xs">
+              <p>admin@joyapps.com / admin123</p>
+              <p>manager@joyapps.com / manager123</p>
+              <p>qc@joyapps.com / qc123</p>
+              <p>hr@joyapps.com / hr123</p>
+            </div>
           </div>
         </CardContent>
       </Card>

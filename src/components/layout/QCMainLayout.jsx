@@ -1,28 +1,37 @@
 "use client";
 
 import { useState } from "react";
-import QCHeader from "./QCHeader";
 import QCSidebar from "./QCSidebar";
-import RoleProtectedRoute from "@/components/RoleProtectedRoute";
+import QCHeader from "./QCHeader";
 
 export default function QCMainLayout({ children }) {
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   const toggleSidebar = () => {
-    setIsCollapsed(!isCollapsed);
+    setSidebarCollapsed(!sidebarCollapsed);
   };
 
   return (
-    <RoleProtectedRoute allowedRoles={["qc"]}>
-      <div className="flex h-screen bg-background">
-        <QCSidebar isCollapsed={isCollapsed} onToggle={toggleSidebar} />
-        <div className="flex-1 flex flex-col overflow-hidden">
-          <QCHeader onToggleSidebar={toggleSidebar} />
-          <main className="flex-1 overflow-auto p-6">
-            {children}
-          </main>
-        </div>
+    <div className="flex h-screen bg-background">
+      {/* Sidebar */}
+      <QCSidebar 
+        isCollapsed={sidebarCollapsed} 
+        onToggle={toggleSidebar} 
+      />
+      
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Header */}
+        <QCHeader 
+          sidebarCollapsed={sidebarCollapsed} 
+          onSidebarToggle={toggleSidebar} 
+        />
+        
+        {/* Page Content */}
+        <main className="flex-1 overflow-y-auto p-6">
+          {children}
+        </main>
       </div>
-    </RoleProtectedRoute>
+    </div>
   );
 }

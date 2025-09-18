@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Menu, LogOut, User, PanelLeft } from "lucide-react";
@@ -13,10 +14,20 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import UserSidebar from "./UserSidebar";
+import LogoutConfirmation from "@/components/ui/logout-confirmation";
 
 export default function UserHeader({ sidebarCollapsed, onSidebarToggle }) {
   const { user, logout } = useAuth();
   const { dashboardTitle, logoPreview, getInitials } = useSettings();
+  const [showLogoutConfirmation, setShowLogoutConfirmation] = useState(false);
+
+  const handleLogoutClick = () => {
+    setShowLogoutConfirmation(true);
+  };
+
+  const handleLogoutConfirm = () => {
+    logout();
+  };
 
   return (
     <header className="w-full border-b bg-background">
@@ -110,7 +121,7 @@ export default function UserHeader({ sidebarCollapsed, onSidebarToggle }) {
                   </p>
                 </div>
               </div>
-              <DropdownMenuItem onClick={logout} className="text-red-600">
+              <DropdownMenuItem onClick={handleLogoutClick} className="text-red-600">
                 <LogOut className="mr-2 h-4 w-4" />
                 Logout
               </DropdownMenuItem>
@@ -118,6 +129,12 @@ export default function UserHeader({ sidebarCollapsed, onSidebarToggle }) {
           </DropdownMenu>
         </div>
       </div>
+      
+      <LogoutConfirmation
+        isOpen={showLogoutConfirmation}
+        onClose={() => setShowLogoutConfirmation(false)}
+        onConfirm={handleLogoutConfirm}
+      />
     </header>
   );
 }

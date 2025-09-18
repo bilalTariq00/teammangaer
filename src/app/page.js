@@ -15,6 +15,12 @@ export default function Home() {
         // Redirect based on user role
         if (user.role === "admin") {
           router.push("/dashboard");
+        } else if (user.role === "manager") {
+          router.push("/manager-dashboard");
+        } else if (user.role === "qc") {
+          router.push("/qc-dashboard");
+        } else if (user.role === "hr") {
+          router.push("/hr-dashboard");
         } else if (user.role === "user") {
           router.push("/user-dashboard");
         }

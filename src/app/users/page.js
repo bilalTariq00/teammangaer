@@ -90,7 +90,8 @@ export default function UsersPage() {
     workerType: "",
     status: "trainee",
     password: "",
-    defaultTasker: "none"
+    defaultTasker: "none",
+    assignedUsers: []
   });
   const [isInitialized, setIsInitialized] = useState(false);
 
@@ -124,7 +125,8 @@ export default function UsersPage() {
       defaultTaskerSlug: newUser.defaultTasker === "none" ? "" : newUser.defaultTasker,
       locked: "unlocked",
       links: 0,
-      created: new Date().toISOString().slice(0, 19).replace('T', ' ')
+      created: new Date().toISOString().slice(0, 19).replace('T', ' '),
+      assignedUsers: newUser.assignedUsers || []
     };
     
     setUsers([...users, userToAdd]);
@@ -135,7 +137,8 @@ export default function UsersPage() {
       workerType: "",
       status: "trainee",
       password: "",
-      defaultTasker: "none"
+      defaultTasker: "none",
+      assignedUsers: []
     });
     setIsCreateDialogOpen(false);
   };
@@ -160,6 +163,7 @@ export default function UsersPage() {
       defaultTasker: editingUser.defaultTasker === "none" ? "— none —" : 
                     editingUser.defaultTasker === "tasker-click" ? "Tasker Click" : "Tasker Views",
       defaultTaskerSlug: editingUser.defaultTasker === "none" ? "" : editingUser.defaultTasker,
+      assignedUsers: editingUser.assignedUsers || []
     };
 
     setUsers(prevUsers => 

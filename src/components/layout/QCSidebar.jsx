@@ -32,11 +32,11 @@ const navigation = [
     href: "/qc-reports",
     icon: BarChart3,
   },
-  {
-    name: "Settings",
-    href: "/qc-settings",
-    icon: Settings,
-  },
+  // {
+  //   name: "Settings",
+  //   href: "/qc-settings",
+  //   icon: Settings,
+  // },
 ];
 
 export default function QCSidebar({ isCollapsed, onToggle }) {

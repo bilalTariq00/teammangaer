@@ -4,7 +4,7 @@ import React from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Edit, Trash2 } from "lucide-react";
+import { Edit, Trash2, Users } from "lucide-react";
 
 const UserTable = ({ 
   users, 
@@ -44,9 +44,17 @@ const UserTable = ({
                 {user.email}
               </TableCell>
               <TableCell className="w-[80px] px-4 py-3 text-center">
-                <Badge variant="secondary" className="text-xs">
-                  {user.role}
-                </Badge>
+                <div className="flex flex-col items-center gap-1">
+                  <Badge variant="secondary" className="text-xs">
+                    {user.role}
+                  </Badge>
+                  {user.role === "manager" && user.assignedUsers && user.assignedUsers.length > 0 && (
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <Users className="h-3 w-3" />
+                      <span>{user.assignedUsers.length} team</span>
+                    </div>
+                  )}
+                </div>
               </TableCell>
               <TableCell className="w-[120px] px-4 py-3 text-center">
                 <Badge variant="outline" className="text-xs">

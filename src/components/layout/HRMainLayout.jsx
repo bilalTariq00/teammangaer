@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import ManagerSidebar from "./ManagerSidebar";
-import ManagerHeader from "./ManagerHeader";
+import HRSidebar from "./HRSidebar";
+import HRHeader from "./HRHeader";
 
-export default function ManagerMainLayout({ children }) {
+export default function HRMainLayout({ children }) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   const toggleSidebar = () => {
@@ -14,7 +14,7 @@ export default function ManagerMainLayout({ children }) {
   return (
     <div className="flex h-screen bg-background">
       {/* Sidebar */}
-      <ManagerSidebar 
+      <HRSidebar 
         isCollapsed={sidebarCollapsed} 
         onToggle={toggleSidebar} 
       />
@@ -22,7 +22,7 @@ export default function ManagerMainLayout({ children }) {
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
-        <ManagerHeader 
+        <HRHeader 
           sidebarCollapsed={sidebarCollapsed} 
           onSidebarToggle={toggleSidebar} 
         />

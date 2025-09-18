@@ -13,10 +13,10 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import Sidebar from "./Sidebar";
+import HRSidebar from "./HRSidebar";
 import LogoutConfirmation from "@/components/ui/logout-confirmation";
 
-export default function Header({ sidebarCollapsed, onSidebarToggle }) {
+export default function HRHeader({ sidebarCollapsed, onSidebarToggle }) {
   const { user, logout } = useAuth();
   const { dashboardTitle, logoPreview, getInitials } = useSettings();
   const [showLogoutConfirmation, setShowLogoutConfirmation] = useState(false);
@@ -58,11 +58,11 @@ export default function Header({ sidebarCollapsed, onSidebarToggle }) {
                         </span>
                       </div>
                     )}
-                    <h1 className="text-xl font-bold">{dashboardTitle}</h1>
+                    <h1 className="text-xl font-bold">HR Portal</h1>
                   </div>
                 </div>
                 <div className="flex-1 px-3 py-4">
-                  <Sidebar isCollapsed={false} onToggle={() => {}} />
+                  <HRSidebar isCollapsed={false} onToggle={() => {}} />
                 </div>
               </div>
             </SheetContent>
@@ -95,7 +95,7 @@ export default function Header({ sidebarCollapsed, onSidebarToggle }) {
                     </span>
                   </div>
                 )}
-                <h1 className="text-xl font-bold">{dashboardTitle}</h1>
+                <h1 className="text-xl font-bold">HR Portal</h1>
               </>
             )}
           </div>

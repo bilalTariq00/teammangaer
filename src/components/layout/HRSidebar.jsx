@@ -11,59 +11,70 @@ import {
   Users,
   BarChart3,
   Settings,
-  UserCheck,
-  Target,
-  TrendingUp,
   UserPlus,
   Edit,
-  Eye,
-  ClipboardList,
-  FolderOpen
+  FileText,
+  Building,
+  Calendar,
+  Award,
+  DollarSign,
+  GraduationCap,
+  Briefcase,
+  ClipboardList
 } from "lucide-react";
 
 const navigation = [
   {
     name: "Overview",
-    href: "/manager-dashboard",
+    href: "/hr-dashboard",
     icon: LayoutDashboard,
   },
   {
-    name: "Team Members",
-    href: "/manager-dashboard?tab=users",
+    name: "Employees",
+    href: "/hr-dashboard?tab=employees",
     icon: Users,
   },
+//   {
+//     name: "Performance",
+//     href: "/hr-dashboard?tab=performance",
+//     icon: BarChart3,
+//   },
+//   {
+//     name: "Reports",
+//     href: "/hr-dashboard?tab=reports",
+//     icon: FileText,
+//   },
   {
-    name: "Campaigns",
-    href: "/manager-dashboard?tab=campaigns",
-    icon: FolderOpen,
+    name: "Departments",
+    href: "/hr-dashboard?tab=departments",
+    icon: Building,
   },
   {
-    name: "Tasks",
-    href: "/manager-dashboard?tab=tasks",
-    icon: ClipboardList,
+    name: "Calendar",
+    href: "/hr-dashboard?tab=calendar",
+    icon: Calendar,
   },
-  {
-    name: "Team Performance",
-    href: "/manager-performance",
-    icon: BarChart3,
-  },
-  
+//   {
+//     name: "Settings",
+//     href: "/hr-settings",
+//     icon: Settings,
+//   },
 ];
 
-const userManagement = [
+const employeeManagement = [
   {
-    name: "Create User",
-    href: "/manager-dashboard?action=create-user",
+    name: "Add Employee",
+    href: "/hr-dashboard?action=add-employee",
     icon: UserPlus,
   },
   {
-    name: "Edit Users",
-    href: "/manager-dashboard?action=edit-users",
+    name: "Edit Employees",
+    href: "/hr-dashboard?action=edit-employees",
     icon: Edit,
   },
 ];
 
-export default function ManagerSidebar({ isCollapsed, onToggle }) {
+export default function HRSidebar({ isCollapsed, onToggle }) {
   const pathname = usePathname();
   const { dashboardTitle, logoPreview, getInitials } = useSettings();
 
@@ -90,7 +101,7 @@ export default function ManagerSidebar({ isCollapsed, onToggle }) {
             </div>
           )}
           {!isCollapsed && (
-            <h1 className="text-xl font-bold">Manager Portal</h1>
+            <h1 className="text-xl font-bold">HR Portal</h1>
           )}
         </div>
       </div>
@@ -117,8 +128,8 @@ export default function ManagerSidebar({ isCollapsed, onToggle }) {
           );
         })}
         
-        {/* User Management Section */}
-      
+        {/* Employee Management Section */}
+        
       </nav>
     </div>
   );

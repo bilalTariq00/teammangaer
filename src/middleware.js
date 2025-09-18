@@ -12,6 +12,9 @@ export function middleware(request) {
   // QC-only routes
   const qcRoutes = ['/qc-dashboard', '/qc-tasks', '/qc-reports', '/qc-settings'];
   
+  // HR-only routes
+  const hrRoutes = ['/hr-dashboard', '/hr-employees', '/hr-reports', '/hr-settings'];
+  
   // User-only routes  
   const userRoutes = ['/user-dashboard', '/user-tasks'];
   
@@ -19,6 +22,7 @@ export function middleware(request) {
   const isAdminRoute = adminRoutes.some(route => pathname.startsWith(route));
   const isManagerRoute = managerRoutes.some(route => pathname.startsWith(route));
   const isQCRoute = qcRoutes.some(route => pathname.startsWith(route));
+  const isHRRoute = hrRoutes.some(route => pathname.startsWith(route));
   const isUserRoute = userRoutes.some(route => pathname.startsWith(route));
   
   // Get user role from cookies or headers
@@ -30,6 +34,8 @@ export function middleware(request) {
       return NextResponse.redirect(new URL('/manager-dashboard', request.url));
     } else if (userRole === 'qc') {
       return NextResponse.redirect(new URL('/qc-dashboard', request.url));
+    } else if (userRole === 'hr') {
+      return NextResponse.redirect(new URL('/hr-dashboard', request.url));
     } else if (userRole === 'user') {
       return NextResponse.redirect(new URL('/user-dashboard', request.url));
     }
@@ -50,6 +56,20 @@ export function middleware(request) {
       return NextResponse.redirect(new URL('/dashboard', request.url));
     } else if (userRole === 'manager') {
       return NextResponse.redirect(new URL('/manager-dashboard', request.url));
+    } else if (userRole === 'hr') {
+      return NextResponse.redirect(new URL('/hr-dashboard', request.url));
+    } else if (userRole === 'user') {
+      return NextResponse.redirect(new URL('/user-dashboard', request.url));
+    }
+  }
+  
+  if (isHRRoute && userRole !== 'hr') {
+    if (userRole === 'admin') {
+      return NextResponse.redirect(new URL('/dashboard', request.url));
+    } else if (userRole === 'manager') {
+      return NextResponse.redirect(new URL('/manager-dashboard', request.url));
+    } else if (userRole === 'qc') {
+      return NextResponse.redirect(new URL('/qc-dashboard', request.url));
     } else if (userRole === 'user') {
       return NextResponse.redirect(new URL('/user-dashboard', request.url));
     }

@@ -9,6 +9,7 @@ import { useSettings } from "@/contexts/SettingsContext";
 import {
   LayoutDashboard,
   CheckSquare,
+  User,
 } from "lucide-react";
 
 const userNavigation = [
@@ -21,6 +22,11 @@ const userNavigation = [
     name: "Tasks",
     href: "/user-tasks",
     icon: CheckSquare,
+  },
+  {
+    name: "Personal Info",
+    href: "/user-personal-info",
+    icon: User,
   },
 ];
 
