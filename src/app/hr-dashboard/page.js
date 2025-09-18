@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import HRMainLayout from "@/components/layout/HRMainLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -200,7 +200,7 @@ const initialEvents = [
   { id: 4, title: "Salary Review Meeting", date: "2024-03-01", type: "meeting", description: "Management salary review discussion", attendees: ["Management team"] }
 ];
 
-export default function HRDashboard() {
+function HRDashboardContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState("overview");
@@ -1099,7 +1099,7 @@ export default function HRDashboard() {
                     <div className="text-center py-8 text-gray-500">
                       <Calendar className="h-12 w-12 mx-auto mb-4 text-gray-300" />
                       <p>No events scheduled</p>
-                      <p className="text-sm">Click "Add Event" to create your first calendar event</p>
+                      <p className="text-sm">Click &quot;Add Event&quot; to create your first calendar event</p>
                     </div>
                   )}
                 </div>
@@ -1259,5 +1259,13 @@ export default function HRDashboard() {
         )}
       </div>
     </HRMainLayout>
+  );
+}
+
+export default function HRDashboard() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <HRDashboardContent />
+    </Suspense>
   );
 }

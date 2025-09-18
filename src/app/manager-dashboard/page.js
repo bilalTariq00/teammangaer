@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import ManagerMainLayout from "@/components/layout/ManagerMainLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -67,7 +67,7 @@ const mockTeamStats = {
   recentActivity: 12
 };
 
-export default function ManagerDashboard() {
+function ManagerDashboardContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState("overview");
@@ -647,5 +647,13 @@ export default function ManagerDashboard() {
         )}
       </div>
     </ManagerMainLayout>
+  );
+}
+
+export default function ManagerDashboard() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <ManagerDashboardContent />
+    </Suspense>
   );
 }
