@@ -26,7 +26,9 @@ import {
   MapPin,
   Briefcase,
   Award,
-  Target
+  Target,
+  Lock,
+  Unlock
 } from "lucide-react";
 import { useUsers } from "@/contexts/UsersContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -34,7 +36,7 @@ import { toast } from "sonner";
 
 export default function ManagerTeamPage() {
   const { users, updateUser } = useUsers();
-  const { user: currentUser } = useAuth();
+  const { user: currentUser, checkUserLockStatus } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [isLoading, setIsLoading] = useState(true);
@@ -124,6 +126,39 @@ export default function ManagerTeamPage() {
   const closeMemberModal = () => {
     setSelectedMember(null);
     setShowMemberModal(false);
+  };
+
+  // Handle lock/unlock functionality
+  const handleLockUnlock = async (memberId, isLocked) => {
+    try {
+      const member = teamMembers.find(m => m.id === memberId);
+      if (!member) {
+        toast.error("Member not found");
+        return;
+      }
+
+      // Update user's locked status
+      const updatedMember = { ...member, locked: isLocked ? "locked" : "unlocked" };
+      updateUser(memberId, updatedMember);
+
+      // If locking, check if the user is currently logged in and log them out
+      if (isLocked) {
+        // Check if the locked user is currently logged in
+        const isCurrentlyLoggedIn = currentUser && currentUser.id === memberId;
+        if (isCurrentlyLoggedIn) {
+          // Log out the currently logged in user
+          checkUserLockStatus();
+          toast.success(`${member.name} has been locked and logged out`);
+        } else {
+          toast.success(`${member.name} has been locked`);
+        }
+      } else {
+        toast.success(`${member.name} has been unlocked and can log in again`);
+      }
+    } catch (error) {
+      console.error("Error updating lock status:", error);
+      toast.error("Failed to update lock status");
+    }
   };
 
   const getStatusBadgeVariant = (status) => {
@@ -305,7 +340,8 @@ export default function ManagerTeamPage() {
                     <TableHead>Member</TableHead>
                       <TableHead>Current Status</TableHead>
                     <TableHead>Performance</TableHead>
-                      <TableHead>Join Date</TableHead>
+                    <TableHead>Join Date</TableHead>
+                    <TableHead>Status</TableHead>
                     <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -379,6 +415,26 @@ export default function ManagerTeamPage() {
                               {member.created ? new Date(member.created).toLocaleDateString() : 'N/A'}
                         </div>
                       </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Badge 
+                            variant={member.locked === "locked" ? "destructive" : "secondary"}
+                            className="text-xs"
+                          >
+                            {member.locked === "locked" ? (
+                              <>
+                                <Lock className="h-3 w-3 mr-1" />
+                                Locked
+                              </>
+                            ) : (
+                              <>
+                                <Unlock className="h-3 w-3 mr-1" />
+                                Unlocked
+                              </>
+                            )}
+                          </Badge>
+                        </div>
+                      </TableCell>
                           <TableCell>
                             <div className="flex gap-2">
                               <Button 
@@ -388,6 +444,24 @@ export default function ManagerTeamPage() {
                               >
                                 <Eye className="h-4 w-4 mr-1" />
                                 View
+                              </Button>
+                              <Button 
+                                variant={member.locked === "locked" ? "default" : "outline"}
+                                size="sm"
+                                onClick={() => handleLockUnlock(member.id, member.locked !== "locked")}
+                                className={member.locked === "locked" ? "bg-green-600 hover:bg-green-700" : "bg-red-600 hover:bg-red-700 text-white"}
+                              >
+                                {member.locked === "locked" ? (
+                                  <>
+                                    <Unlock className="h-4 w-4 mr-1" />
+                                    Unlock
+                                  </>
+                                ) : (
+                                  <>
+                                    <Lock className="h-4 w-4 mr-1" />
+                                    Lock
+                                  </>
+                                )}
                               </Button>
                             </div>
                           </TableCell>
@@ -421,7 +495,7 @@ export default function ManagerTeamPage() {
                   <p className="text-xs text-muted-foreground">
                     Use only for employees who are leaving the company or have been dismissed.
                   </p>
-                </div>
+              </div>
                 <div className="space-y-2">
                   <h4 className="font-medium text-sm">Any Status → Blocked</h4>
                   <p className="text-xs text-muted-foreground">

@@ -16,6 +16,16 @@ export function AuthProvider({ children }) {
       if (savedUser) {
         try {
           const userData = JSON.parse(savedUser);
+          
+          // Check if user is locked
+          if (userData.locked === "locked") {
+            // Log out locked user
+            localStorage.removeItem("user");
+            clearUserRoleCookie();
+            setUser(null);
+            return;
+          }
+          
           setUser(userData);
           // Set user role in cookie for middleware access
           setUserRoleCookie(userData.role);
@@ -39,7 +49,8 @@ export function AuthProvider({ children }) {
         email: "admin@joyapps.com",
         password: "admin123",
         role: "admin",
-        avatar: null
+        avatar: null,
+        locked: "unlocked"
       },
       // Manager user
       {
@@ -49,7 +60,8 @@ export function AuthProvider({ children }) {
         password: "manager123",
         role: "manager",
         avatar: null,
-        assignedUsers: [1, 3] // Hasan Abbas and Abid
+        assignedUsers: [1, 3], // Hasan Abbas and Abid
+        locked: "unlocked"
       },
       // Additional Manager user
       {
@@ -59,7 +71,8 @@ export function AuthProvider({ children }) {
         password: "manager123",
         role: "manager",
         avatar: null,
-        assignedUsers: [4, 5, 6] // Sarah Johnson, John Doe, Jane Smith
+        assignedUsers: [4, 5, 6], // Sarah Johnson, John Doe, Jane Smith
+        locked: "unlocked"
       },
       // QC user
       {
@@ -68,7 +81,8 @@ export function AuthProvider({ children }) {
         email: "qc@joyapps.com",
         password: "qc123",
         role: "qc",
-        avatar: null
+        avatar: null,
+        locked: "unlocked"
       },
       // HR user
       {
@@ -77,7 +91,8 @@ export function AuthProvider({ children }) {
         email: "hr@joyapps.com",
         password: "hr123",
         role: "hr",
-        avatar: null
+        avatar: null,
+        locked: "unlocked"
       },
       // Regular users (created by admin) - with comprehensive HR data
       {
@@ -87,6 +102,7 @@ export function AuthProvider({ children }) {
         password: "user123",
         role: "user",
         avatar: null,
+        locked: "unlocked",
         // Basic contact info (user can edit)
         contactNumber: "+1-555-0123",
         emergencyNumber: "+1-555-0124",
@@ -115,6 +131,7 @@ export function AuthProvider({ children }) {
         password: "user123",
         role: "user",
         avatar: null,
+        locked: "unlocked",
         // Basic contact info (user can edit)
         contactNumber: "+1-555-0125",
         emergencyNumber: "+1-555-0126",
@@ -143,6 +160,7 @@ export function AuthProvider({ children }) {
         password: "user123",
         role: "user",
         avatar: null,
+        locked: "unlocked",
         // Basic contact info (user can edit)
         contactNumber: "+1-555-0127",
         emergencyNumber: "+1-555-0128",
@@ -169,6 +187,10 @@ export function AuthProvider({ children }) {
     const foundUser = users.find(u => u.email === email && u.password === password);
     
     if (foundUser) {
+      // Check if user is locked
+      if (foundUser.locked === "locked") {
+        throw new Error("Your account has been locked. Please contact your manager to unlock it.");
+      }
       // Clear any existing data first (only in browser)
       if (typeof window !== 'undefined') {
         clearAllCache();
@@ -180,6 +202,7 @@ export function AuthProvider({ children }) {
         email: foundUser.email,
         role: foundUser.role,
         avatar: foundUser.avatar,
+        locked: foundUser.locked || "unlocked", // Add lock status
         assignedUsers: foundUser.assignedUsers || [], // For managers
         // Basic contact info (user can edit)
         contactNumber: foundUser.contactNumber || "",
@@ -247,8 +270,17 @@ export function AuthProvider({ children }) {
     }
   };
 
+  // Function to check if current user is locked and log them out
+  const checkUserLockStatus = () => {
+    if (user && user.locked === "locked") {
+      logout();
+      return true; // User was locked and logged out
+    }
+    return false; // User is not locked
+  };
+
   return (
-    <AuthContext.Provider value={{ user, login, logout, updatePersonalInfo, loading }}>
+    <AuthContext.Provider value={{ user, login, logout, updatePersonalInfo, checkUserLockStatus, loading }}>
       {children}
     </AuthContext.Provider>
   );
