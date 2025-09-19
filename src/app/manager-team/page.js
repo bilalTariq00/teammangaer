@@ -288,7 +288,7 @@ export default function ManagerTeamPage() {
                 <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 mb-2">No Team Members Assigned</h3>
                 <p className="text-gray-500 mb-4">
-                  You don't have any team members assigned to you yet. Contact HR to assign team members to your account.
+                  You don&apos;t have any team members assigned to you yet. Contact HR to assign team members to your account.
                 </p>
                 <div className="text-sm text-gray-400">
                   <p>Debug Info:</p>
