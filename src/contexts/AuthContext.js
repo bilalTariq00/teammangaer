@@ -160,6 +160,7 @@ export function AuthProvider({ children }) {
         password: "user123",
         role: "user",
         avatar: null,
+        workerType: "trainee-viewer",
         locked: "unlocked",
         // Basic contact info (user can edit)
         contactNumber: "+1-555-0127",
@@ -202,6 +203,7 @@ export function AuthProvider({ children }) {
         email: foundUser.email,
         role: foundUser.role,
         avatar: foundUser.avatar,
+        workerType: foundUser.workerType || null, // Add worker type
         locked: foundUser.locked || "unlocked", // Add lock status
         assignedUsers: foundUser.assignedUsers || [], // For managers
         // Basic contact info (user can edit)

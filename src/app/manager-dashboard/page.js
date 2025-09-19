@@ -986,6 +986,7 @@ function ManagerDashboardContent() {
   );
 }
 
+
 export default function ManagerDashboard() {
   return (
     <Suspense fallback={<div>Loading...</div>}>
