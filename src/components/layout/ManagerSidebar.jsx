@@ -29,7 +29,7 @@ const navigation = [
   },
   {
     name: "Team Members",
-    href: "/manager-dashboard?tab=users",
+    href: "/manager-team",
     icon: Users,
   },
   // {

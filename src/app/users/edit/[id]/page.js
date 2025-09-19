@@ -8,6 +8,7 @@ import { ArrowLeft, User, Save, X } from "lucide-react";
 import UserForm from "../../components/UserForm";
 import { useUsers } from "@/contexts/UsersContext";
 import { toast } from "sonner";
+import UserManagementLayout from "@/components/layout/UserManagementLayout";
 
 export default function EditUserPage() {
   const router = useRouter();
@@ -102,30 +103,35 @@ export default function EditUserPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50/50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading user data...</p>
+      <UserManagementLayout>
+        <div className="min-h-screen bg-gray-50/50 flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading user data...</p>
+          </div>
         </div>
-      </div>
+      </UserManagementLayout>
     );
   }
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-gray-50/50 flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-gray-600">User not found</p>
-          <Button onClick={() => router.push("/users")} className="mt-4">
-            Back to Users
-          </Button>
+      <UserManagementLayout>
+        <div className="min-h-screen bg-gray-50/50 flex items-center justify-center">
+          <div className="text-center">
+            <p className="text-gray-600">User not found</p>
+            <Button onClick={() => router.push("/users")} className="mt-4">
+              Back to Users
+            </Button>
+          </div>
         </div>
-      </div>
+      </UserManagementLayout>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50/50">
+    <UserManagementLayout>
+      <div className="min-h-screen bg-gray-50/50">
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         {/* Header */}
         <div className="mb-8">
@@ -275,5 +281,6 @@ export default function EditUserPage() {
         </div>
       </div>
     </div>
+    </UserManagementLayout>
   );
 }

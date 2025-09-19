@@ -4,7 +4,10 @@ export function middleware(request) {
   const { pathname } = request.nextUrl;
   
   // Admin-only routes
-  const adminRoutes = ['/dashboard', '/users', '/links', '/settings', '/campaigns', '/create-campaign'];
+  const adminRoutes = ['/dashboard', '/links', '/settings', '/campaigns', '/create-campaign'];
+  
+  // Admin and HR shared routes (user management)
+  const userManagementRoutes = ['/users'];
   
   // Manager-only routes
   const managerRoutes = ['/manager-dashboard', '/manager-team', '/manager-performance', '/manager-settings'];
@@ -20,6 +23,7 @@ export function middleware(request) {
   
   // Check if the current path matches any role-specific route
   const isAdminRoute = adminRoutes.some(route => pathname.startsWith(route));
+  const isUserManagementRoute = userManagementRoutes.some(route => pathname.startsWith(route));
   const isManagerRoute = managerRoutes.some(route => pathname.startsWith(route));
   const isQCRoute = qcRoutes.some(route => pathname.startsWith(route));
   const isHRRoute = hrRoutes.some(route => pathname.startsWith(route));
@@ -36,6 +40,17 @@ export function middleware(request) {
       return NextResponse.redirect(new URL('/qc-dashboard', request.url));
     } else if (userRole === 'hr') {
       return NextResponse.redirect(new URL('/hr-dashboard', request.url));
+    } else if (userRole === 'user') {
+      return NextResponse.redirect(new URL('/user-dashboard', request.url));
+    }
+  }
+  
+  // User management routes (accessible by admin and HR)
+  if (isUserManagementRoute && userRole !== 'admin' && userRole !== 'hr') {
+    if (userRole === 'manager') {
+      return NextResponse.redirect(new URL('/manager-dashboard', request.url));
+    } else if (userRole === 'qc') {
+      return NextResponse.redirect(new URL('/qc-dashboard', request.url));
     } else if (userRole === 'user') {
       return NextResponse.redirect(new URL('/user-dashboard', request.url));
     }

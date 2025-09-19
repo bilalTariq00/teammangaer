@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 import { 
   Users, 
   TrendingUp, 
@@ -80,6 +81,20 @@ function ManagerDashboardContent() {
     type: "",
     password: ""
   });
+  
+  // Dynamic task management
+  const [tasks, setTasks] = useState(mockTasks);
+  const [taskFilter, setTaskFilter] = useState("all");
+  const [taskSearch, setTaskSearch] = useState("");
+  const [showAddTaskModal, setShowAddTaskModal] = useState(false);
+  const [newTask, setNewTask] = useState({
+    title: "",
+    campaign: "",
+    assignedTo: "",
+    priority: "Medium",
+    dueDate: "",
+    taskType: "General"
+  });
 
   useEffect(() => {
     const tab = searchParams.get('tab');
@@ -99,6 +114,74 @@ function ManagerDashboardContent() {
       setActiveTab("users");
     }
   }, [searchParams]);
+
+  // Task management functions
+  const updateTaskStatus = (taskId, newStatus) => {
+    setTasks(prevTasks => 
+      prevTasks.map(task => 
+        task.id === taskId ? { ...task, status: newStatus } : task
+      )
+    );
+  };
+
+  const addNewTask = (taskData) => {
+    const task = {
+      id: Math.max(...tasks.map(t => t.id)) + 1,
+      ...taskData,
+      status: "Pending"
+    };
+    setTasks(prevTasks => [...prevTasks, task]);
+  };
+
+  const handleAddTask = () => {
+    if (newTask.title && newTask.assignedTo && newTask.dueDate) {
+      addNewTask(newTask);
+      setNewTask({
+        title: "",
+        campaign: "",
+        assignedTo: "",
+        priority: "Medium",
+        dueDate: "",
+        taskType: "General"
+      });
+      setShowAddTaskModal(false);
+    }
+  };
+
+  const openAddTaskModal = () => {
+    setNewTask({
+      title: "",
+      campaign: "E-commerce Campaign Q1",
+      assignedTo: "Hasan Abbas",
+      priority: "Medium",
+      dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      taskType: "General"
+    });
+    setShowAddTaskModal(true);
+  };
+
+  const filteredTasks = tasks.filter(task => {
+    const matchesFilter = taskFilter === "all" || task.status.toLowerCase().replace(" ", "_") === taskFilter;
+    const matchesSearch = task.title.toLowerCase().includes(taskSearch.toLowerCase()) ||
+                         task.assignedTo.toLowerCase().includes(taskSearch.toLowerCase()) ||
+                         task.campaign.toLowerCase().includes(taskSearch.toLowerCase());
+    return matchesFilter && matchesSearch;
+  });
+
+  // Simulate real-time task updates (in a real app, this would come from WebSocket or polling)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      // Simulate random task status updates
+      const randomTask = tasks[Math.floor(Math.random() * tasks.length)];
+      if (randomTask && randomTask.status === "Pending" && Math.random() < 0.1) {
+        updateTaskStatus(randomTask.id, "In Progress");
+      } else if (randomTask && randomTask.status === "In Progress" && Math.random() < 0.15) {
+        updateTaskStatus(randomTask.id, "Completed");
+      }
+    }, 10000); // Check every 10 seconds
+
+    return () => clearInterval(interval);
+  }, [tasks]);
 
   const handleCreateUser = () => {
     // In a real app, this would make an API call
@@ -563,6 +646,13 @@ function ManagerDashboardContent() {
           <div className="space-y-6">
             <div className="flex items-center justify-between">
               <h2 className="text-2xl font-bold">Assigned Tasks</h2>
+              <Button 
+                onClick={openAddTaskModal}
+                className="flex items-center gap-2"
+              >
+                <Plus className="h-4 w-4" />
+                Add Task
+              </Button>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -573,25 +663,75 @@ function ManagerDashboardContent() {
                   <CardDescription>All tasks assigned to your team</CardDescription>
                 </CardHeader>
                 <CardContent>
+                  {/* Task Filters */}
+                  <div className="mb-4 space-y-3">
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="Search tasks..."
+                        value={taskSearch}
+                        onChange={(e) => setTaskSearch(e.target.value)}
+                        className="flex-1"
+                      />
+                      <Select value={taskFilter} onValueChange={setTaskFilter}>
+                        <SelectTrigger className="w-32">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All</SelectItem>
+                          <SelectItem value="pending">Pending</SelectItem>
+                          <SelectItem value="in_progress">In Progress</SelectItem>
+                          <SelectItem value="completed">Completed</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  
                   <div className="space-y-4">
-                    {mockTasks.map((task) => (
-                      <div key={task.id} className="flex items-center justify-between p-4 border rounded-lg">
+                    {filteredTasks.map((task) => (
+                      <div key={task.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors">
                         <div className="flex items-center space-x-3">
-                          <div className="w-6 h-6 flex items-center justify-center">
+                          <button
+                            onClick={() => {
+                              const newStatus = task.status === "Completed" ? "Pending" : "Completed";
+                              updateTaskStatus(task.id, newStatus);
+                            }}
+                            className="w-6 h-6 flex items-center justify-center hover:bg-gray-100 rounded transition-colors"
+                            title={task.status === "Completed" ? "Mark as Pending" : "Mark as Completed"}
+                          >
                             {task.status === "Completed" ? (
                               <CheckSquare className="w-5 h-5 text-green-600" />
                             ) : (
                               <Square className="w-5 h-5 text-gray-400" />
                             )}
-                          </div>
+                          </button>
                           <div>
                             <p className="font-medium">{task.title}</p>
                             <p className="text-sm text-gray-500">{task.campaign} • {task.assignedTo}</p>
+                            <div className="flex items-center gap-2 mt-1">
+                              <p className="text-xs text-gray-400">Due: {task.dueDate}</p>
+                              {task.taskType && (
+                                <Badge variant="outline" className="text-xs">
+                                  {task.taskType}
+                                </Badge>
+                              )}
+                            </div>
                           </div>
                         </div>
                         <div className="flex items-center space-x-2">
                           <Badge className={getPriorityColor(task.priority)}>{task.priority}</Badge>
-                          <Badge className={getStatusColor(task.status)}>{task.status}</Badge>
+                          <Select 
+                            value={task.status.toLowerCase().replace(" ", "_")} 
+                            onValueChange={(value) => updateTaskStatus(task.id, value.replace("_", " "))}
+                          >
+                            <SelectTrigger className="w-32 h-6 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="pending">Pending</SelectItem>
+                              <SelectItem value="in_progress">In Progress</SelectItem>
+                              <SelectItem value="completed">Completed</SelectItem>
+                            </SelectContent>
+                          </Select>
                         </div>
                       </div>
                     ))}
@@ -610,32 +750,32 @@ function ManagerDashboardContent() {
                     <div className="grid grid-cols-2 gap-4">
                       <div className="text-center p-4 bg-green-50 rounded-lg">
                         <div className="text-2xl font-bold text-green-600">
-                          {mockTasks.filter(t => t.status === "Completed").length}
+                          {tasks.filter(t => t.status === "Completed").length}
                         </div>
                         <div className="text-sm text-green-600">Completed</div>
                       </div>
                       <div className="text-center p-4 bg-blue-50 rounded-lg">
                         <div className="text-2xl font-bold text-blue-600">
-                          {mockTasks.filter(t => t.status === "In Progress").length}
+                          {tasks.filter(t => t.status === "In Progress").length}
                         </div>
                         <div className="text-sm text-blue-600">In Progress</div>
                       </div>
                     </div>
                     <div className="text-center p-4 bg-yellow-50 rounded-lg">
                       <div className="text-2xl font-bold text-yellow-600">
-                        {mockTasks.filter(t => t.status === "Pending").length}
+                        {tasks.filter(t => t.status === "Pending").length}
                       </div>
                       <div className="text-sm text-yellow-600">Pending</div>
                     </div>
                     <div className="space-y-2">
                       <div className="flex justify-between text-sm">
                         <span>Overall Progress</span>
-                        <span>{Math.round((mockTasks.filter(t => t.status === "Completed").length / mockTasks.length) * 100)}%</span>
+                        <span>{Math.round((tasks.filter(t => t.status === "Completed").length / tasks.length) * 100)}%</span>
                       </div>
                       <div className="w-full bg-gray-200 rounded-full h-2">
                         <div 
                           className="bg-green-500 h-2 rounded-full" 
-                          style={{ width: `${(mockTasks.filter(t => t.status === "Completed").length / mockTasks.length) * 100}%` }}
+                          style={{ width: `${(tasks.filter(t => t.status === "Completed").length / tasks.length) * 100}%` }}
                         ></div>
                       </div>
                     </div>
@@ -645,6 +785,202 @@ function ManagerDashboardContent() {
             </div>
           </div>
         )}
+
+        {/* Add Task Modal */}
+        <Dialog open={showAddTaskModal} onOpenChange={setShowAddTaskModal}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Add New Task</DialogTitle>
+              <DialogDescription>
+                Create a new task and assign it to a team member
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-6 py-4">
+              {/* Task Type Selection */}
+              <div className="space-y-2">
+                <Label htmlFor="taskType">Task Type</Label>
+                <Select 
+                  value={newTask.taskType} 
+                  onValueChange={(value) => setNewTask(prev => ({ ...prev, taskType: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select task type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="General">General Task</SelectItem>
+                    <SelectItem value="Content Review">Content Review</SelectItem>
+                    <SelectItem value="Data Entry">Data Entry</SelectItem>
+                    <SelectItem value="Quality Check">Quality Check</SelectItem>
+                    <SelectItem value="Research">Research</SelectItem>
+                    <SelectItem value="Testing">Testing</SelectItem>
+                    <SelectItem value="Documentation">Documentation</SelectItem>
+                    <SelectItem value="Bug Fix">Bug Fix</SelectItem>
+                    <SelectItem value="Feature Development">Feature Development</SelectItem>
+                    <SelectItem value="Client Communication">Client Communication</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Task Title */}
+              <div className="space-y-2">
+                <Label htmlFor="title">Task Title *</Label>
+                <Input
+                  id="title"
+                  placeholder="Enter task title"
+                  value={newTask.title}
+                  onChange={(e) => setNewTask(prev => ({ ...prev, title: e.target.value }))}
+                />
+              </div>
+
+              {/* Task Description */}
+              <div className="space-y-2">
+                <Label htmlFor="description">Description</Label>
+                <Textarea
+                  id="description"
+                  placeholder="Enter task description (optional)"
+                  rows={3}
+                />
+              </div>
+
+              {/* Campaign Selection */}
+              <div className="space-y-2">
+                <Label htmlFor="campaign">Campaign</Label>
+                <Select 
+                  value={newTask.campaign} 
+                  onValueChange={(value) => setNewTask(prev => ({ ...prev, campaign: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select campaign" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="E-commerce Campaign Q1">E-commerce Campaign Q1</SelectItem>
+                    <SelectItem value="Social Media Campaign">Social Media Campaign</SelectItem>
+                    <SelectItem value="Product Launch Campaign">Product Launch Campaign</SelectItem>
+                    <SelectItem value="Holiday Special">Holiday Special</SelectItem>
+                    <SelectItem value="Black Friday">Black Friday</SelectItem>
+                    <SelectItem value="New Year Sale">New Year Sale</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Assignee Selection */}
+              <div className="space-y-2">
+                <Label htmlFor="assignedTo">Assign To *</Label>
+                <Select 
+                  value={newTask.assignedTo} 
+                  onValueChange={(value) => setNewTask(prev => ({ ...prev, assignedTo: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select team member" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {mockTeamMembers.map((member) => (
+                      <SelectItem key={member.id} value={member.name}>
+                        {member.name} ({member.type})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Priority and Due Date */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="priority">Priority</Label>
+                  <Select 
+                    value={newTask.priority} 
+                    onValueChange={(value) => setNewTask(prev => ({ ...prev, priority: value }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select priority" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Low">Low</SelectItem>
+                      <SelectItem value="Medium">Medium</SelectItem>
+                      <SelectItem value="High">High</SelectItem>
+                      <SelectItem value="Urgent">Urgent</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="dueDate">Due Date *</Label>
+                  <Input
+                    id="dueDate"
+                    type="date"
+                    value={newTask.dueDate}
+                    onChange={(e) => setNewTask(prev => ({ ...prev, dueDate: e.target.value }))}
+                  />
+                </div>
+              </div>
+
+              {/* Task Type Specific Fields */}
+              {newTask.taskType === "Content Review" && (
+                <div className="space-y-2">
+                  <Label htmlFor="contentType">Content Type</Label>
+                  <Select>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select content type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Product Images">Product Images</SelectItem>
+                      <SelectItem value="Product Descriptions">Product Descriptions</SelectItem>
+                      <SelectItem value="Marketing Copy">Marketing Copy</SelectItem>
+                      <SelectItem value="Social Media Posts">Social Media Posts</SelectItem>
+                      <SelectItem value="Email Content">Email Content</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {newTask.taskType === "Quality Check" && (
+                <div className="space-y-2">
+                  <Label htmlFor="qualityType">Quality Check Type</Label>
+                  <Select>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select quality check type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Click Accuracy">Click Accuracy</SelectItem>
+                      <SelectItem value="Form Validation">Form Validation</SelectItem>
+                      <SelectItem value="User Experience">User Experience</SelectItem>
+                      <SelectItem value="Performance">Performance</SelectItem>
+                      <SelectItem value="Security">Security</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {newTask.taskType === "Data Entry" && (
+                <div className="space-y-2">
+                  <Label htmlFor="dataType">Data Type</Label>
+                  <Select>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select data type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Product Information">Product Information</SelectItem>
+                      <SelectItem value="Customer Data">Customer Data</SelectItem>
+                      <SelectItem value="Inventory">Inventory</SelectItem>
+                      <SelectItem value="Sales Data">Sales Data</SelectItem>
+                      <SelectItem value="User Profiles">User Profiles</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end gap-3 pt-4 border-t">
+              <Button variant="outline" onClick={() => setShowAddTaskModal(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleAddTask} disabled={!newTask.title || !newTask.assignedTo || !newTask.dueDate}>
+                Add Task
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </ManagerMainLayout>
   );

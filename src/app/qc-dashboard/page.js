@@ -13,7 +13,12 @@ import {
   Target,
   BarChart3,
   FileCheck,
-  Users
+  Users,
+  X,
+  Calendar,
+  User,
+  MessageSquare,
+  Star
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
@@ -78,9 +83,21 @@ const mockQCStats = {
 
 export default function QCDashboard() {
   const router = useRouter();
+  const [selectedTask, setSelectedTask] = useState(null);
+  const [showTaskModal, setShowTaskModal] = useState(false);
 
   const handleTaskClick = (taskId) => {
     router.push(`/qc-tasks/${taskId}`);
+  };
+
+  const handleViewDetails = (task) => {
+    setSelectedTask(task);
+    setShowTaskModal(true);
+  };
+
+  const closeTaskModal = () => {
+    setSelectedTask(null);
+    setShowTaskModal(false);
   };
 
   const handleViewTasks = () => {
@@ -217,7 +234,14 @@ export default function QCDashboard() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Button variant="outline" size="sm">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleViewDetails(task);
+                      }}
+                    >
                       View Details
                     </Button>
                   </div>
@@ -321,6 +345,218 @@ export default function QCDashboard() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Task Detail Modal */}
+        {showTaskModal && selectedTask && (
+          <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between p-6 border-b">
+                <h2 className="text-2xl font-bold">Task Details</h2>
+                <Button variant="ghost" size="sm" onClick={closeTaskModal}>
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+              
+              <div className="p-6 space-y-6">
+                {/* Task Header */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3">
+                    <h3 className="text-xl font-semibold">{selectedTask.title}</h3>
+                    <Badge className={getPriorityColor(selectedTask.priority)}>
+                      {selectedTask.priority}
+                    </Badge>
+                    <Badge className={getStatusColor(selectedTask.status)}>
+                      {selectedTask.status.replace('_', ' ')}
+                    </Badge>
+                  </div>
+                  <p className="text-muted-foreground">{selectedTask.description}</p>
+                </div>
+
+                {/* Task Information */}
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-3">
+                    <h4 className="font-semibold text-sm text-gray-700 flex items-center gap-2">
+                      <User className="h-4 w-4" />
+                      Assignment Details
+                    </h4>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex items-center gap-2">
+                        <User className="h-4 w-4 text-gray-400" />
+                        <span><strong>Worker:</strong> {selectedTask.worker}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Target className="h-4 w-4 text-gray-400" />
+                        <span><strong>Task Count:</strong> {selectedTask.taskCount} tasks</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-4 w-4 text-gray-400" />
+                        <span><strong>Assigned:</strong> {selectedTask.assignedDate}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Clock className="h-4 w-4 text-gray-400" />
+                        <span><strong>Due Date:</strong> {selectedTask.dueDate}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <h4 className="font-semibold text-sm text-gray-700">Task Status</h4>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <div className={`w-3 h-3 rounded-full ${
+                          selectedTask.status === 'completed' ? 'bg-green-500' :
+                          selectedTask.status === 'in_progress' ? 'bg-blue-500' :
+                          'bg-yellow-500'
+                        }`}></div>
+                        <span className="text-sm font-medium">
+                          {selectedTask.status.charAt(0).toUpperCase() + selectedTask.status.slice(1).replace('_', ' ')}
+                        </span>
+                      </div>
+                      <div className="text-sm text-gray-600">
+                        Priority: <span className="font-medium">{selectedTask.priority}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Task Progress */}
+                <div className="space-y-3">
+                  <h4 className="font-semibold text-sm text-gray-700">Progress Overview</h4>
+                  <div className="space-y-4">
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-medium">Task Completion</span>
+                        <span className="text-sm text-gray-600">
+                          {selectedTask.status === 'completed' ? '100%' : 
+                           selectedTask.status === 'in_progress' ? '65%' : '0%'}
+                        </span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div 
+                          className={`h-2 rounded-full ${
+                            selectedTask.status === 'completed' ? 'bg-green-500' :
+                            selectedTask.status === 'in_progress' ? 'bg-blue-500' :
+                            'bg-yellow-500'
+                          }`}
+                          style={{ 
+                            width: selectedTask.status === 'completed' ? '100%' : 
+                                   selectedTask.status === 'in_progress' ? '65%' : '0%'
+                          }}
+                        ></div>
+                      </div>
+                    </div>
+                    
+                    <div className="grid gap-3 md:grid-cols-3">
+                      <div className="bg-blue-50 p-3 rounded-lg">
+                        <div className="text-lg font-bold text-blue-600">{selectedTask.taskCount}</div>
+                        <div className="text-xs text-blue-700">Total Tasks</div>
+                      </div>
+                      <div className="bg-green-50 p-3 rounded-lg">
+                        <div className="text-lg font-bold text-green-600">
+                          {selectedTask.status === 'completed' ? selectedTask.taskCount : 
+                           selectedTask.status === 'in_progress' ? Math.floor(selectedTask.taskCount * 0.65) : 0}
+                        </div>
+                        <div className="text-xs text-green-700">Completed</div>
+                      </div>
+                      <div className="bg-orange-50 p-3 rounded-lg">
+                        <div className="text-lg font-bold text-orange-600">
+                          {selectedTask.status === 'completed' ? 0 : 
+                           selectedTask.status === 'in_progress' ? Math.ceil(selectedTask.taskCount * 0.35) : selectedTask.taskCount}
+                        </div>
+                        <div className="text-xs text-orange-700">Remaining</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Quality Metrics */}
+                <div className="space-y-3">
+                  <h4 className="font-semibold text-sm text-gray-700">Quality Metrics</h4>
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-sm">
+                        <span>Click Accuracy</span>
+                        <div className="flex items-center gap-1">
+                          {[1,2,3,4,5].map((star) => (
+                            <Star 
+                              key={star} 
+                              className={`h-4 w-4 ${star <= 4 ? 'text-yellow-400 fill-current' : 'text-gray-300'}`} 
+                            />
+                          ))}
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between text-sm">
+                        <span>Form Quality</span>
+                        <div className="flex items-center gap-1">
+                          {[1,2,3,4,5].map((star) => (
+                            <Star 
+                              key={star} 
+                              className={`h-4 w-4 ${star <= 3 ? 'text-yellow-400 fill-current' : 'text-gray-300'}`} 
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-sm">
+                        <span>User Experience</span>
+                        <div className="flex items-center gap-1">
+                          {[1,2,3,4,5].map((star) => (
+                            <Star 
+                              key={star} 
+                              className={`h-4 w-4 ${star <= 4 ? 'text-yellow-400 fill-current' : 'text-gray-300'}`} 
+                            />
+                          ))}
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between text-sm">
+                        <span>Overall Quality</span>
+                        <div className="flex items-center gap-1">
+                          {[1,2,3,4,5].map((star) => (
+                            <Star 
+                              key={star} 
+                              className={`h-4 w-4 ${star <= 4 ? 'text-yellow-400 fill-current' : 'text-gray-300'}`} 
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Notes Section */}
+                <div className="space-y-3">
+                  <h4 className="font-semibold text-sm text-gray-700 flex items-center gap-2">
+                    <MessageSquare className="h-4 w-4" />
+                    Notes & Comments
+                  </h4>
+                  <div className="bg-gray-50 p-3 rounded-lg">
+                    <p className="text-sm text-gray-600">
+                      {selectedTask.status === 'completed' 
+                        ? 'Quality review completed successfully. All tasks met the required standards.'
+                        : selectedTask.status === 'in_progress'
+                        ? 'Quality review in progress. Currently evaluating task performance and accuracy.'
+                        : 'Quality review pending. Awaiting task completion before evaluation.'
+                      }
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 p-6 border-t">
+                <Button variant="outline" onClick={closeTaskModal}>
+                  Close
+                </Button>
+                <Button onClick={() => {
+                  closeTaskModal();
+                  handleTaskClick(selectedTask.id);
+                }}>
+                  Go to Task
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </QCMainLayout>
   );

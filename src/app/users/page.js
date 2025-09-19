@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import MainLayout from "@/components/layout/MainLayout";
+import UserManagementLayout from "@/components/layout/UserManagementLayout";
 import { UserHeader, UserContent } from "./components";
 import { useUsers } from "@/contexts/UsersContext";
 
@@ -124,19 +124,19 @@ export default function UsersPage() {
   // Show loading state until initialized
   if (!isInitialized) {
     return (
-      <MainLayout>
+      <UserManagementLayout>
         <div className="flex items-center justify-center h-64">
           <div className="flex items-center gap-2">
             <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
             <span>Loading...</span>
           </div>
         </div>
-      </MainLayout>
+      </UserManagementLayout>
     );
   }
 
   return (
-    <MainLayout>
+    <UserManagementLayout>
       <div className="space-y-6 h-full">
         <UserHeader
           searchTerm={searchTerm}
@@ -168,6 +168,6 @@ export default function UsersPage() {
           onWorkerClick={handleWorkerClick}
         />
       </div>
-    </MainLayout>
+    </UserManagementLayout>
   );
 }

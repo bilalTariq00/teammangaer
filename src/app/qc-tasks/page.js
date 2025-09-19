@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, Clock, AlertCircle, Search, Filter, Eye, CheckSquare } from "lucide-react";
+import { CheckCircle, Clock, AlertCircle, Search, Filter, Eye, CheckSquare, X, Star, MessageSquare, Calendar, User, Target } from "lucide-react";
 
 // Mock data for QC tasks
 const mockQCTasks = [
@@ -71,6 +71,11 @@ export default function QCTasksPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [priorityFilter, setPriorityFilter] = useState("all");
+  const [selectedTask, setSelectedTask] = useState(null);
+  const [showViewModal, setShowViewModal] = useState(false);
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [reviewScore, setReviewScore] = useState(0);
+  const [reviewComments, setReviewComments] = useState("");
 
   const filteredTasks = mockQCTasks.filter(task => {
     const matchesSearch = task.taskName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -110,6 +115,48 @@ export default function QCTasksPage() {
         return <AlertCircle className="h-4 w-4 text-yellow-600" />;
       default:
         return <AlertCircle className="h-4 w-4 text-gray-600" />;
+    }
+  };
+
+  // Handle view task
+  const handleViewTask = (task) => {
+    setSelectedTask(task);
+    setShowViewModal(true);
+  };
+
+  // Handle review task
+  const handleReviewTask = (task) => {
+    setSelectedTask(task);
+    setReviewScore(task.qualityScore || 0);
+    setReviewComments("");
+    setShowReviewModal(true);
+  };
+
+  // Close modals
+  const closeViewModal = () => {
+    setSelectedTask(null);
+    setShowViewModal(false);
+  };
+
+  const closeReviewModal = () => {
+    setSelectedTask(null);
+    setShowReviewModal(false);
+    setReviewScore(0);
+    setReviewComments("");
+  };
+
+  // Submit review
+  const handleSubmitReview = () => {
+    if (selectedTask) {
+      // Update the task with review score and comments
+      console.log(`Review submitted for task ${selectedTask.id}:`, {
+        score: reviewScore,
+        comments: reviewComments
+      });
+      
+      // Here you would typically update the task in your state or send to API
+      // For now, we'll just close the modal
+      closeReviewModal();
     }
   };
 
@@ -159,26 +206,6 @@ export default function QCTasksPage() {
               <div className="text-2xl font-bold">{mockQCTasks.filter(t => t.status === "in_progress").length}</div>
               <p className="text-xs text-muted-foreground">
                 Currently reviewing
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Avg. Quality Score</CardTitle>
-              <CheckCircle className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {(() => {
-                  const completedTasks = mockQCTasks.filter(t => t.qualityScore !== null);
-                  const avgScore = completedTasks.length > 0 
-                    ? Math.round(completedTasks.reduce((sum, t) => sum + t.qualityScore, 0) / completedTasks.length)
-                    : 0;
-                  return avgScore;
-                })()}%
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Based on completed tasks
               </p>
             </CardContent>
           </Card>
@@ -257,7 +284,6 @@ export default function QCTasksPage() {
                     <TableHead>Status</TableHead>
                     <TableHead>Progress</TableHead>
                     <TableHead>Due Date</TableHead>
-                    <TableHead>Quality Score</TableHead>
                     <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -300,20 +326,20 @@ export default function QCTasksPage() {
                       </TableCell>
                       <TableCell>{new Date(task.dueDate).toLocaleDateString()}</TableCell>
                       <TableCell>
-                        {task.qualityScore ? (
-                          <span className="font-medium text-green-600">{task.qualityScore}%</span>
-                        ) : (
-                          <span className="text-muted-foreground">-</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
                         <div className="flex gap-2">
-                          <Button variant="outline" size="sm">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => handleViewTask(task)}
+                          >
                             <Eye className="h-4 w-4 mr-1" />
                             View
                           </Button>
                           {task.status !== "completed" && (
-                            <Button size="sm">
+                            <Button 
+                              size="sm"
+                              onClick={() => handleReviewTask(task)}
+                            >
                               <CheckSquare className="h-4 w-4 mr-1" />
                               Review
                             </Button>
@@ -327,6 +353,228 @@ export default function QCTasksPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* View Task Modal */}
+        {showViewModal && selectedTask && (
+          <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between p-6 border-b">
+                <h2 className="text-2xl font-bold">Task Details</h2>
+                <Button variant="ghost" size="sm" onClick={closeViewModal}>
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+              
+              <div className="p-6 space-y-6">
+                {/* Basic Information */}
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="text-xl font-semibold">{selectedTask.taskName}</h3>
+                    <p className="text-muted-foreground mt-1">{selectedTask.description}</p>
+                  </div>
+
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-3">
+                      <h4 className="font-semibold text-sm text-gray-700 flex items-center gap-2">
+                        <User className="h-4 w-4" />
+                        Assignment Details
+                      </h4>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex items-center gap-2">
+                          <User className="h-4 w-4 text-gray-400" />
+                          <span><strong>Assigned To:</strong> {selectedTask.assignedTo}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Target className="h-4 w-4 text-gray-400" />
+                          <span><strong>Campaign:</strong> {selectedTask.campaign}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Calendar className="h-4 w-4 text-gray-400" />
+                          <span><strong>Due Date:</strong> {new Date(selectedTask.dueDate).toLocaleDateString()}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      <h4 className="font-semibold text-sm text-gray-700">Status & Priority</h4>
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          {getStatusIcon(selectedTask.status)}
+                          <Badge className={getStatusBadge(selectedTask.status)}>
+                            {selectedTask.status.charAt(0).toUpperCase() + selectedTask.status.slice(1).replace('_', ' ')}
+                          </Badge>
+                        </div>
+                        <div>
+                          <Badge className={getPriorityBadge(selectedTask.priority)}>
+                            {selectedTask.priority.charAt(0).toUpperCase() + selectedTask.priority.slice(1)} Priority
+                          </Badge>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Progress Information */}
+                  <div className="space-y-3">
+                    <h4 className="font-semibold text-sm text-gray-700">Progress</h4>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-sm">
+                        <span>Completion Progress</span>
+                        <span>{selectedTask.completedClicks}/{selectedTask.totalClicks} clicks</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-3">
+                        <div 
+                          className="bg-blue-600 h-3 rounded-full" 
+                          style={{ width: `${(selectedTask.completedClicks / selectedTask.totalClicks) * 100}%` }}
+                        ></div>
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        {Math.round((selectedTask.completedClicks / selectedTask.totalClicks) * 100)}% complete
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 p-6 border-t">
+                <Button variant="outline" onClick={closeViewModal}>
+                  Close
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Review Task Modal */}
+        {showReviewModal && selectedTask && (
+          <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between p-6 border-b">
+                <h2 className="text-2xl font-bold">Review Task</h2>
+                <Button variant="ghost" size="sm" onClick={closeReviewModal}>
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+              
+              <div className="p-6 space-y-6">
+                {/* Task Information */}
+                <div className="space-y-2">
+                  <h3 className="text-lg font-semibold">{selectedTask.taskName}</h3>
+                  <p className="text-muted-foreground">{selectedTask.description}</p>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm">Assigned to:</span>
+                    <Badge variant="outline">{selectedTask.assignedTo}</Badge>
+                  </div>
+                </div>
+
+                {/* Quality Score */}
+                <div className="space-y-3">
+                  <Label htmlFor="qualityScore" className="text-sm font-semibold">
+                    Quality Score (0-100)
+                  </Label>
+                  <div className="space-y-2">
+                    <Input
+                      id="qualityScore"
+                      type="number"
+                      min="0"
+                      max="100"
+                      value={reviewScore}
+                      onChange={(e) => setReviewScore(parseInt(e.target.value) || 0)}
+                      className="w-32"
+                      placeholder="Enter score"
+                    />
+                    <div className="flex items-center gap-2">
+                      <div className="w-32 bg-gray-200 rounded-full h-2">
+                        <div 
+                          className="bg-blue-600 h-2 rounded-full" 
+                          style={{ width: `${reviewScore}%` }}
+                        ></div>
+                      </div>
+                      <span className="text-sm text-muted-foreground">{reviewScore}%</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Review Comments */}
+                <div className="space-y-3">
+                  <Label htmlFor="reviewComments" className="text-sm font-semibold">
+                    Review Comments
+                  </Label>
+                  <textarea
+                    id="reviewComments"
+                    value={reviewComments}
+                    onChange={(e) => setReviewComments(e.target.value)}
+                    placeholder="Enter your review comments and feedback..."
+                    className="w-full h-32 p-3 border border-gray-300 rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                {/* Quality Indicators */}
+                <div className="space-y-3">
+                  <Label className="text-sm font-semibold">Quality Indicators</Label>
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-sm">
+                        <span>Click Accuracy</span>
+                        <div className="flex items-center gap-1">
+                          {[1,2,3,4,5].map((star) => (
+                            <Star 
+                              key={star} 
+                              className={`h-4 w-4 ${star <= 4 ? 'text-yellow-400 fill-current' : 'text-gray-300'}`} 
+                            />
+                          ))}
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between text-sm">
+                        <span>Form Quality</span>
+                        <div className="flex items-center gap-1">
+                          {[1,2,3,4,5].map((star) => (
+                            <Star 
+                              key={star} 
+                              className={`h-4 w-4 ${star <= 3 ? 'text-yellow-400 fill-current' : 'text-gray-300'}`} 
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-sm">
+                        <span>User Experience</span>
+                        <div className="flex items-center gap-1">
+                          {[1,2,3,4,5].map((star) => (
+                            <Star 
+                              key={star} 
+                              className={`h-4 w-4 ${star <= 4 ? 'text-yellow-400 fill-current' : 'text-gray-300'}`} 
+                            />
+                          ))}
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between text-sm">
+                        <span>Overall Quality</span>
+                        <div className="flex items-center gap-1">
+                          {[1,2,3,4,5].map((star) => (
+                            <Star 
+                              key={star} 
+                              className={`h-4 w-4 ${star <= 4 ? 'text-yellow-400 fill-current' : 'text-gray-300'}`} 
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 p-6 border-t">
+                <Button variant="outline" onClick={closeReviewModal}>
+                  Cancel
+                </Button>
+                <Button onClick={handleSubmitReview}>
+                  Submit Review
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </QCMainLayout>
   );

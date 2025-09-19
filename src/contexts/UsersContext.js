@@ -153,12 +153,26 @@ const initialUsers = [
     links: 3,
     created: "2025-09-06 14:10:20",
     assignedUsers: []
+  },
+  {
+    id: 8,
+    name: "Sarah Manager",
+    email: "manager@joyapps.com",
+    role: "manager",
+    workerType: "manager",
+    defaultTasker: "Tasker Views",
+    defaultTaskerSlug: "tasker-views",
+    status: "permanent",
+    locked: "unlocked",
+    links: 2,
+    created: "2025-09-08 10:30:15",
+    assignedUsers: [4, 5, 6] // Sarah Johnson, John Doe, Jane Smith
   }
 ];
 
 export const UsersProvider = ({ children }) => {
   const [users, setUsers] = useState(initialUsers);
-  const [nextId, setNextId] = useState(11);
+  const [nextId, setNextId] = useState(12);
 
   // Load users from localStorage on mount
   useEffect(() => {

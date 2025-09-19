@@ -44,11 +44,22 @@ export function AuthProvider({ children }) {
       // Manager user
       {
         id: 2,
+        name: "Muhammad Shahood",
+        email: "Shahood1@joyapps.net",
+        password: "manager123",
+        role: "manager",
+        avatar: null,
+        assignedUsers: [1, 3] // Hasan Abbas and Abid
+      },
+      // Additional Manager user
+      {
+        id: 8,
         name: "Sarah Manager",
         email: "manager@joyapps.com",
         password: "manager123",
         role: "manager",
-        avatar: null
+        avatar: null,
+        assignedUsers: [4, 5, 6] // Sarah Johnson, John Doe, Jane Smith
       },
       // QC user
       {
@@ -169,6 +180,7 @@ export function AuthProvider({ children }) {
         email: foundUser.email,
         role: foundUser.role,
         avatar: foundUser.avatar,
+        assignedUsers: foundUser.assignedUsers || [], // For managers
         // Basic contact info (user can edit)
         contactNumber: foundUser.contactNumber || "",
         emergencyNumber: foundUser.emergencyNumber || "",

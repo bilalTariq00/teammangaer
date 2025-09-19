@@ -20,7 +20,8 @@ import {
   DollarSign,
   GraduationCap,
   Briefcase,
-  ClipboardList
+  ClipboardList,
+  UserCog
 } from "lucide-react";
 
 const navigation = [
@@ -31,7 +32,7 @@ const navigation = [
   },
   {
     name: "Employees",
-    href: "/hr-dashboard?tab=employees",
+    href: "/hr-employees",
     icon: Users,
   },
 //   {
@@ -61,18 +62,18 @@ const navigation = [
 //   },
 ];
 
-const employeeManagement = [
-  {
-    name: "Add Employee",
-    href: "/hr-dashboard?action=add-employee",
-    icon: UserPlus,
-  },
-  {
-    name: "Edit Employees",
-    href: "/hr-dashboard?action=edit-employees",
-    icon: Edit,
-  },
-];
+// const employeeManagement = [
+//   {
+//     name: "Add Employee",
+//     href: "/users/create",
+//     icon: UserPlus,
+//   },
+//   {
+//     name: "Manage Users",
+//     href: "/users",
+//     icon: Edit,
+//   },
+// ];
 
 export default function HRSidebar({ isCollapsed, onToggle }) {
   const pathname = usePathname();
@@ -129,6 +130,30 @@ export default function HRSidebar({ isCollapsed, onToggle }) {
         })}
         
         {/* Employee Management Section */}
+        {/* {!isCollapsed && (
+          <div className="pt-4 border-t border-gray-200">
+            <h3 className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+              Quick Actions
+            </h3>
+            {employeeManagement.map((item) => {
+              const isActive = pathname === item.href;
+              return (
+                <Link key={item.name} href={item.href}>
+                  <Button
+                    variant={isActive ? "secondary" : "ghost"}
+                    className={cn(
+                      "w-full justify-start gap-3 h-10 transition-smooth hover:scale-[1.02]",
+                      isCollapsed && "px-2"
+                    )}
+                  >
+                    <item.icon className="h-4 w-4 shrink-0" />
+                    {!isCollapsed && <span>{item.name}</span>}
+                  </Button>
+                </Link>
+              );
+            })}
+          </div>
+        )} */}
         
       </nav>
     </div>

@@ -14,7 +14,13 @@ import {
   AlertTriangle, 
   Download,
   Calendar,
-  Filter
+  Filter,
+  X,
+  User,
+  Target,
+  MessageSquare,
+  Clock,
+  AlertCircle
 } from "lucide-react";
 import { 
   BarChart, 
@@ -104,6 +110,8 @@ const recentIssues = [
 export default function QCReportsPage() {
   const [timeRange, setTimeRange] = useState("6months");
   const [reportType, setReportType] = useState("overview");
+  const [selectedIssue, setSelectedIssue] = useState(null);
+  const [showIssueModal, setShowIssueModal] = useState(false);
 
   const getSeverityBadge = (severity) => {
     const variants = {
@@ -121,6 +129,18 @@ export default function QCReportsPage() {
       resolved: "bg-green-100 text-green-800"
     };
     return variants[status] || "bg-gray-100 text-gray-800";
+  };
+
+  // Handle view issue details
+  const handleViewIssue = (issue) => {
+    setSelectedIssue(issue);
+    setShowIssueModal(true);
+  };
+
+  // Close issue modal
+  const closeIssueModal = () => {
+    setSelectedIssue(null);
+    setShowIssueModal(false);
   };
 
   return (
@@ -341,7 +361,11 @@ export default function QCReportsPage() {
                       <span>Date: {new Date(issue.date).toLocaleDateString()}</span>
                     </div>
                   </div>
-                  <Button variant="outline" size="sm">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => handleViewIssue(issue)}
+                  >
                     View Details
                   </Button>
                 </div>
@@ -349,6 +373,213 @@ export default function QCReportsPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Issue Detail Modal */}
+        {showIssueModal && selectedIssue && (
+          <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between p-6 border-b">
+                <h2 className="text-2xl font-bold">Quality Issue Details</h2>
+                <Button variant="ghost" size="sm" onClick={closeIssueModal}>
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+              
+              <div className="p-6 space-y-6">
+                {/* Issue Header */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3">
+                    <h3 className="text-xl font-semibold">{selectedIssue.type}</h3>
+                    <Badge className={getSeverityBadge(selectedIssue.severity)}>
+                      {selectedIssue.severity.charAt(0).toUpperCase() + selectedIssue.severity.slice(1)}
+                    </Badge>
+                    <Badge className={getStatusBadge(selectedIssue.status)}>
+                      {selectedIssue.status.charAt(0).toUpperCase() + selectedIssue.status.slice(1).replace('_', ' ')}
+                    </Badge>
+                  </div>
+                  <p className="text-muted-foreground">{selectedIssue.description}</p>
+                </div>
+
+                {/* Issue Information */}
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-3">
+                    <h4 className="font-semibold text-sm text-gray-700 flex items-center gap-2">
+                      <Target className="h-4 w-4" />
+                      Issue Details
+                    </h4>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex items-center gap-2">
+                        <Target className="h-4 w-4 text-gray-400" />
+                        <span><strong>Campaign:</strong> {selectedIssue.campaign}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <User className="h-4 w-4 text-gray-400" />
+                        <span><strong>Reported by:</strong> {selectedIssue.reportedBy}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-4 w-4 text-gray-400" />
+                        <span><strong>Date:</strong> {new Date(selectedIssue.date).toLocaleDateString()}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <h4 className="font-semibold text-sm text-gray-700">Issue Status</h4>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <div className={`w-3 h-3 rounded-full ${
+                          selectedIssue.status === 'resolved' ? 'bg-green-500' :
+                          selectedIssue.status === 'in_progress' ? 'bg-yellow-500' :
+                          'bg-red-500'
+                        }`}></div>
+                        <span className="text-sm font-medium">
+                          {selectedIssue.status.charAt(0).toUpperCase() + selectedIssue.status.slice(1).replace('_', ' ')}
+                        </span>
+                      </div>
+                      <div className="text-sm text-gray-600">
+                        Severity: <span className="font-medium">{selectedIssue.severity}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Issue Impact */}
+                <div className="space-y-3">
+                  <h4 className="font-semibold text-sm text-gray-700">Impact Assessment</h4>
+                  <div className="grid gap-3 md:grid-cols-3">
+                    <div className="bg-red-50 p-3 rounded-lg">
+                      <div className="text-lg font-bold text-red-600">
+                        {selectedIssue.severity === 'high' ? 'High' : selectedIssue.severity === 'medium' ? 'Medium' : 'Low'}
+                      </div>
+                      <div className="text-xs text-red-700">Severity Level</div>
+                    </div>
+                    <div className="bg-blue-50 p-3 rounded-lg">
+                      <div className="text-lg font-bold text-blue-600">
+                        {selectedIssue.type === 'Click Quality' ? '15' : 
+                         selectedIssue.type === 'Form Issues' ? '8' : 
+                         selectedIssue.type === 'Bot Detection' ? '22' : '12'}
+                      </div>
+                      <div className="text-xs text-blue-700">Affected Tasks</div>
+                    </div>
+                    <div className="bg-orange-50 p-3 rounded-lg">
+                      <div className="text-lg font-bold text-orange-600">
+                        {selectedIssue.status === 'resolved' ? '0' : 
+                         selectedIssue.status === 'in_progress' ? '3' : '5'}
+                      </div>
+                      <div className="text-xs text-orange-700">Days Open</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Issue Timeline */}
+                <div className="space-y-3">
+                  <h4 className="font-semibold text-sm text-gray-700 flex items-center gap-2">
+                    <Clock className="h-4 w-4" />
+                    Issue Timeline
+                  </h4>
+                  <div className="space-y-3">
+                    <div className="flex items-center space-x-3 p-3 border rounded-lg">
+                      <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center">
+                        <AlertCircle className="w-4 h-4 text-red-600" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium">Issue Reported</p>
+                        <p className="text-xs text-gray-500">by {selectedIssue.reportedBy} on {new Date(selectedIssue.date).toLocaleDateString()}</p>
+                      </div>
+                    </div>
+                    
+                    {selectedIssue.status === 'in_progress' && (
+                      <div className="flex items-center space-x-3 p-3 border rounded-lg">
+                        <div className="w-8 h-8 bg-yellow-100 rounded-full flex items-center justify-center">
+                          <Clock className="w-4 h-4 text-yellow-600" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-sm font-medium">Issue Under Investigation</p>
+                          <p className="text-xs text-gray-500">Started 2 days ago</p>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {selectedIssue.status === 'resolved' && (
+                      <div className="flex items-center space-x-3 p-3 border rounded-lg">
+                        <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                          <CheckCircle className="w-4 h-4 text-green-600" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-sm font-medium">Issue Resolved</p>
+                          <p className="text-xs text-gray-500">Resolved 1 day ago</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Issue Description */}
+                <div className="space-y-3">
+                  <h4 className="font-semibold text-sm text-gray-700 flex items-center gap-2">
+                    <MessageSquare className="h-4 w-4" />
+                    Detailed Description
+                  </h4>
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <p className="text-sm text-gray-700">
+                      {selectedIssue.type === 'Click Quality' && 
+                        "Detailed analysis shows inconsistent click patterns across multiple user sessions. The issue appears to be related to timing variations and user behavior anomalies that deviate from expected patterns. Further investigation is needed to identify the root cause and implement appropriate corrective measures."
+                      }
+                      {selectedIssue.type === 'Form Issues' && 
+                        "Form validation errors are causing significant user drop-offs during the submission process. The errors appear to be related to client-side validation conflicts and server-side processing delays. Immediate attention is required to prevent further user experience degradation."
+                      }
+                      {selectedIssue.type === 'Bot Detection' && 
+                        "Automated traffic patterns have been identified that match known bot signatures. The traffic shows characteristics of non-human behavior including rapid, repetitive actions and unusual timing patterns. Security measures need to be implemented to prevent further automated access."
+                      }
+                      {selectedIssue.type === 'User Experience' && 
+                        "User experience issues have been reported that are affecting overall satisfaction and task completion rates. The problems appear to be related to interface responsiveness and navigation flow. UX improvements are needed to enhance user engagement."
+                      }
+                    </p>
+                  </div>
+                </div>
+
+                {/* Recommended Actions */}
+                <div className="space-y-3">
+                  <h4 className="font-semibold text-sm text-gray-700">Recommended Actions</h4>
+                  <div className="space-y-2">
+                    {selectedIssue.severity === 'high' && (
+                      <div className="flex items-start gap-2 p-3 bg-red-50 rounded-lg">
+                        <AlertTriangle className="h-4 w-4 text-red-600 mt-0.5" />
+                        <div>
+                          <p className="text-sm font-medium text-red-800">Immediate Action Required</p>
+                          <p className="text-xs text-red-700">This high-severity issue requires immediate attention and resolution within 24 hours.</p>
+                        </div>
+                      </div>
+                    )}
+                    <div className="flex items-start gap-2 p-3 bg-blue-50 rounded-lg">
+                      <CheckCircle className="h-4 w-4 text-blue-600 mt-0.5" />
+                      <div>
+                        <p className="text-sm font-medium text-blue-800">Next Steps</p>
+                        <p className="text-xs text-blue-700">
+                          {selectedIssue.status === 'open' && 'Assign to development team for investigation and resolution.'}
+                          {selectedIssue.status === 'in_progress' && 'Continue monitoring progress and provide updates to stakeholders.'}
+                          {selectedIssue.status === 'resolved' && 'Verify resolution and monitor for any recurrence of the issue.'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 p-6 border-t">
+                <Button variant="outline" onClick={closeIssueModal}>
+                  Close
+                </Button>
+                <Button onClick={() => {
+                  // You can add action functionality here later
+                  console.log('Action taken on issue:', selectedIssue.id);
+                }}>
+                  Take Action
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </QCMainLayout>
   );

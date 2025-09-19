@@ -8,6 +8,7 @@ import { ArrowLeft } from "lucide-react";
 import UserForm from "../components/UserForm";
 import { useUsers } from "@/contexts/UsersContext";
 import { toast } from "sonner";
+import UserManagementLayout from "@/components/layout/UserManagementLayout";
 
 export default function CreateUserPage() {
   const router = useRouter();
@@ -83,8 +84,9 @@ export default function CreateUserPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50/50">
-      <div className="container mx-auto px-4 py-8 max-w-3xl">
+    <UserManagementLayout>
+      <div className="min-h-screen bg-gray-50/50">
+        <div className="container mx-auto px-4 py-8 max-w-3xl">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-4 mb-6">
@@ -117,9 +119,10 @@ export default function CreateUserPage() {
               onCancel={handleCancel}
               isEdit={false}
             />
-          </CardContent>
-        </Card>
-      </div>
+        </CardContent>
+      </Card>
     </div>
+  </div>
+  </UserManagementLayout>
   );
 }
