@@ -35,8 +35,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
 export default function ManagerTeamPage() {
-  const { users, updateUser } = useUsers();
-  const { user: currentUser, checkUserLockStatus } = useAuth();
+  const { users, updateUser } = useUsers() || {};
+  const { user: currentUser, checkUserLockStatus } = useAuth() || {};
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [isLoading, setIsLoading] = useState(true);
@@ -47,7 +47,7 @@ export default function ManagerTeamPage() {
 
   // Get team members assigned to this manager
   useEffect(() => {
-    if (currentUser && users.length > 0) {
+    if (currentUser && users && users.length > 0) {
       // Find users assigned to this manager
       const assignedUserIds = currentUser.assignedUsers || [];
       const teamMembersData = users.filter(user => 
@@ -68,9 +68,9 @@ export default function ManagerTeamPage() {
     }
   }, [currentUser, users]);
 
-  const filteredMembers = teamMembers.filter(member => {
-    const matchesSearch = member.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         member.email.toLowerCase().includes(searchTerm.toLowerCase());
+  const filteredMembers = (teamMembers || []).filter(member => {
+    const matchesSearch = member.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         member.email?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === "all" || member.status === statusFilter;
     
     return matchesSearch && matchesStatus;
@@ -95,8 +95,8 @@ export default function ManagerTeamPage() {
 
       // Update each user's status
       for (const [memberId, newStatus] of changes) {
-        const member = teamMembers.find(m => m.id === parseInt(memberId));
-        if (member) {
+        const member = (teamMembers || []).find(m => m.id === parseInt(memberId));
+        if (member && updateUser && typeof updateUser === 'function') {
           updateUser(parseInt(memberId), { ...member, status: newStatus });
         }
       }
@@ -139,7 +139,9 @@ export default function ManagerTeamPage() {
 
       // Update user's locked status
       const updatedMember = { ...member, locked: isLocked ? "locked" : "unlocked" };
-      updateUser(memberId, updatedMember);
+      if (updateUser && typeof updateUser === 'function') {
+        updateUser(memberId, updatedMember);
+      }
 
       // If locking, check if the user is currently logged in and log them out
       if (isLocked) {
@@ -147,7 +149,9 @@ export default function ManagerTeamPage() {
         const isCurrentlyLoggedIn = currentUser && currentUser.id === memberId;
         if (isCurrentlyLoggedIn) {
           // Log out the currently logged in user
-          checkUserLockStatus();
+          if (checkUserLockStatus && typeof checkUserLockStatus === 'function') {
+            checkUserLockStatus();
+          }
           toast.success(`${member.name} has been locked and logged out`);
         } else {
           toast.success(`${member.name} has been locked`);
@@ -357,12 +361,12 @@ export default function ManagerTeamPage() {
                           <Avatar className="h-10 w-10">
                             <AvatarImage src={member.avatar} />
                             <AvatarFallback>
-                              {member.name.split(" ").map(n => n[0]).join("")}
+                              {member.name?.split(" ").map(n => n[0]).join("") || "U"}
                             </AvatarFallback>
                           </Avatar>
                           <div>
-                            <div className="font-medium">{member.name}</div>
-                            <div className="text-sm text-muted-foreground">{member.email}</div>
+                            <div className="font-medium">{member.name || 'Unknown'}</div>
+                            <div className="text-sm text-muted-foreground">{member.email || 'No email'}</div>
                                 <div className="text-xs text-muted-foreground">
                                   {member.workerType?.replace('-', ' ') || 'Worker'}
                             </div>
@@ -435,16 +439,16 @@ export default function ManagerTeamPage() {
                           </Badge>
                         </div>
                       </TableCell>
-                          <TableCell>
-                            <div className="flex gap-2">
+                      <TableCell>
+                        <div className="flex gap-2">
                               <Button 
                                 variant="outline" 
                                 size="sm"
                                 onClick={() => handleViewMember(member)}
                               >
-                                <Eye className="h-4 w-4 mr-1" />
-                                View
-                              </Button>
+                            <Eye className="h-4 w-4 mr-1" />
+                            View
+                          </Button>
                               <Button 
                                 variant={member.locked === "locked" ? "default" : "outline"}
                                 size="sm"
@@ -462,9 +466,9 @@ export default function ManagerTeamPage() {
                                     Lock
                                   </>
                                 )}
-                              </Button>
-                            </div>
-                          </TableCell>
+                          </Button>
+                        </div>
+                      </TableCell>
                     </TableRow>
                       );
                     })}
