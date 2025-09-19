@@ -32,11 +32,11 @@ const navigation = [
     href: "/manager-dashboard?tab=users",
     icon: Users,
   },
-  {
-    name: "Campaigns",
-    href: "/manager-dashboard?tab=campaigns",
-    icon: FolderOpen,
-  },
+  // {
+  //   name: "Campaigns",
+  //   href: "/manager-dashboard?tab=campaigns",
+  //   icon: FolderOpen,
+  // },
   {
     name: "Tasks",
     href: "/manager-dashboard?tab=tasks",

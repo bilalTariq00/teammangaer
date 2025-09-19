@@ -11,7 +11,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Eye, Edit, Ban, Trash2, AlertTriangle, Power, PowerOff } from "lucide-react";
+import { Eye, Edit, Ban, Trash2, AlertTriangle, Power, PowerOff, Image as ImageIcon } from "lucide-react";
+import SimpleShadcnEditor from "@/components/SimpleShadcnEditor";
+import RichTextDisplay from "@/components/RichTextDisplay";
 
 const mockTaskers = [
   {
@@ -26,13 +28,23 @@ const mockTaskers = [
   },
   {
     id: 2,
-    title: "Tasker Click",
-    slug: "tasker-click",
-    content: "**How to Add User Agents To Ads Power:** https://youtu.be/mfbiD0Gjhl8\n\n• **If you are working on Android, use Android User Agents, If you are using iOS, use iPhone User Agents**\n\nPlease open or copy paste this link in your browser to get the list of user agents you'll be using for iOS and Android profiles.\nhttps://docs.google.com/spreadsheets/d/1xoKRqP0e3wW_iTWU-nqG1PcBk8_ILLj3m-_K-Hm8kfs/edit?usp=drivesdk\n\n• **Among the 200 target, you'll work on 120 iOS profiles, 40 Android profiles and 40 windows/mac profiles.**\n\n**Steps for Ads Power:**\n• You'll choose the iOS or Android and copy the user agent from the sheet and paste it in ads power.\n• Check your profile settings and click on OK to create a profile.\n• Copy the tracking link from above and open Ads Power and paste that link.\n• It will do some checks and take you to a Facebook Page. If you are working on Android and iOS and using the User Agents, you won't see any pop-up, but if you do, close it, click **I couldn't complete**, click Others and write \"Facebook Popup error.\" You'll need to click on the **Learn More** button, if you don't see it, scroll down and it will be visible.\n• Continue your work like normal.",
+    title: "Tasker Click with Images",
+    slug: "tasker-click-images",
+    content: "**How to Add User Agents To Ads Power:** https://youtu.be/mfbiD0Gjhl8\n\n• **If you are working on Android, use Android User Agents, If you are using iOS, use iPhone User Agents**\n\nPlease open or copy paste this link in your browser to get the list of user agents you'll be using for iOS and Android profiles.\nhttps://docs.google.com/spreadsheets/d/1xoKRqP0e3wW_iTWU-nqG1PcBk8_ILLj3m-_K-Hm8kfs/edit?usp=drivesdk\n\n• **Among the 200 target, you'll work on 120 iOS profiles, 40 Android profiles and 40 windows/mac profiles.**\n\n**Steps for Ads Power:**\n• You'll choose the iOS or Android and copy the user agent from the sheet and paste it in ads power.\n• Check your profile settings and click on OK to create a profile.\n• Copy the tracking link from above and open Ads Power and paste that link.\n• It will do some checks and take you to a Facebook Page. If you are working on Android and iOS and using the User Agents, you won't see any pop-up, but if you do, close it, click **I couldn't complete**, click Others and write \"Facebook Popup error.\" You'll need to click on the **Learn More** button, if you don't see it, scroll down and it will be visible.\n• Continue your work like normal.\n\n**Important Notes:**\n• Make sure to follow the exact steps shown in the images below\n• Pay attention to the highlighted areas in the screenshots\n• If you encounter any issues, refer to the troubleshooting guide",
     screenshot: true,
     status: "active",
     created: "2025-08-21 16:35:37",
     updated: "2025-09-11 15:58:37"
+  },
+  {
+    id: 3,
+    title: "Rich Text Formatting Demo",
+    slug: "rich-text-demo",
+    content: "**Welcome to the Rich Text Editor Demo!**\n\nThis task demonstrates all the formatting features available:\n\n• **Bold text** - Use Ctrl+B or click the Bold button\n• *Italic text* - Use Ctrl+I or click the Italic button\n• <u>Underlined text</u> - Use Ctrl+U or click the Underline button\n• [Links](https://example.com) - Click the Link button to add links\n\n**Instructions:**\n1. Select any text and click the formatting buttons\n2. Try the keyboard shortcuts (Ctrl+B, Ctrl+I, Ctrl+U)\n3. Upload images by clicking the image icon or dragging and dropping\n4. Add bullet points using the list button\n5. Click the **Preview** button (eye icon) to see formatted content\n\n**Sample Image:**\n![Sample Image](data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZGRkIi8+CiAgPHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzMzMyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPlNhbXBsZSBJbWFnZTwvdGV4dD4KPC9zdmc+)\n\n**Test Different Formats:**\n\nThis is **bold text** and this is *italic text* and this is <u>underlined text</u>.\n\nHere's a [clickable link](https://google.com) to test links.\n\n• First bullet point\n• Second bullet point\n• Third bullet point",
+    screenshot: false,
+    status: "active",
+    created: "2025-01-27 10:00:00",
+    updated: "2025-01-27 10:00:00"
   }
 ];
 
@@ -44,6 +56,7 @@ export default function TasksPage() {
   const [viewingTasker, setViewingTasker] = useState(null);
   const [editingTasker, setEditingTasker] = useState(null);
   const [deactivatingTasker, setDeactivatingTasker] = useState(null);
+  const [viewEditContent, setViewEditContent] = useState("");
   const [newTasker, setNewTasker] = useState({
     title: "",
     slug: "",
@@ -63,6 +76,7 @@ export default function TasksPage() {
       id: Math.max(...taskers.map(tasker => tasker.id)) + 1,
       title: newTasker.title,
       slug: newTasker.slug || newTasker.title.toLowerCase().replace(/\s+/g, '-'),
+      content: newTasker.content, // Include the content field
       screenshot: newTasker.screenshot,
       status: "active",
       created: new Date().toISOString().slice(0, 19).replace('T', ' '),
@@ -88,7 +102,30 @@ export default function TasksPage() {
 
   const handleViewTasker = (tasker) => {
     setViewingTasker(tasker);
+    setViewEditContent(tasker.content || "");
     setIsViewDialogOpen(true);
+  };
+
+  const handleViewSave = () => {
+    if (viewingTasker) {
+      // Update the tasker content
+      setTaskers(taskers.map(tasker => 
+        tasker.id === viewingTasker.id 
+          ? {
+              ...tasker,
+              content: viewEditContent,
+              updated: new Date().toISOString().slice(0, 19).replace('T', ' ')
+            }
+          : tasker
+      ));
+      
+      // Update the viewing tasker
+      setViewingTasker({
+        ...viewingTasker,
+        content: viewEditContent,
+        updated: new Date().toISOString().slice(0, 19).replace('T', ' ')
+      });
+    }
   };
 
   const handleEditTasker = (tasker) => {
@@ -205,36 +242,12 @@ export default function TasksPage() {
             
             <div className="space-y-2">
               <Label htmlFor="content">Tasker Content</Label>
-              <div className="border rounded-md">
-                <div className="flex items-center gap-2 p-2 border-b bg-gray-50">
-                  <Button variant="ghost" size="sm">
-                    <span className="text-sm">↶</span>
-                  </Button>
-                  <Button variant="ghost" size="sm">
-                    <span className="text-sm">↷</span>
-                  </Button>
-                  <div className="w-px h-4 bg-gray-300" />
-                  <Button variant="ghost" size="sm">
-                    <span className="font-bold text-sm">B</span>
-                  </Button>
-                  <Button variant="ghost" size="sm">
-                    <span className="italic text-sm">I</span>
-                  </Button>
-                  <Button variant="ghost" size="sm">
-                    <span className="underline text-sm">U</span>
-                  </Button>
-                  <Button variant="ghost" size="sm">
-                    <span className="text-sm">⋯</span>
-                  </Button>
-                </div>
-                <Textarea
-                  id="content"
-                  value={newTasker.content}
-                  onChange={(e) => setNewTasker({...newTasker, content: e.target.value})}
-                  placeholder="Enter tasker content..."
-                  className="min-h-[200px] border-0 resize-none"
-                />
-              </div>
+              <SimpleShadcnEditor
+                value={newTasker.content}
+                onChange={(content) => setNewTasker({...newTasker, content})}
+                placeholder="Enter tasker content... You can add images by clicking the image icon or dragging and dropping images into the editor."
+                minHeight="200px"
+              />
             </div>
             
             <div className="flex items-center space-x-2">
@@ -268,6 +281,7 @@ export default function TasksPage() {
                 <TableRow>
                   <TableHead>Title</TableHead>
                   <TableHead>Screenshot?</TableHead>
+                  <TableHead>Images</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Created</TableHead>
                   <TableHead>Updated</TableHead>
@@ -287,6 +301,16 @@ export default function TasksPage() {
                       <Badge variant={tasker.screenshot ? "default" : "secondary"}>
                         {tasker.screenshot ? "Yes" : "No"}
                       </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {tasker.content && tasker.content.includes('![') ? (
+                        <Badge variant="default" className="bg-blue-500">
+                          <ImageIcon className="h-3 w-3 mr-1" />
+                          Yes
+                        </Badge>
+                      ) : (
+                        <Badge variant="secondary">No</Badge>
+                      )}
                     </TableCell>
                     <TableCell>
                       <Badge 
@@ -353,10 +377,19 @@ export default function TasksPage() {
 
       {/* View Tasker Dialog */}
       <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
-        <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-6xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              Preview · {viewingTasker?.title}
+            <DialogTitle className="flex items-center justify-between">
+              <span>Edit · {viewingTasker?.title}</span>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleViewSave}
+                >
+                  Save Changes
+                </Button>
+              </div>
             </DialogTitle>
           </DialogHeader>
           {viewingTasker && (
@@ -385,52 +418,15 @@ export default function TasksPage() {
               </div>
 
               {/* Tasker Content */}
-              {viewingTasker.content && (
-                <div className="space-y-4">
-                  <div className="prose prose-sm max-w-none">
-                    <div 
-                      className="text-sm leading-relaxed"
-                      dangerouslySetInnerHTML={{ 
-                        __html: (viewingTasker.content || '')
-                          .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                          .replace(/\*(.*?)\*/g, '<em>$1</em>')
-                          .replace(/\n/g, '<br/>')
-                          .replace(/• /g, '• ')
-                      }}
-                    />
-                  </div>
-                </div>
-              )}
+              <div className="space-y-4">
+                <SimpleShadcnEditor
+                  value={viewEditContent}
+                  onChange={setViewEditContent}
+                  placeholder="Enter tasker content... You can add images by clicking the image icon or dragging and dropping images into the editor."
+                  minHeight="400px"
+                />
+              </div>
 
-              {/* Default Content if no custom content */}
-              {!viewingTasker.content && (
-                <div className="space-y-4">
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <h3 className="font-semibold text-sm mb-2">Default Instructions</h3>
-                    <div className="text-sm space-y-2">
-                      <p><strong>How to Add User Agents To Ads Power:</strong> <a href="https://youtu.be/mfbiD0Gjhl8" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">https://youtu.be/mfbiD0Gjhl8</a></p>
-                      
-                      <p><strong>• If you are working on Android, use Android User Agents, If you are using iOS, use iPhone User Agents</strong></p>
-                      
-                      <p>Please open or copy paste this link in your browser to get the list of user agents you&apos;ll be using for iOS and Android profiles.</p>
-                      <p><a href="https://docs.google.com/spreadsheets/d/1xoKRqP0e3wW_iTWU-nqG1PcBk8_ILLj3m-_K-Hm8kfs/edit?usp=drivesdk" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">https://docs.google.com/spreadsheets/d/1xoKRqP0e3wW_iTWU-nqG1PcBk8_ILLj3m-_K-Hm8kfs/edit?usp=drivesdk</a></p>
-                      
-                      <p><strong>• Among the 200 target, you&apos;ll work on 120 iOS profiles, 40 Android profiles and 40 windows/mac profiles.</strong></p>
-                      
-                      <div className="space-y-1">
-                        <p><strong>Steps for Ads Power:</strong></p>
-                        <ul className="list-disc list-inside ml-4 space-y-1">
-                          <li>You&apos;ll choose the iOS or Android and copy the user agent from the sheet and paste it in ads power.</li>
-                          <li>Check your profile settings and click on OK to create a profile.</li>
-                          <li>Copy the tracking link from above and open Ads Power and paste that link.</li>
-                          <li>It will do some checks and take you to a Facebook Page. If you are working on Android and iOS and using the User Agents, you won&apos;t see any pop-up, but if you do, close it, click <strong>I couldn&apos;t complete</strong>, click Others and write &quot;Facebook Popup error.&quot; You&apos;ll need to click on the <strong>Learn More</strong> button, if you don&apos;t see it, scroll down and it will be visible.</li>
-                          <li>Continue your work like normal.</li>
-                        </ul>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
 
               <div className="flex justify-end pt-4 border-t">
                 <Button variant="outline" onClick={() => setIsViewDialogOpen(false)}>
@@ -478,36 +474,12 @@ export default function TasksPage() {
               
               <div className="space-y-2">
                 <Label htmlFor="edit-content">Tasker Content</Label>
-                <div className="border rounded-md">
-                  <div className="flex items-center gap-2 p-2 border-b bg-gray-50">
-                    <Button variant="ghost" size="sm">
-                      <span className="text-sm">↶</span>
-                    </Button>
-                    <Button variant="ghost" size="sm">
-                      <span className="text-sm">↷</span>
-                    </Button>
-                    <div className="w-px h-4 bg-gray-300" />
-                    <Button variant="ghost" size="sm">
-                      <span className="font-bold text-sm">B</span>
-                    </Button>
-                    <Button variant="ghost" size="sm">
-                      <span className="italic text-sm">I</span>
-                    </Button>
-                    <Button variant="ghost" size="sm">
-                      <span className="underline text-sm">U</span>
-                    </Button>
-                    <Button variant="ghost" size="sm">
-                      <span className="text-sm">⋯</span>
-                    </Button>
-                  </div>
-                  <Textarea
-                    id="edit-content"
-                    value={editTasker.content}
-                    onChange={(e) => setEditTasker({...editTasker, content: e.target.value})}
-                    placeholder="Enter tasker content..."
-                    className="min-h-[300px] border-0 resize-none"
-                  />
-                </div>
+                <SimpleShadcnEditor
+                  value={editTasker.content}
+                  onChange={(content) => setEditTasker({...editTasker, content})}
+                  placeholder="Enter tasker content... You can add images by clicking the image icon or dragging and dropping images into the editor."
+                  minHeight="300px"
+                />
               </div>
               
               <div className="flex items-center space-x-2">
@@ -555,18 +527,10 @@ export default function TasksPage() {
                 {/* Content Preview */}
                 <div className="space-y-4">
                   {editTasker.content ? (
-                    <div className="prose prose-sm max-w-none">
-                      <div 
-                        className="text-sm leading-relaxed"
-                        dangerouslySetInnerHTML={{ 
-                          __html: (editTasker.content || '')
-                            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                            .replace(/\*(.*?)\*/g, '<em>$1</em>')
-                            .replace(/\n/g, '<br/>')
-                            .replace(/• /g, '• ')
-                        }}
-                      />
-                    </div>
+                    <RichTextDisplay 
+                      content={editTasker.content}
+                      showImages={true}
+                    />
                   ) : (
                     <div className="text-sm text-gray-500 italic">
                       No content added yet. Start typing in the editor to see a preview here.

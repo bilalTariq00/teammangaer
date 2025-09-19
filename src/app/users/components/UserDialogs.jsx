@@ -1,7 +1,8 @@
 "use client";
 
 import React from "react";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { useRouter } from "next/navigation";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import UserForm from "./UserForm";
@@ -22,32 +23,18 @@ const UserDialogs = ({
   onUpdateUser,
   onConfirmDelete
 }) => {
+  const router = useRouter();
+
   return (
     <>
-      {/* Create User Dialog */}
-      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-        <DialogTrigger asChild>
-          <Button className="flex items-center gap-2">
-            <Plus className="h-4 w-4" />
-            Create User
-          </Button>
-        </DialogTrigger>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Create New User</DialogTitle>
-            <DialogDescription>
-              Add a new team member to your organization.
-            </DialogDescription>
-          </DialogHeader>
-          <UserForm
-            user={newUser}
-            onUserChange={setNewUser}
-            onSubmit={onCreateUser}
-            onCancel={() => setIsCreateDialogOpen(false)}
-            isEdit={false}
-          />
-        </DialogContent>
-      </Dialog>
+      {/* Create User Button - Navigate to new page */}
+      <Button 
+        className="flex items-center gap-2"
+        onClick={() => router.push("/users/create")}
+      >
+        <Plus className="h-4 w-4" />
+        Create User
+      </Button>
 
       {/* Edit User Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>

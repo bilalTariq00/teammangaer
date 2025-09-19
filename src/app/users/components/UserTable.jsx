@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { useRouter } from "next/navigation";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -12,6 +13,11 @@ const UserTable = ({
   onDeleteUser, 
   onWorkerClick 
 }) => {
+  const router = useRouter();
+
+  const handleEditUser = (user) => {
+    router.push(`/users/edit/${user.id}`);
+  };
   return (
     <div className="overflow-auto h-full max-h-[calc(100vh-300px)]">
       <Table className="w-full min-w-[800px]">
@@ -91,7 +97,7 @@ const UserTable = ({
                     variant="outline" 
                     size="sm" 
                     className="h-8 w-8 p-0"
-                    onClick={() => onEditUser(user)}
+                    onClick={() => handleEditUser(user)}
                   >
                     <Edit className="h-3 w-3" />
                   </Button>

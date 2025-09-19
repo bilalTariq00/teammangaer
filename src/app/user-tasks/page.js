@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { CheckCircle, Clock, AlertCircle, Upload, ExternalLink, Copy, Send } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import RichTextDisplay from "@/components/RichTextDisplay";
 
 // Mock data for user tasks - IP and Session instructions
 const userTaskInstructions = {
@@ -34,6 +35,31 @@ const userTaskInstructions = {
     windowsMacProfiles: 20
   }
 };
+
+// Mock task content with images (this would come from the admin-created tasks)
+const mockTaskContent = `**How to Add User Agents To Ads Power:** https://youtu.be/mfbiD0Gjhl8
+
+• **If you are working on Android, use Android User Agents, If you are using iOS, use iPhone User Agents**
+
+Please open or copy paste this link in your browser to get the list of user agents you'll be using for iOS and Android profiles.
+https://docs.google.com/spreadsheets/d/1xoKRqP0e3wW_iTWU-nqG1PcBk8_ILLj3m-_K-Hm8kfs/edit?usp=drivesdk
+
+• **Among the 200 target, you'll work on 120 iOS profiles, 40 Android profiles and 40 windows/mac profiles.**
+
+**Steps for Ads Power:**
+• You'll choose the iOS or Android and copy the user agent from the sheet and paste it in ads power.
+• Check your profile settings and click on OK to create a profile.
+• Copy the tracking link from above and open Ads Power and paste that link.
+• It will do some checks and take you to a Facebook Page. If you are working on Android and iOS and using the User Agents, you won't see any pop-up, but if you do, close it, click **I couldn't complete**, click Others and write "Facebook Popup error." You'll need to click on the **Learn More** button, if you don't see it, scroll down and it will be visible.
+• Continue your work like normal.
+
+**Important Notes:**
+• Make sure to follow the exact steps shown in the images below
+• Pay attention to the highlighted areas in the screenshots
+• If you encounter any issues, refer to the troubleshooting guide
+
+**Example Screenshot:**
+![Example Screenshot](data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjNmNGY2Ii8+CiAgPHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOCIgZmlsbD0iIzM3NDE1MSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkV4YW1wbGUgU2NyZWVuc2hvdDwvdGV4dD4KICA8dGV4dCB4PSI1MCUiIHk9IjUwJSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE0IiBmaWxsPSIjNjc2Yjc1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkeT0iMWVtIj5UaGlzIGlzIGFuIGV4YW1wbGUgaW1hZ2U8L3RleHQ+Cjwvc3ZnPg==)`;
 
 export default function UserTasksPage() {
   const { user } = useAuth();
@@ -141,6 +167,24 @@ export default function UserTasksPage() {
                 Link closed by mistake
               </Button>
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Task Content with Images */}
+        <Card>
+          <CardHeader className="bg-blue-50 border-b-2 border-blue-200">
+            <CardTitle className="text-blue-800 text-lg font-semibold">
+              Task Instructions
+            </CardTitle>
+            <CardDescription>
+              Detailed instructions for completing this task
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-6">
+            <RichTextDisplay 
+              content={mockTaskContent}
+              showImages={true}
+            />
           </CardContent>
         </Card>
 
@@ -254,11 +298,10 @@ export default function UserTasksPage() {
           <CardContent className="p-6 space-y-6">
             {/* Task Instructions */}
             <div className="bg-gray-50 p-4 rounded-lg">
-              <p className="text-sm">
-                Copy the tracking link from above and open Ads Power and paste that link.
-                It will do some checks and take you to a Facebook Page. If you are working on Android and iOS and using the User Agents, you won&apos;t see any pop-up, but if you do, close it, click <strong>I couldn&apos;t complete</strong>, click Others and write &quot;Facebook Popup error.&quot; You&apos;ll need to click on the <strong>Learn More</strong> button, if you don&apos;t see it, scroll down and it will be visible.
-                Continue your work like normal.
-              </p>
+              <RichTextDisplay 
+                content={mockTaskContent}
+                showImages={true}
+              />
             </div>
 
             {/* Task Status */}

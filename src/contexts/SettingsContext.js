@@ -83,16 +83,7 @@ export function SettingsProvider({ children }) {
 export function useSettings() {
   const context = useContext(SettingsContext);
   if (context === undefined) {
-    // Return default values for SSR safety
-    return {
-      dashboardTitle: "Team Portal",
-      logoFile: null,
-      logoPreview: null,
-      updateDashboardTitle: () => {},
-      updateLogo: () => {},
-      removeLogo: () => {},
-      getInitials: (title) => title.split(" ").map(word => word.charAt(0)).join("").toUpperCase().slice(0, 2),
-    };
+    throw new Error('useSettings must be used within a SettingsProvider');
   }
   return context;
 }

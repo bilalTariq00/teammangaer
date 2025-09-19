@@ -3,77 +3,11 @@
 import React, { useState } from "react";
 import MainLayout from "@/components/layout/MainLayout";
 import { UserHeader, UserContent } from "./components";
+import { useUsers } from "@/contexts/UsersContext";
 
-// Mock data
-const mockUsers = [
-  {
-    id: 1,
-    name: "Hasan Abbas",
-    email: "abbas_hasan12@joysapps.com",
-    role: "worker",
-    workerType: "permanent-clicker",
-    defaultTasker: "Tasker Click",
-    defaultTaskerSlug: "tasker-click",
-    status: "permanent",
-    locked: "unlocked",
-    links: 1,
-    created: "2025-09-10 20:17:31"
-  },
-  {
-    id: 2,
-    name: "Muhammad Shahood",
-    email: "Shahood1@joyapps.net",
-    role: "worker",
-    workerType: "permanent-viewer",
-    defaultTasker: "Tasker Views",
-    defaultTaskerSlug: "tasker-views",
-    status: "permanent",
-    locked: "unlocked",
-    links: 1,
-    created: "2025-09-10 16:46:31"
-  },
-  {
-    id: 3,
-    name: "Abid",
-    email: "Abid1@joyapps.net",
-    role: "worker",
-    workerType: "permanent-clicker",
-    defaultTasker: "Tasker Click",
-    defaultTaskerSlug: "tasker-click",
-    status: "trainee",
-    locked: "unlocked",
-    links: 0,
-    created: "2025-09-10 15:30:15"
-  },
-  {
-    id: 4,
-    name: "Sarah Johnson",
-    email: "sarah.johnson@joyapps.net",
-    role: "admin",
-    workerType: "permanent-viewer",
-    defaultTasker: "Tasker Views",
-    defaultTaskerSlug: "tasker-views",
-    status: "permanent",
-    locked: "unlocked",
-    links: 3,
-    created: "2025-09-09 14:22:45"
-  },
-  {
-    id: 5,
-    name: "Mike Chen",
-    email: "mike.chen@joyapps.net",
-    role: "worker",
-    workerType: "permanent-clicker",
-    defaultTasker: "Tasker Click",
-    defaultTaskerSlug: "tasker-click",
-    status: "trainee",
-    locked: "unlocked",
-    links: 0,
-    created: "2025-09-09 10:53:01"
-  }
-];
 
 export default function UsersPage() {
+  const { users, deleteUser } = useUsers();
   const [searchTerm, setSearchTerm] = useState("");
   const [pageSize, setPageSize] = useState("100");
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -81,11 +15,10 @@ export default function UsersPage() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
   const [userToDelete, setUserToDelete] = useState(null);
-  const [users, setUsers] = useState(mockUsers);
   const [statusFilter, setStatusFilter] = useState("all");
   const [newUser, setNewUser] = useState({
     name: "",
-    email: "admin_test_a52fcb@example.com",
+    email: "",
     role: "worker",
     workerType: "",
     status: "trainee",
