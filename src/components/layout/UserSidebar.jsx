@@ -10,6 +10,7 @@ import {
   LayoutDashboard,
   CheckSquare,
   User,
+  Clock,
 } from "lucide-react";
 
 const userNavigation = [
@@ -22,6 +23,11 @@ const userNavigation = [
     name: "Tasks",
     href: "/user-tasks",
     icon: CheckSquare,
+  },
+  {
+    name: "Attendance",
+    href: "/user-attendance",
+    icon: Clock,
   },
   {
     name: "Personal Info",

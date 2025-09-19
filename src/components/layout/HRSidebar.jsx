@@ -21,7 +21,8 @@ import {
   GraduationCap,
   Briefcase,
   ClipboardList,
-  UserCog
+  UserCog,
+  Clock
 } from "lucide-react";
 
 const navigation = [
@@ -45,15 +46,20 @@ const navigation = [
 //     href: "/hr-dashboard?tab=reports",
 //     icon: FileText,
 //   },
-  {
-    name: "Departments",
-    href: "/hr-dashboard?tab=departments",
-    icon: Building,
-  },
+  // {
+  //   name: "Departments",
+  //   href: "/hr-dashboard?tab=departments",
+  //   icon: Building,
+  // },
   {
     name: "Calendar",
     href: "/hr-dashboard?tab=calendar",
     icon: Calendar,
+  },
+  {
+    name: "Attendance",
+    href: "/hr-attendance",
+    icon: Clock,
   },
 //   {
 //     name: "Settings",

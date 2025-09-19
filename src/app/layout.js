@@ -3,6 +3,8 @@ import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { SettingsProvider } from "@/contexts/SettingsContext";
 import { UsersProvider } from "@/contexts/UsersContext";
+import { AttendanceProvider } from "@/contexts/AttendanceContext";
+import { PerformanceProvider } from "@/contexts/PerformanceContext";
 import { Toaster } from "sonner";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import ChunkErrorHandler from "@/components/ChunkErrorHandler";
@@ -30,14 +32,18 @@ export default function RootLayout({ children }) {
       >
         <ErrorBoundary>
           <ChunkErrorHandler>
-            <AuthProvider>
-              <SettingsProvider>
-                <UsersProvider>
-                  {children}
-                  <Toaster />
-                </UsersProvider>
-              </SettingsProvider>
-            </AuthProvider>
+                  <AuthProvider>
+                    <SettingsProvider>
+                      <UsersProvider>
+                        <AttendanceProvider>
+                          <PerformanceProvider>
+                            {children}
+                            <Toaster />
+                          </PerformanceProvider>
+                        </AttendanceProvider>
+                      </UsersProvider>
+                    </SettingsProvider>
+                  </AuthProvider>
           </ChunkErrorHandler>
         </ErrorBoundary>
       </body>

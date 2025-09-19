@@ -198,6 +198,19 @@ export default function HREmployeesPage() {
               </div>
             </CardContent>
           </Card>
+          {/* <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2">
+                <DollarSign className="h-4 w-4 text-green-600" />
+                <div>
+                  <p className="text-sm text-gray-600">Avg. Salary</p>
+                  <p className="text-2xl font-bold">
+                    ${employees.length > 0 ? Math.round(employees.reduce((sum, e) => sum + (e.salary || 0), 0) / employees.length).toLocaleString() : '0'}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card> */}
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-2">
@@ -245,9 +258,7 @@ export default function HREmployeesPage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Roles</SelectItem>
-                    <SelectItem value="admin">Admin</SelectItem>
-                    <SelectItem value="manager">Manager</SelectItem>
-                    <SelectItem value="hr">HR</SelectItem>
+                    
                     <SelectItem value="qc">QC</SelectItem>
                     <SelectItem value="worker">Worker</SelectItem>
                   </SelectContent>
@@ -275,6 +286,7 @@ export default function HREmployeesPage() {
                     <th className="text-left p-3 font-medium text-gray-600">Role</th>
                     <th className="text-left p-3 font-medium text-gray-600">Department</th>
                     <th className="text-left p-3 font-medium text-gray-600">Status</th>
+                    <th className="text-left p-3 font-medium text-gray-600">Salary</th>
                     <th className="text-left p-3 font-medium text-gray-600">Join Date</th>
                     <th className="text-left p-3 font-medium text-gray-600">Performance</th>
                     <th className="text-left p-3 font-medium text-gray-600">Actions</th>
@@ -303,9 +315,16 @@ export default function HREmployeesPage() {
                         </code>
                       </td>
                       <td className="p-3">
-                        <Badge variant={getRoleBadgeVariant(employee.role)}>
-                          {employee.role.toUpperCase()}
-                        </Badge>
+                        <div className="flex flex-col gap-1">
+                          <Badge variant={getRoleBadgeVariant(employee.role)}>
+                            {employee.role.toUpperCase()}
+                          </Badge>
+                          {employee.workerType && (
+                            <span className="text-xs text-gray-500">
+                              {employee.workerType.replace('-', ' ').toUpperCase()}
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="p-3">
                         <div className="flex items-center gap-1">
@@ -320,6 +339,14 @@ export default function HREmployeesPage() {
                       </td>
                       <td className="p-3">
                         <div className="flex items-center gap-1">
+                          <DollarSign className="h-3 w-3 text-green-600" />
+                          <span className="text-sm font-medium text-green-700">
+                            ${employee.salary ? employee.salary.toLocaleString() : '0'}/month
+                          </span>
+                        </div>
+                      </td>
+                      <td className="p-3">
+                        <div className="flex items-center gap-1 whitespace-nowrap">
                           <Calendar className="h-3 w-3 text-gray-400" />
                           <span className="text-sm">{employee.joinDate}</span>
                         </div>

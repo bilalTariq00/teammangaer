@@ -25,6 +25,7 @@ export default function CreateEmployeePage() {
     email: "",
     role: "worker",
     workerType: "",
+    workCategory: "",
     status: "trainee",
     password: "",
     
@@ -86,6 +87,21 @@ export default function CreateEmployeePage() {
       return;
     }
 
+    if (!employee.workerType) {
+      toast.error("Please select a worker type (Permanent or Trainee)");
+      return;
+    }
+
+    if (employee.role === "worker" && !employee.workCategory) {
+      toast.error("Please select a work category (Clicker or Viewer)");
+      return;
+    }
+
+    if (!employee.salary || employee.salary <= 0) {
+      toast.error("Please enter a valid salary amount");
+      return;
+    }
+
     // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(employee.email)) {
@@ -102,9 +118,16 @@ export default function CreateEmployeePage() {
       // Generate employee ID if not provided
       const employeeId = employee.employeeId || `EMP${Date.now().toString().slice(-4)}`;
       
+      // Combine workerType and workCategory for the system
+      let finalWorkerType = employee.workerType;
+      if (employee.role === "worker" && employee.workCategory) {
+        finalWorkerType = `${employee.workerType}-${employee.workCategory}`;
+      }
+      
       // Add employee to the context
       const newEmployee = addUser({
         ...employee,
+        workerType: finalWorkerType,
         employeeId,
         id: Date.now(), // Generate unique ID
         created: new Date().toISOString().slice(0, 19).replace('T', ' '),
@@ -210,18 +233,15 @@ export default function CreateEmployeePage() {
                           <SelectValue placeholder="Select role" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="admin">Admin</SelectItem>
-                          <SelectItem value="manager">Manager</SelectItem>
-                          <SelectItem value="qc">QC (Quality Control)</SelectItem>
-                          <SelectItem value="hr">HR (Human Resources)</SelectItem>
                           <SelectItem value="worker">Worker</SelectItem>
+                          <SelectItem value="qc">QC (Quality Control)</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
                     
                     <div className="space-y-2">
                       <Label htmlFor="workerType" className="text-sm font-medium text-gray-700">
-                        Worker Type
+                        Worker Type <span className="text-red-500">*</span>
                       </Label>
                       <Select 
                         value={employee.workerType} 
@@ -231,30 +251,26 @@ export default function CreateEmployeePage() {
                           <SelectValue placeholder="Select worker type" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="permanent-clicker">Permanent Clicker</SelectItem>
-                          <SelectItem value="permanent-viewer">Permanent Viewer</SelectItem>
-                          <SelectItem value="trainee-clicker">Trainee Clicker</SelectItem>
-                          <SelectItem value="trainee-viewer">Trainee Viewer</SelectItem>
+                          <SelectItem value="permanent">Permanent</SelectItem>
+                          <SelectItem value="trainee">Trainee</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
                     
                     <div className="space-y-2">
-                      <Label htmlFor="status" className="text-sm font-medium text-gray-700">
-                        Status <span className="text-red-500">*</span>
+                      <Label htmlFor="workCategory" className="text-sm font-medium text-gray-700">
+                        Work Category <span className="text-red-500">*</span>
                       </Label>
                       <Select 
-                        value={employee.status} 
-                        onValueChange={(value) => handleEmployeeChange("status", value)}
+                        value={employee.workCategory || ""} 
+                        onValueChange={(value) => handleEmployeeChange("workCategory", value)}
                       >
                         <SelectTrigger className="h-10">
-                          <SelectValue placeholder="Select status" />
+                          <SelectValue placeholder="Select work category" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="trainee">Trainee</SelectItem>
-                          <SelectItem value="permanent">Permanent</SelectItem>
-                          <SelectItem value="terminated">Terminated</SelectItem>
-                          <SelectItem value="blocked">Blocked</SelectItem>
+                          <SelectItem value="clicker">Clicker</SelectItem>
+                          <SelectItem value="viewer">Viewer</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -351,16 +367,22 @@ export default function CreateEmployeePage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="salary" className="text-sm font-medium text-gray-700">
-                        Salary
+                        Salary <span className="text-red-500">*</span>
                       </Label>
-                      <Input
-                        id="salary"
-                        type="number"
-                        value={employee.salary}
-                        onChange={(e) => handleEmployeeChange("salary", parseInt(e.target.value) || 0)}
-                        placeholder="Enter salary"
-                        className="h-10"
-                      />
+                      <div className="relative">
+                        <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                        <Input
+                          id="salary"
+                          type="number"
+                          min="0"
+                          step="100"
+                          value={employee.salary}
+                          onChange={(e) => handleEmployeeChange("salary", parseInt(e.target.value) || 0)}
+                          placeholder="Enter monthly salary"
+                          className="h-10 pl-10"
+                        />
+                      </div>
+                      <p className="text-xs text-gray-500">Monthly salary in USD</p>
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="performance" className="text-sm font-medium text-gray-700">
@@ -594,21 +616,25 @@ export default function CreateEmployeePage() {
                     </div>
                     
                     <div>
+                      <span className="font-medium text-gray-600">Worker Type:</span>
+                      <p className="text-gray-900 capitalize">
+                        {employee.workerType && employee.workCategory 
+                          ? `${employee.workerType} ${employee.workCategory}` 
+                          : employee.workerType || "—"}
+                      </p>
+                    </div>
+                    
+                    <div>
                       <span className="font-medium text-gray-600">Department:</span>
                       <p className="text-gray-900">{employee.department || "—"}</p>
                     </div>
                     
                     <div>
-                      <span className="font-medium text-gray-600">Status:</span>
-                      <p className="text-gray-900 capitalize">{employee.status || "—"}</p>
+                      <span className="font-medium text-gray-600">Salary:</span>
+                      <p className="text-gray-900 font-semibold text-green-600">
+                        {employee.salary > 0 ? `$${employee.salary.toLocaleString()}/month` : "—"}
+                      </p>
                     </div>
-                    
-                    {employee.salary > 0 && (
-                      <div>
-                        <span className="font-medium text-gray-600">Salary:</span>
-                        <p className="text-gray-900">${employee.salary.toLocaleString()}</p>
-                      </div>
-                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -621,9 +647,12 @@ export default function CreateEmployeePage() {
                 <CardContent>
                   <div className="space-y-2 text-sm text-gray-600">
                     <p>• <strong>Required fields</strong> are marked with *</p>
+                    <p>• <strong>HR can only create:</strong> Workers and QC</p>
+                    <p>• <strong>Worker Type:</strong> Permanent or Trainee only</p>
+                    <p>• <strong>Work Category:</strong> Clicker or Viewer (for Workers)</p>
+                    <p>• <strong>Salary:</strong> Required field - enter monthly salary in USD</p>
                     <p>• <strong>Employee ID</strong> will be auto-generated if empty</p>
                     <p>• <strong>Performance score</strong> should be 0-100</p>
-                    <p>• <strong>Personal information</strong> is kept secure</p>
                   </div>
                 </CardContent>
               </Card>

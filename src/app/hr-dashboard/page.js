@@ -460,6 +460,7 @@ function HRDashboardContent() {
                 </CardContent>
               </Card>
             </div>
+
           </div>
         )}
 

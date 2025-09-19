@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { 
   Users, 
   Search, 
@@ -44,6 +45,9 @@ export default function ManagerTeamPage() {
   const [pendingChanges, setPendingChanges] = useState({});
   const [selectedMember, setSelectedMember] = useState(null);
   const [showMemberModal, setShowMemberModal] = useState(false);
+  const [showStatusConfirm, setShowStatusConfirm] = useState(false);
+  const [showLockConfirm, setShowLockConfirm] = useState(false);
+  const [confirmAction, setConfirmAction] = useState(null);
 
   // Get team members assigned to this manager
   useEffect(() => {
@@ -78,10 +82,24 @@ export default function ManagerTeamPage() {
 
   // Handle status change
   const handleStatusChange = (memberId, newStatus) => {
-    setPendingChanges(prev => ({
-      ...prev,
-      [memberId]: newStatus
-    }));
+    const member = teamMembers.find(m => m.id === memberId);
+    if (!member) return;
+
+    // Show confirmation dialog
+    setConfirmAction({
+      type: 'status',
+      memberId,
+      memberName: member.name,
+      currentStatus: member.status,
+      newStatus,
+      action: () => {
+        setPendingChanges(prev => ({
+          ...prev,
+          [memberId]: newStatus
+        }));
+      }
+    });
+    setShowStatusConfirm(true);
   };
 
   // Save status changes
@@ -130,39 +148,49 @@ export default function ManagerTeamPage() {
 
   // Handle lock/unlock functionality
   const handleLockUnlock = async (memberId, isLocked) => {
-    try {
-      const member = teamMembers.find(m => m.id === memberId);
-      if (!member) {
-        toast.error("Member not found");
-        return;
-      }
-
-      // Update user's locked status
-      const updatedMember = { ...member, locked: isLocked ? "locked" : "unlocked" };
-      if (updateUser && typeof updateUser === 'function') {
-        updateUser(memberId, updatedMember);
-      }
-
-      // If locking, check if the user is currently logged in and log them out
-      if (isLocked) {
-        // Check if the locked user is currently logged in
-        const isCurrentlyLoggedIn = currentUser && currentUser.id === memberId;
-        if (isCurrentlyLoggedIn) {
-          // Log out the currently logged in user
-          if (checkUserLockStatus && typeof checkUserLockStatus === 'function') {
-            checkUserLockStatus();
-          }
-          toast.success(`${member.name} has been locked and logged out`);
-        } else {
-          toast.success(`${member.name} has been locked`);
-        }
-      } else {
-        toast.success(`${member.name} has been unlocked and can log in again`);
-      }
-    } catch (error) {
-      console.error("Error updating lock status:", error);
-      toast.error("Failed to update lock status");
+    const member = teamMembers.find(m => m.id === memberId);
+    if (!member) {
+      toast.error("Member not found");
+      return;
     }
+
+    // Show confirmation dialog
+    setConfirmAction({
+      type: 'lock',
+      memberId,
+      memberName: member.name,
+      isLocked,
+      action: async () => {
+        try {
+          // Update user's locked status
+          const updatedMember = { ...member, locked: isLocked ? "locked" : "unlocked" };
+          if (updateUser && typeof updateUser === 'function') {
+            updateUser(memberId, updatedMember);
+          }
+
+          // If locking, check if the user is currently logged in and log them out
+          if (isLocked) {
+            // Check if the locked user is currently logged in
+            const isCurrentlyLoggedIn = currentUser && currentUser.id === memberId;
+            if (isCurrentlyLoggedIn) {
+              // Log out the currently logged in user
+              if (checkUserLockStatus && typeof checkUserLockStatus === 'function') {
+                checkUserLockStatus();
+              }
+              toast.success(`${member.name} has been locked and logged out`);
+            } else {
+              toast.success(`${member.name} has been locked`);
+            }
+          } else {
+            toast.success(`${member.name} has been unlocked and can log in again`);
+          }
+        } catch (error) {
+          console.error("Error updating lock status:", error);
+          toast.error("Failed to update lock status");
+        }
+      }
+    });
+    setShowLockConfirm(true);
   };
 
   const getStatusBadgeVariant = (status) => {
@@ -650,6 +678,71 @@ export default function ManagerTeamPage() {
             </div>
           </div>
         )}
+
+        {/* Status Change Confirmation Dialog */}
+        <Dialog open={showStatusConfirm} onOpenChange={setShowStatusConfirm}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Confirm Status Change</DialogTitle>
+              <DialogDescription>
+                Are you sure you want to change {confirmAction?.memberName}'s status from{' '}
+                <span className="font-semibold capitalize">{confirmAction?.currentStatus}</span> to{' '}
+                <span className="font-semibold capitalize">{confirmAction?.newStatus}</span>?
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowStatusConfirm(false)}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={() => {
+                  if (confirmAction?.action) {
+                    confirmAction.action();
+                  }
+                  setShowStatusConfirm(false);
+                }}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                Confirm Change
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Lock/Unlock Confirmation Dialog */}
+        <Dialog open={showLockConfirm} onOpenChange={setShowLockConfirm}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>
+                {confirmAction?.isLocked ? 'Lock Account' : 'Unlock Account'}
+              </DialogTitle>
+              <DialogDescription>
+                Are you sure you want to {confirmAction?.isLocked ? 'lock' : 'unlock'} {confirmAction?.memberName}'s account?
+                {confirmAction?.isLocked && (
+                  <span className="block mt-2 text-red-600 font-medium">
+                    This will immediately log them out if they are currently logged in.
+                  </span>
+                )}
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowLockConfirm(false)}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={() => {
+                  if (confirmAction?.action) {
+                    confirmAction.action();
+                  }
+                  setShowLockConfirm(false);
+                }}
+                className={confirmAction?.isLocked ? "bg-red-600 hover:bg-red-700" : "bg-green-600 hover:bg-green-700"}
+              >
+                {confirmAction?.isLocked ? 'Lock Account' : 'Unlock Account'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </ManagerMainLayout>
   );

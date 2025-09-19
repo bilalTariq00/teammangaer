@@ -29,6 +29,10 @@ import {
   Square
 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useAuth } from "@/contexts/AuthContext";
+import { useUsers } from "@/contexts/UsersContext";
+import AttendanceVerification from "@/components/AttendanceVerification";
+import PerformanceMarking from "@/components/PerformanceMarking";
 
 // Mock data for manager's team
 const mockTeamMembers = [
@@ -981,6 +985,24 @@ function ManagerDashboardContent() {
             </div>
           </DialogContent>
         </Dialog>
+
+        {/* Attendance Verification Section */}
+        {/* Performance Tab */}
+        {activeTab === "performance" && (
+          <div className="space-y-6">
+            <PerformanceMarking />
+          </div>
+        )}
+
+        {/* Attendance Tab */}
+        {activeTab === "attendance" && (
+          <div className="space-y-6">
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">Attendance Management</h2>
+              <AttendanceVerification />
+            </div>
+          </div>
+        )}
       </div>
     </ManagerMainLayout>
   );

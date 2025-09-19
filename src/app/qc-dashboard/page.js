@@ -21,6 +21,7 @@ import {
   Star
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import AttendanceMarking from "@/components/AttendanceMarking";
 
 // Mock data for QC assigned tasks
 const mockAssignedTasks = [
@@ -557,6 +558,12 @@ export default function QCDashboard() {
             </div>
           </div>
         )}
+
+        {/* Attendance Section */}
+        <div className="mt-8">
+          <h2 className="text-2xl font-bold text-gray-900 mb-6">Attendance</h2>
+          <AttendanceMarking />
+        </div>
       </div>
     </QCMainLayout>
   );
