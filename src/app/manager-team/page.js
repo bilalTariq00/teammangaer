@@ -685,7 +685,7 @@ export default function ManagerTeamPage() {
             <DialogHeader>
               <DialogTitle>Confirm Status Change</DialogTitle>
               <DialogDescription>
-                Are you sure you want to change {confirmAction?.memberName}'s status from{' '}
+                Are you sure you want to change {confirmAction?.memberName}&apos;s status from{' '}
                 <span className="font-semibold capitalize">{confirmAction?.currentStatus}</span> to{' '}
                 <span className="font-semibold capitalize">{confirmAction?.newStatus}</span>?
               </DialogDescription>
@@ -717,7 +717,7 @@ export default function ManagerTeamPage() {
                 {confirmAction?.isLocked ? 'Lock Account' : 'Unlock Account'}
               </DialogTitle>
               <DialogDescription>
-                Are you sure you want to {confirmAction?.isLocked ? 'lock' : 'unlock'} {confirmAction?.memberName}'s account?
+                Are you sure you want to {confirmAction?.isLocked ? 'lock' : 'unlock'} {confirmAction?.memberName}&apos;s account?
                 {confirmAction?.isLocked && (
                   <span className="block mt-2 text-red-600 font-medium">
                     This will immediately log them out if they are currently logged in.

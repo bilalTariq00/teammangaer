@@ -27,33 +27,33 @@ export function PerformanceProvider({ children }) {
 
   // Load from localStorage on mount
   useEffect(() => {
-    const savedData = localStorage.getItem('performanceRecords');
-    if (savedData) {
-      try {
+    try {
+      const savedData = localStorage.getItem('performanceRecords');
+      if (savedData) {
         const parsed = JSON.parse(savedData);
         setPerformanceRecords(parsed);
-      } catch (error) {
-        console.error('Error loading performance data:', error);
-        localStorage.removeItem('performanceRecords');
-        setPerformanceRecords({});
-      }
-    } else {
-      // Add some sample data for testing
-      const today = new Date().toISOString().split('T')[0];
-      const sampleData = {
-        [today]: {
-          1: { // Hasan Abbas
-            workerId: 1,
-            managerId: 2,
-            managerName: "Muhammad Shahood",
-            rating: "excellent",
-            notes: "Great work today!",
-            date: today,
-            markedAt: new Date().toISOString()
+      } else {
+        // Add some sample data for testing
+        const today = new Date().toISOString().split('T')[0];
+        const sampleData = {
+          [today]: {
+            1: { // Hasan Abbas
+              workerId: 1,
+              managerId: 2,
+              managerName: "Muhammad Shahood",
+              rating: "excellent",
+              notes: "Great work today!",
+              date: today,
+              markedAt: new Date().toISOString()
+            }
           }
-        }
-      };
-      setPerformanceRecords(sampleData);
+        };
+        setPerformanceRecords(sampleData);
+      }
+    } catch (error) {
+      console.error('Error loading performance data:', error);
+      localStorage.removeItem('performanceRecords');
+      setPerformanceRecords({});
     }
   }, []);
 

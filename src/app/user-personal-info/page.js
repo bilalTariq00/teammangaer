@@ -1,12 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import UserMainLayout from "@/components/layout/UserMainLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAttendance } from "@/contexts/AttendanceContext";
 import { 
   User, 
   Phone, 
@@ -28,8 +30,21 @@ import { toast } from "sonner";
 
 export default function UserPersonalInfoPage() {
   const { user, updatePersonalInfo } = useAuth();
+  const { isAttendanceMarkedToday } = useAttendance();
+  const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [showAttendanceModal, setShowAttendanceModal] = useState(false);
+
+  // Check if attendance is marked for today
+  useEffect(() => {
+    if (user && (user.role === 'worker' || user.role === 'user')) {
+      const attendanceMarked = isAttendanceMarkedToday(user.id);
+      if (!attendanceMarked) {
+        setShowAttendanceModal(true);
+      }
+    }
+  }, [user, isAttendanceMarkedToday]);
   const [formData, setFormData] = useState({
     contactNumber: "",
     emergencyNumber: ""
@@ -88,6 +103,49 @@ export default function UserPersonalInfoPage() {
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
             <p className="text-muted-foreground">Loading...</p>
           </div>
+        </div>
+      </UserMainLayout>
+    );
+  }
+
+  // Show attendance modal if attendance is not marked for today
+  if (showAttendanceModal) {
+    return (
+      <UserMainLayout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <Card className="w-full max-w-md">
+            <CardHeader className="text-center">
+              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-orange-100">
+                <Clock className="h-6 w-6 text-orange-600" />
+              </div>
+              <CardTitle className="text-2xl font-bold text-gray-900">Mark Your Attendance</CardTitle>
+              <CardDescription className="text-gray-600">
+                You must mark your attendance before accessing personal information.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="text-center">
+                <p className="text-sm text-gray-500 mb-4">
+                  Please mark your attendance for today to continue.
+                </p>
+                <div className="flex gap-3 justify-center">
+                  <Button 
+                    onClick={() => router.push('/user-attendance')}
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
+                    <Clock className="h-4 w-4 mr-2" />
+                    Mark Attendance
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setShowAttendanceModal(false)}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </UserMainLayout>
     );

@@ -8,73 +8,6 @@ export function AttendanceProvider({ children }) {
   const [attendanceRecords, setAttendanceRecords] = useState({});
   const [isLoading, setIsLoading] = useState(false);
 
-  // Initialize with sample data for testing
-  useEffect(() => {
-    const today = new Date().toISOString().split('T')[0];
-    const sampleData = {
-      [today]: {
-        // Sample worker attendance for testing
-        3: { // Abid - Permanent Clicker (assigned to manager)
-          userId: 3,
-          name: "Abid Ali",
-          role: "worker",
-          workerType: "permanent-clicker",
-          status: "marked", // Pending approval
-          markedBy: "self",
-          markedAt: new Date().toISOString(),
-          checkIn: "09:00",
-          checkOut: "17:00",
-          hours: 8,
-          notes: "Regular working day"
-        },
-        5: { // Hasan - Permanent Clicker (assigned to manager)
-          userId: 5,
-          name: "Hasan Abbas",
-          role: "worker",
-          workerType: "permanent-clicker",
-          status: "marked", // Pending approval
-          markedBy: "self",
-          markedAt: new Date().toISOString(),
-          checkIn: "08:45",
-          checkOut: "17:15",
-          hours: 8.5,
-          notes: "Early start, stayed late"
-        },
-        7: { // Waleed - Trainee Viewer (assigned to manager)
-          userId: 7,
-          name: "Waleed Bin Shakeel",
-          role: "worker",
-          workerType: "trainee-viewer",
-          status: "marked", // Pending approval
-          markedBy: "self",
-          markedAt: new Date().toISOString(),
-          checkIn: "09:15",
-          checkOut: "16:45",
-          hours: 7.5,
-          notes: "Trainee day, learning new tasks"
-        },
-        // Sample approved attendance
-        1: { // Another worker - already approved
-          userId: 1,
-          name: "Muhammad Shahood",
-          role: "worker",
-          workerType: "permanent-viewer",
-          status: "approved",
-          markedBy: "self",
-          markedAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), // 2 hours ago
-          approvedBy: "manager",
-          approvedAt: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(), // 1 hour ago
-          checkIn: "08:30",
-          checkOut: "17:30",
-          hours: 9,
-          notes: "Full day of work",
-          approvalNotes: "Good attendance, approved"
-        }
-      }
-    };
-    setAttendanceRecords(sampleData);
-  }, []);
-
   // Mark attendance (for workers, managers, QC)
   const markAttendance = (userId, userData, attendanceData) => {
     const today = new Date().toISOString().split('T')[0];
@@ -220,19 +153,33 @@ export function AttendanceProvider({ children }) {
     }
   };
 
+  // Check if attendance is marked for today
+  const isAttendanceMarkedToday = (userId) => {
+    const today = new Date().toISOString().split('T')[0];
+    const dayRecords = attendanceRecords[today] || {};
+    const userRecord = dayRecords[userId];
+    
+    if (!userRecord) {
+      return false;
+    }
+    
+    // Check if user has marked attendance (not just auto-marked absent)
+    return userRecord.markedBy === 'self' && userRecord.status !== 'absent';
+  };
+
   // Load from localStorage on mount
   useEffect(() => {
-    const savedData = localStorage.getItem('attendanceRecords');
-    if (savedData) {
-      try {
+    try {
+      const savedData = localStorage.getItem('attendanceRecords');
+      if (savedData) {
         const parsed = JSON.parse(savedData);
         setAttendanceRecords(parsed);
-      } catch (error) {
-        console.error('Error loading attendance data:', error);
-        // Clear corrupted data
-        localStorage.removeItem('attendanceRecords');
-        setAttendanceRecords({});
       }
+    } catch (error) {
+      console.error('Error loading attendance data:', error);
+      // Clear corrupted data
+      localStorage.removeItem('attendanceRecords');
+      setAttendanceRecords({});
     }
   }, []);
 
@@ -246,6 +193,7 @@ export function AttendanceProvider({ children }) {
     getAllAttendance,
     getAttendanceStats,
     markAbsentIfNotPresent,
+    isAttendanceMarkedToday,
     isLoading
   };
 

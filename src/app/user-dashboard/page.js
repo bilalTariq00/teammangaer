@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import UserMainLayout from "@/components/layout/UserMainLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,10 +9,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, TrendingUp, MousePointer, CheckCircle, Eye, Users } from "lucide-react";
+import { CalendarIcon, TrendingUp, MousePointer, CheckCircle, Eye, Users, Clock, AlertCircle } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAttendance } from "@/contexts/AttendanceContext";
 
 const quickDateRanges = [
   "Today",
@@ -173,10 +175,24 @@ const getUserMetrics = (userId, fromDate, toDate, selectedRange) => {
 
 export default function UserDashboardPage() {
   const { user } = useAuth();
+  const { isAttendanceMarkedToday } = useAttendance();
+  const router = useRouter();
   const [fromDate, setFromDate] = useState(new Date());
   const [toDate, setToDate] = useState(new Date());
   const [selectedRange, setSelectedRange] = useState("Today");
   const [isLoading, setIsLoading] = useState(false);
+  const [showAttendanceModal, setShowAttendanceModal] = useState(false);
+
+  // Check if attendance is marked for today
+  useEffect(() => {
+    if (user && (user.role === 'worker' || user.role === 'user')) {
+      const attendanceMarked = isAttendanceMarkedToday(user.id);
+      
+      if (!attendanceMarked) {
+        setShowAttendanceModal(true);
+      }
+    }
+  }, [user, isAttendanceMarkedToday]);
 
   // Get user-specific metrics based on current user and date range
   const userMetrics = getUserMetrics(user?.id, fromDate, toDate, selectedRange);
@@ -210,6 +226,49 @@ export default function UserDashboardPage() {
               Go to Manager Dashboard
             </a>
           </div>
+        </div>
+      </UserMainLayout>
+    );
+  }
+
+  // Show attendance modal if attendance is not marked for today
+  if (showAttendanceModal) {
+    return (
+      <UserMainLayout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <Card className="w-full max-w-md">
+            <CardHeader className="text-center">
+              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-orange-100">
+                <Clock className="h-6 w-6 text-orange-600" />
+              </div>
+              <CardTitle className="text-2xl font-bold text-gray-900">Mark Your Attendance</CardTitle>
+              <CardDescription className="text-gray-600">
+                You must mark your attendance before accessing the dashboard.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="text-center">
+                <p className="text-sm text-gray-500 mb-4">
+                  Please mark your attendance for today to continue.
+                </p>
+                <div className="flex gap-3 justify-center">
+                  <Button 
+                    onClick={() => router.push('/user-attendance')}
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
+                    <Clock className="h-4 w-4 mr-2" />
+                    Mark Attendance
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setShowAttendanceModal(false)}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </UserMainLayout>
     );
@@ -416,60 +475,60 @@ export default function UserDashboardPage() {
           {/* Clicker Cards */}
           {isClicker && (
             <>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Total Clicks</CardTitle>
-                  <MousePointer className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-center">
-                    <div className="text-4xl font-bold text-gray-900 mb-1">{userMetrics.totalClicks.toLocaleString()}</div>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Clicks</CardTitle>
+              <MousePointer className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-center">
+                <div className="text-4xl font-bold text-gray-900 mb-1">{userMetrics.totalClicks.toLocaleString()}</div>
                     <div className="text-sm text-muted-foreground font-medium">
                       Your Total Clicks {isPermanent ? '(Permanent)' : isTrainee ? '(Trainee)' : ''}
                     </div>
-                  </div>
-                  <div className="mt-4 pt-4 border-t">
-                    <p className="text-xs text-muted-foreground">
-                      Range: {format(fromDate, "yyyy-MM-dd")} → {format(toDate, "yyyy-MM-dd")}
-                    </p>
-                    <p className="text-xs text-muted-foreground">Recent: {userMetrics.recentClicks}</p>
-                  </div>
-                </CardContent>
-              </Card>
+              </div>
+              <div className="mt-4 pt-4 border-t">
+                <p className="text-xs text-muted-foreground">
+                  Range: {format(fromDate, "yyyy-MM-dd")} → {format(toDate, "yyyy-MM-dd")}
+                </p>
+                <p className="text-xs text-muted-foreground">Recent: {userMetrics.recentClicks}</p>
+              </div>
+            </CardContent>
+          </Card>
 
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Good Clicks</CardTitle>
-                  <CheckCircle className="h-4 w-4 text-green-600" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-center">
-                    <div className="text-4xl font-bold text-green-600 mb-1">{userMetrics.goodClicks.toLocaleString()}</div>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Good Clicks</CardTitle>
+              <CheckCircle className="h-4 w-4 text-green-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-center">
+                <div className="text-4xl font-bold text-green-600 mb-1">{userMetrics.goodClicks.toLocaleString()}</div>
                     <div className="text-sm text-muted-foreground font-medium">Successful Clicks</div>
-                  </div>
-                  <div className="mt-4 pt-4 border-t">
+              </div>
+              <div className="mt-4 pt-4 border-t">
                     <p className="text-xs text-muted-foreground">Success rate: {userMetrics.totalClicks > 0 ? Math.round((userMetrics.goodClicks / userMetrics.totalClicks) * 100) : 0}%</p>
-                    <p className="text-xs text-muted-foreground">Recent: {userMetrics.goodClicks}</p>
-                  </div>
-                </CardContent>
-              </Card>
+                <p className="text-xs text-muted-foreground">Recent: {userMetrics.goodClicks}</p>
+              </div>
+            </CardContent>
+          </Card>
 
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Bad Clicks</CardTitle>
-                  <TrendingUp className="h-4 w-4 text-red-600" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-center">
-                    <div className="text-4xl font-bold text-red-600 mb-1">{userMetrics.badClicks.toLocaleString()}</div>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Bad Clicks</CardTitle>
+              <TrendingUp className="h-4 w-4 text-red-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-center">
+                <div className="text-4xl font-bold text-red-600 mb-1">{userMetrics.badClicks.toLocaleString()}</div>
                     <div className="text-sm text-muted-foreground font-medium">Unsuccessful Clicks</div>
-                  </div>
-                  <div className="mt-4 pt-4 border-t">
-                    <p className="text-xs text-muted-foreground">Allowed clicks without success</p>
-                    <p className="text-xs text-muted-foreground">Recent: {userMetrics.badClicks}</p>
-                  </div>
-                </CardContent>
-              </Card>
+              </div>
+              <div className="mt-4 pt-4 border-t">
+                <p className="text-xs text-muted-foreground">Allowed clicks without success</p>
+                <p className="text-xs text-muted-foreground">Recent: {userMetrics.badClicks}</p>
+              </div>
+            </CardContent>
+          </Card>
             </>
           )}
 
