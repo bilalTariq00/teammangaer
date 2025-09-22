@@ -220,7 +220,7 @@ function ManagerDashboardContent() {
                 <div className="flex items-center justify-between">
                   <div>
                     <CardTitle>Team Members</CardTitle>
-                    <CardDescription>Your team's performance overview</CardDescription>
+                    <CardDescription>Your team&apos;s performance overview</CardDescription>
                   </div>
                   <Button onClick={handleAddUser} className="flex items-center gap-2">
                     <UserPlus className="h-4 w-4" />

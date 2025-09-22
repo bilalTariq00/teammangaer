@@ -905,7 +905,7 @@ export default function UserTasksPage() {
               <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">No Current Task</h3>
               <p className="text-gray-500">
-                You don't have any active tasks at the moment. Check back later for new assignments.
+                You don&apos;t have any active tasks at the moment. Check back later for new assignments.
               </p>
             </CardContent>
           </Card>
