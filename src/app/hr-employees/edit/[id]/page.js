@@ -306,10 +306,8 @@ export default function EditEmployeePage() {
                           <SelectValue placeholder="Select worker type" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="permanent-clicker">Permanent Clicker</SelectItem>
-                          <SelectItem value="permanent-viewer">Permanent Viewer</SelectItem>
-                          <SelectItem value="trainee-clicker">Trainee Clicker</SelectItem>
-                          <SelectItem value="trainee-viewer">Trainee Viewer</SelectItem>
+                          <SelectItem value="permanent-worker">Permanent Worker</SelectItem>
+                          <SelectItem value="trainee-worker">Trainee Worker</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>

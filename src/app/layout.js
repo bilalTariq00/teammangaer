@@ -5,6 +5,8 @@ import { SettingsProvider } from "@/contexts/SettingsContext";
 import { UsersProvider } from "@/contexts/UsersContext";
 import { AttendanceProvider } from "@/contexts/AttendanceContext";
 import { PerformanceProvider } from "@/contexts/PerformanceContext";
+import { TaskProvider } from "@/contexts/TaskContext";
+import { EnhancedTaskProvider } from "@/contexts/EnhancedTaskContext";
 import { Toaster } from "sonner";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import ChunkErrorHandler from "@/components/ChunkErrorHandler";
@@ -37,8 +39,12 @@ export default function RootLayout({ children }) {
                       <UsersProvider>
                         <AttendanceProvider>
                           <PerformanceProvider>
-                            {children}
-                            <Toaster />
+                            <TaskProvider>
+                              <EnhancedTaskProvider>
+                                {children}
+                                <Toaster />
+                              </EnhancedTaskProvider>
+                            </TaskProvider>
                           </PerformanceProvider>
                         </AttendanceProvider>
                       </UsersProvider>

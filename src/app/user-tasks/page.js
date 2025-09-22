@@ -3,152 +3,379 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import UserMainLayout from "@/components/layout/UserMainLayout";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { CheckCircle, Clock, AlertCircle, Upload, ExternalLink, Copy, Send } from "lucide-react";
+import { CheckCircle, Play, ChevronDown, ChevronUp } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAttendance } from "@/contexts/AttendanceContext";
-import RichTextDisplay from "@/components/RichTextDisplay";
-
-// Mock data for user tasks - IP and Session instructions
-const userTaskInstructions = {
-  ipInstructions: {
-    proxyAddress: "proxy.smartproxy.net:3120:smart-m17mx1sjlcfe_area-US_life-15_session-pcf62219dd7a75fe8",
-    exitIP: "2603:6081:7ef0:9d50:ecad:411:6bbf:81a9",
-    location: "United States (US), North Carolina / Wilson",
-    isp: "Charter Communications Inc",
-    as: "AS11426 Charter Communications Inc",
-    spamScore: "",
-    oneTimeLink: "https://tasker.joyapps.net/I/Z-X33H4jbJ?m=MTk3ODV8NDI8MTc1ODA1MDU2NQiAKg_pHCLZvsaP9z8IScY6FLIMKjACy3qWwjt-ygsW",
-    expiresIn: "09:56"
-  },
-  sessionInstructions: {
-    profileCreationLink: "https://docs.google.com/spreadsheets/d/1Y1kM[redacted]Jck/edit?gid[redacted]4878",
-    leadsPageLink: "https://docs.google.com/spreadsheets/d/1O[redacted]WFQ7ez[redacted]Y4UghuiWk/edit?usp=sharing",
-    userAgentsLink: "https://docs.google.com/spreadsheets/[redacted]cBk8_ILLj3m-_K-Hm8kfs/edit?usp=drivesdk",
-    howToAddUserAgentsLink: "https://example.com/how-to-add-user-agents",
-    targetProfiles: 100,
-    iosProfiles: 60,
-    androidProfiles: 20,
-    windowsMacProfiles: 20
-  }
-};
-
-// Mock task content with images (this would come from the admin-created tasks)
-const mockTaskContent = `**How to Add User Agents To Ads Power:** https://youtu.be/mfbiD0Gjhl8
-
-• **If you are working on Android, use Android User Agents, If you are using iOS, use iPhone User Agents**
-
-Please open or copy paste this link in your browser to get the list of user agents you'll be using for iOS and Android profiles.
-https://docs.google.com/spreadsheets/d/1xoKRqP0e3wW_iTWU-nqG1PcBk8_ILLj3m-_K-Hm8kfs/edit?usp=drivesdk
-
-• **Among the 200 target, you'll work on 120 iOS profiles, 40 Android profiles and 40 windows/mac profiles.**
-
-**Steps for Ads Power:**
-• You'll choose the iOS or Android and copy the user agent from the sheet and paste it in ads power.
-• Check your profile settings and click on OK to create a profile.
-• Copy the tracking link from above and open Ads Power and paste that link.
-• It will do some checks and take you to a Facebook Page. If you are working on Android and iOS and using the User Agents, you won't see any pop-up, but if you do, close it, click **I couldn't complete**, click Others and write "Facebook Popup error." You'll need to click on the **Learn More** button, if you don't see it, scroll down and it will be visible.
-• Continue your work like normal.
-
-**Important Notes:**
-• Make sure to follow the exact steps shown in the images below
-• Pay attention to the highlighted areas in the screenshots
-• If you encounter any issues, refer to the troubleshooting guide
-
-**Example Screenshot:**
-![Example Screenshot](data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjNmNGY2Ii8+CiAgPHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOCIgZmlsbD0iIzM3NDE1MSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkV4YW1wbGUgU2NyZWVuc2hvdDwvdGV4dD4KICA8dGV4dCB4PSI1MCUiIHk9IjUwJSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE0IiBmaWxsPSIjNjc2Yjc1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkeT0iMWVtIj5UaGlzIGlzIGFuIGV4YW1wbGUgaW1hZ2U8L3RleHQ+Cjwvc3ZnPg==)`;
+import { useEnhancedTasks } from "@/contexts/EnhancedTaskContext";
+import IPInstructions from "@/components/tasks/IPInstructions";
+import TaskInstructions from "@/components/tasks/TaskInstructions";
+import SessionInstructions from "@/components/tasks/SessionInstructions";
+import TaskSubmission from "@/components/tasks/TaskSubmission";
+import ViewerTask from "@/components/tasks/ViewerTask";
+import { CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { toast } from "sonner";
 
 export default function UserTasksPage() {
   const { user } = useAuth();
   const { isAttendanceMarkedToday } = useAttendance();
+  const { 
+    getCurrentTask, 
+    getNextTask, 
+    startTask, 
+    startLinkReview,
+    completeLinkReview,
+    completeSubtask,
+    completeClickerTask,
+    completeFinalSubmission,
+    reloadLink,
+    areAllSubtasksCompleted,
+    resetTasks
+  } = useEnhancedTasks();
   const router = useRouter();
-  const [linkClosed, setLinkClosed] = useState(false);
-  const [taskStatus, setTaskStatus] = useState("not-completed");
-  const [completionReason, setCompletionReason] = useState("");
-  const [pageCount, setPageCount] = useState("");
-  const [additionalDetails, setAdditionalDetails] = useState("");
+  
+  const [currentTask, setCurrentTask] = useState(null);
+  const [nextTask, setNextTask] = useState(null);
+  const [currentSubtaskIndex, setCurrentSubtaskIndex] = useState(0);
+  const [timeRemaining, setTimeRemaining] = useState(null);
+  const [isTimerActive, setIsTimerActive] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showAttendanceModal, setShowAttendanceModal] = useState(false);
+  const [currentTaskType, setCurrentTaskType] = useState('viewer'); // viewer, clicker
+  const [taskSubmissionCollapsed, setTaskSubmissionCollapsed] = useState(false);
+  const [viewerTask1Status, setViewerTask1Status] = useState('notCompleted');
+  const [viewerTask2Status, setViewerTask2Status] = useState('notCompleted');
+  const [clickerTaskStatus, setClickerTaskStatus] = useState('notCompleted');
+  const [selectedReason1, setSelectedReason1] = useState('');
+  const [selectedReason2, setSelectedReason2] = useState('');
+  const [selectedReasonClicker, setSelectedReasonClicker] = useState('');
+  const [additionalDetails, setAdditionalDetails] = useState('');
+  const [screenshot, setScreenshot] = useState(null);
+  const [pageVisitCount, setPageVisitCount] = useState('');
+  const [currentViewerTask, setCurrentViewerTask] = useState(1); // 1 or 2
+  const [task1Submitted, setTask1Submitted] = useState(false);
+  const [task2Submitted, setTask2Submitted] = useState(false);
+  const [clickerSubmitted, setClickerSubmitted] = useState(false);
+  const [expireTime, setExpireTime] = useState(null);
+  const [countdownStarted, setCountdownStarted] = useState(false);
 
   // Check if attendance is marked for today
   useEffect(() => {
     if (user && (user.role === 'worker' || user.role === 'user')) {
       const attendanceMarked = isAttendanceMarkedToday(user.id);
       if (!attendanceMarked) {
-        setShowAttendanceModal(true);
+        router.push('/user-dashboard');
       }
     }
-  }, [user, isAttendanceMarkedToday]);
+  }, [user, isAttendanceMarkedToday, router]);
 
-  const handleCopyLink = () => {
-    navigator.clipboard.writeText(userTaskInstructions.ipInstructions.oneTimeLink);
-    // You could add a toast notification here
+  // Load current task
+  useEffect(() => {
+    if (user?.id) {
+      console.log("User ID:", user.id);
+      console.log("User:", user);
+      const current = getCurrentTask(user.id);
+      const next = getNextTask(user.id);
+      console.log("Current task:", current);
+      console.log("Next task:", next);
+      setCurrentTask(current);
+      setNextTask(next);
+    }
+  }, [user?.id, getCurrentTask, getNextTask]);
+
+  // Timer effect
+  useEffect(() => {
+    let interval = null;
+    if (isTimerActive && timeRemaining > 0) {
+      interval = setInterval(() => {
+        setTimeRemaining(time => time - 1);
+      }, 1000);
+    } else if (timeRemaining === 0) {
+      setIsTimerActive(false);
+      toast.error("Time expired! Please reload the link and try again.");
+    }
+    return () => clearInterval(interval);
+  }, [isTimerActive, timeRemaining]);
+
+  const handleStartTask = (taskId) => {
+    startTask(taskId);
+    setCurrentTask(getCurrentTask(user.id));
+    setNextTask(getNextTask(user.id));
+    toast.success("Task started!");
   };
 
-  const handleTaskSubmit = async () => {
+  const handleStartLinkReview = (subtaskId, linkId) => {
+    startLinkReview(currentTask.id, subtaskId, linkId);
+    setTimeRemaining(300); // 5 minutes timer
+    setIsTimerActive(true);
+    toast.success("Link review started! Timer is running.");
+  };
+
+  const handleCompleteLinkReview = (subtaskId, linkId, quality) => {
+    const notes = quality === "good" ? "Good quality link" : "Poor quality link";
+    completeLinkReview(currentTask.id, subtaskId, linkId, notes, quality);
+    setIsTimerActive(false);
+    setTimeRemaining(null);
+    toast.success(`Link marked as ${quality}!`);
+  };
+
+
+  const handleSubtaskSubmit = async (submissionData) => {
     setIsSubmitting(true);
     
     // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 2000));
     
-    // Reset form
-    setTaskStatus("not-completed");
-    setCompletionReason("");
-    setPageCount("");
-    setAdditionalDetails("");
+    // Complete the subtask
+    completeSubtask(currentTask.id, currentTask.subtasks[currentSubtaskIndex].id, submissionData.additionalDetails, submissionData.screenshot);
+    
+    toast.success("Task submitted successfully!");
     setIsSubmitting(false);
     
-    // You could add a success notification here
-    alert("Task submitted successfully!");
+    // Move to next task type
+    if (currentTaskType === 'viewer1') {
+      setCurrentTaskType('viewer2');
+      setCurrentSubtaskIndex(0);
+      setTaskStatus('notCompleted');
+      setSelectedReason('');
+      setAdditionalDetails('');
+      setScreenshot(null);
+      setPageVisitCount('');
+      toast.success("Viewer Task 1 completed! Moving to Viewer Task 2 with new data.");
+    } else if (currentTaskType === 'viewer2') {
+      setCurrentTaskType('clicker');
+      setCurrentSubtaskIndex(0);
+      setTaskStatus('notCompleted');
+      setSelectedReason('');
+      setAdditionalDetails('');
+      setScreenshot(null);
+      setPageVisitCount('');
+      toast.success("Viewer Task 2 completed! Moving to Clicker Task with new data.");
+    } else {
+      // Clicker task completed, reset to viewer1
+      setCurrentTaskType('viewer1');
+      setCurrentSubtaskIndex(0);
+      setTaskStatus('notCompleted');
+      setSelectedReason('');
+      setAdditionalDetails('');
+      setScreenshot(null);
+      setPageVisitCount('');
+      toast.success("Clicker Task completed! Starting new cycle with Viewer Task 1.");
+    }
+    
+    // Scroll to top of page
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    
+    // Refresh task data
+    setCurrentTask(getCurrentTask(user.id));
+    setNextTask(getNextTask(user.id));
   };
 
-  // Show attendance modal if attendance is not marked for today
-  if (showAttendanceModal) {
+  const handleClickerSubmit = async (submissionData) => {
+    setIsSubmitting(true);
+    
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    // Complete the clicker task
+    completeClickerTask(currentTask.id, submissionData.additionalDetails, "good", submissionData.screenshot);
+    
+    toast.success("Clicker task completed! All tasks finished.");
+    setIsSubmitting(false);
+    
+    // Reset to start over or move to next task
+    setCurrentTaskType('viewer1');
+    setCurrentSubtaskIndex(0);
+    setTaskStatus('notCompleted');
+    setSelectedReason('');
+    setAdditionalDetails('');
+    setScreenshot(null);
+    setPageVisitCount('');
+    
+    // Scroll to top of page
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    
+    // Refresh task data
+    setCurrentTask(getCurrentTask(user.id));
+    setNextTask(getNextTask(user.id));
+  };
+
+  const handleLinkClosed = () => {
+    toast.info("Link closed by mistake - you can continue with the task");
+  };
+
+  const handleScreenshotUpload = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      setScreenshot(file);
+      toast.success("Screenshot uploaded successfully!");
+    }
+  };
+
+  const isFormValid = (taskNumber) => {
+    const taskStatus = taskNumber === 1 ? viewerTask1Status : viewerTask2Status;
+    const selectedReason = taskNumber === 1 ? selectedReason1 : selectedReason2;
+    
+    if (taskStatus === 'completed') {
+      return screenshot && pageVisitCount;
+    } else if (taskStatus === 'notCompleted') {
+      return selectedReason;
+    }
+    return false;
+  };
+
+  const isClickerFormValid = () => {
+    if (clickerTaskStatus === 'completed') {
+      return screenshot && pageVisitCount;
+    } else if (clickerTaskStatus === 'notCompleted') {
+      return selectedReasonClicker;
+    }
+    return false;
+  };
+
+  const startCountdown = (expiresIn) => {
+    // Only start if not already started
+    if (countdownStarted) return;
+    
+    // Parse the expiresIn string (e.g., "09:56" -> 9 minutes 56 seconds)
+    const [minutes, seconds] = expiresIn.split(':').map(Number);
+    const totalSeconds = minutes * 60 + seconds;
+    
+    setExpireTime(totalSeconds);
+    setTimeRemaining(totalSeconds);
+    setCountdownStarted(true);
+  };
+
+  // Countdown timer effect
+  useEffect(() => {
+    let interval = null;
+    
+    if (timeRemaining > 0) {
+      interval = setInterval(() => {
+        setTimeRemaining(timeRemaining => {
+          if (timeRemaining <= 1) {
+            clearInterval(interval);
+            return 0;
+          }
+          return timeRemaining - 1;
+        });
+      }, 1000);
+    } else if (timeRemaining === 0) {
+      clearInterval(interval);
+    }
+    
+    return () => clearInterval(interval);
+  }, [timeRemaining]);
+
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  // Scroll to top when task type changes
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [currentTaskType]);
+
+  const handleViewerTaskSubmit = (taskNumber) => {
+    const taskStatus = taskNumber === 1 ? viewerTask1Status : viewerTask2Status;
+    const selectedReason = taskNumber === 1 ? selectedReason1 : selectedReason2;
+    
+    if (taskStatus === 'completed') {
+      if (!screenshot) {
+        toast.error("Screenshot is mandatory when task is completed!");
+        return;
+      }
+      if (!pageVisitCount) {
+        toast.error("Please select how many pages you visited!");
+        return;
+      }
+    } else if (taskStatus === 'notCompleted') {
+      if (!selectedReason) {
+        toast.error("Please select a reason for not completing the task!");
+        return;
+      }
+    } else {
+      toast.error("Please select a task status!");
+      return;
+    }
+
+    const submissionData = {
+      additionalDetails,
+      screenshot: screenshot ? URL.createObjectURL(screenshot) : null,
+      taskStatus,
+      selectedReason,
+      pageVisitCount
+    };
+
+            // Update the specific task status
+            if (taskNumber === 1) {
+              setViewerTask1Status('completed');
+              setTask1Submitted(true);
+              toast.success("Viewer Task 1 completed!");
+            } else {
+              setViewerTask2Status('completed');
+              setTask2Submitted(true);
+              toast.success("Viewer Task 2 completed!");
+            }
+
+    // Reset form
+    if (taskNumber === 1) {
+      setSelectedReason1('');
+    } else {
+      setSelectedReason2('');
+    }
+    setAdditionalDetails('');
+    setScreenshot(null);
+    setPageVisitCount('');
+  };
+
+  const handleReloadLink = (taskNumber) => {
+    if (taskNumber === 1) {
+      setViewerTask1Status('notCompleted');
+      setSelectedReason1('');
+      toast.success("Viewer Task 1 link reloaded!");
+    } else if (taskNumber === 2) {
+      setViewerTask2Status('notCompleted');
+      setSelectedReason2('');
+      toast.success("Viewer Task 2 link reloaded!");
+    } else if (taskNumber === 3) {
+      setClickerTaskStatus('notCompleted');
+      setSelectedReasonClicker('');
+      toast.success("Clicker Task link reloaded!");
+    }
+  };
+
+  const handleNextTask = () => {
+    if (viewerTask1Status !== 'completed' || viewerTask2Status !== 'completed') {
+      toast.error("Please complete both viewer tasks first!");
+      return;
+    }
+    
+    setCurrentTaskType('clicker');
+    setCountdownStarted(false); // Reset countdown for new task
+    toast.success("Moving to Clicker Task!");
+  };
+
+  if (!user) {
     return (
       <UserMainLayout>
-        <div className="flex items-center justify-center min-h-[400px]">
-          <Card className="w-full max-w-md">
-            <CardHeader className="text-center">
-              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-orange-100">
-                <Clock className="h-6 w-6 text-orange-600" />
-              </div>
-              <CardTitle className="text-2xl font-bold text-gray-900">Mark Your Attendance</CardTitle>
-              <CardDescription className="text-gray-600">
-                You must mark your attendance before accessing tasks.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
+        <div className="flex items-center justify-center h-64">
               <div className="text-center">
-                <p className="text-sm text-gray-500 mb-4">
-                  Please mark your attendance for today to continue.
-                </p>
-                <div className="flex gap-3 justify-center">
-                  <Button 
-                    onClick={() => router.push('/user-attendance')}
-                    className="bg-blue-600 hover:bg-blue-700"
-                  >
-                    <Clock className="h-4 w-4 mr-2" />
-                    Mark Attendance
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    onClick={() => setShowAttendanceModal(false)}
-                  >
-                    Cancel
-                  </Button>
-                </div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Access Denied</h2>
+            <p className="text-gray-600">Please log in to access this page.</p>
               </div>
-            </CardContent>
-          </Card>
         </div>
       </UserMainLayout>
     );
   }
+
+  const currentSubtask = currentTask?.subtasks?.[currentSubtaskIndex];
+  const allSubtasksCompleted = currentTask?.subtasks?.every(subtask => subtask.submission.completed) || false;
+  const showClickerTask = allSubtasksCompleted && currentTask?.clickerTask;
+  const showNextTask = allSubtasksCompleted && currentTask?.clickerTask?.submission?.completed && nextTask;
 
   return (
     <UserMainLayout>
@@ -160,309 +387,529 @@ export default function UserTasksPage() {
             <p className="text-muted-foreground">
               Task instructions for {user?.name}
             </p>
+            <div className="mt-2">
+              <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
+                currentTaskType === 'viewer' ? 'bg-blue-100 text-blue-800' :
+                'bg-purple-100 text-purple-800'
+              }`}>
+                {currentTaskType === 'viewer' ? 'Viewer Tasks (1 & 2)' : 'Clicker Task'}
+              </span>
+            </div>
           </div>
-        </div>
-
-        {/* IP and One time Link Instructions */}
-        <Card>
-          <CardHeader className="bg-green-50 border-b-2 border-green-200">
-            <CardTitle className="text-green-800 text-lg font-semibold">
-              IP and One time Link Instructions
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-6 space-y-4">
-            {/* Proxy Setup */}
-            <div className="space-y-3">
-              <p className="text-sm font-medium">1. Set up this proxy in AdsPower:</p>
-              <div className="bg-gray-100 p-3 rounded border">
-                <div className="flex items-center gap-2">
-                  <code className="text-sm font-mono">{userTaskInstructions.ipInstructions.proxyAddress}</code>
-                  <Badge variant="outline" className="text-xs">[US Proxy]</Badge>
-                </div>
-              </div>
-              
-              <div className="text-sm space-y-1">
-                <p>Exit IP: {userTaskInstructions.ipInstructions.exitIP}</p>
-                <p>tries: 2 - {userTaskInstructions.ipInstructions.location}, ISP: {userTaskInstructions.ipInstructions.isp}, AS: {userTaskInstructions.ipInstructions.as} - Spam Score: {userTaskInstructions.ipInstructions.spamScore}</p>
-              </div>
-            </div>
-
-            {/* One-time Access Link */}
-            <div className="space-y-3">
-              <p className="text-sm font-medium">One-time Access Link:</p>
-              <div className="bg-blue-50 p-3 rounded border">
-                <div className="flex items-center gap-2 mb-2">
-                  <code className="text-sm font-mono text-blue-800 break-all">
-                    {userTaskInstructions.ipInstructions.oneTimeLink}
-                  </code>
                   <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={handleCopyLink}
-                    className="shrink-0"
-                  >
-                    <Copy className="h-3 w-3 mr-1" />
-                    Copy
-                  </Button>
-                  <Badge variant="secondary" className="shrink-0">
-                    Expires in {userTaskInstructions.ipInstructions.expiresIn}
-                  </Badge>
-                </div>
-                <p className="text-xs text-gray-600">
-                  This is your one-time link for this task session. If you accidentally close it, submit below as Link closed by mistake.
-                </p>
-              </div>
-            </div>
-
-            {/* Link Closed Option */}
-            <div className="pt-4 border-t">
-              <Button 
+            onClick={() => {
+              resetTasks();
+              setCurrentTask(getCurrentTask(user.id));
+              setNextTask(getNextTask(user.id));
+              setCurrentTaskType('viewer');
+              setCurrentSubtaskIndex(0);
+              setViewerTask1Status('notCompleted');
+              setViewerTask2Status('notCompleted');
+              setClickerTaskStatus('notCompleted');
+              setSelectedReason1('');
+              setSelectedReason2('');
+              setSelectedReasonClicker('');
+              setAdditionalDetails('');
+              setScreenshot(null);
+              setPageVisitCount('');
+              setTask1Submitted(false);
+              setTask2Submitted(false);
+              setClickerSubmitted(false);
+              setCountdownStarted(false);
+            }}
                 variant="outline" 
-                size="sm"
-                onClick={() => setLinkClosed(true)}
                 className="text-red-600 hover:text-red-700"
               >
-                Link closed by mistake
+            Reset Tasks (Debug)
               </Button>
             </div>
-          </CardContent>
-        </Card>
 
-        {/* Task Content with Images */}
-        <Card>
-          <CardHeader className="bg-blue-50 border-b-2 border-blue-200">
-            <CardTitle className="text-blue-800 text-lg font-semibold">
-              Task Instructions
-            </CardTitle>
-            <CardDescription>
-              Detailed instructions for completing this task
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-6">
-            <RichTextDisplay 
-              content={mockTaskContent}
-              showImages={true}
-            />
-          </CardContent>
-        </Card>
+        {/* Show current task if available */}
+        {currentTask ? (
+          <div className="space-y-6">
+            {currentTaskType === 'viewer' ? (
+              <>
+                {/* IP and One time Link Instructions for Task 1 */}
+                <IPInstructions 
+                  taskType="viewer1"
+                  taskIndex={0}
+                  timeRemaining={timeRemaining}
+                  formatTime={formatTime}
+                  startCountdown={startCountdown}
+                />
 
-        {/* Session Task Instructions */}
-        <Card>
-          <CardHeader className="bg-green-50 border-b-2 border-green-200">
-            <CardTitle className="text-green-800 text-lg font-semibold">
-              Session Task Instructions
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-6 space-y-4">
-            {/* Profile Creation */}
-            <div className="space-y-3">
-              <p className="text-sm">
-                Make your Ad&apos;s power profile using the proxy provided above in the IP Block. Follow this to make a profile, if you don&apos;t know how to make it:
-              </p>
-              <div className="bg-blue-50 p-2 rounded">
-                <a 
-                  href={userTaskInstructions.sessionInstructions.profileCreationLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-600 underline text-sm"
-                >
-                  {userTaskInstructions.sessionInstructions.profileCreationLink}
-                </a>
-              </div>
+            {/* Task Instructions - Collapsible */}
+                <TaskInstructions 
+                  task={currentTask} 
+                  taskType="viewer1"
+                />
+
+            {/* Session Task Instructions - Collapsible */}
+                <SessionInstructions 
+                  task={currentTask} 
+                  taskType="viewer1"
+                />
+
+                {/* Viewer Task 1 */}
+                <Card>
+                  <CardHeader className="bg-blue-50 border-b-2 border-blue-200">
+                    <CardTitle className="text-blue-800 text-lg font-semibold">
+                      Viewer Task 1
+                    </CardTitle>
+                    <CardDescription>
+                      Complete the first viewer task
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="p-6 space-y-4">
+                    <div className="space-y-3">
+                      <h5 className="font-medium">Task status</h5>
+                      <RadioGroup value={viewerTask1Status} onValueChange={setViewerTask1Status} className="flex space-x-6">
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="completed" id="task1-completed" />
+                          <label htmlFor="task1-completed" className="text-sm font-medium text-gray-700 cursor-pointer">
+                            Completed
+                          </label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="notCompleted" id="task1-notCompleted" />
+                          <label htmlFor="task1-notCompleted" className="text-sm font-medium text-gray-700 cursor-pointer">
+                            Not completed
+                          </label>
+                        </div>
+                      </RadioGroup>
+                    </div>
+
+                    {viewerTask1Status === 'notCompleted' && (
+                      <div className="space-y-3">
+                        <h5 className="font-medium">Select the reason:</h5>
+                        <RadioGroup value={selectedReason1} onValueChange={setSelectedReason1} className="space-y-3">
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="networkError" id="task1-networkError" />
+                            <label htmlFor="task1-networkError" className="text-sm font-medium text-gray-700 cursor-pointer">
+                              Network error
+                            </label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="environmentCheck" id="task1-environmentCheck" />
+                            <label htmlFor="task1-environmentCheck" className="text-sm font-medium text-gray-700 cursor-pointer">
+                              Environment check failed
+                            </label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="proxyIssue" id="task1-proxyIssue" />
+                            <label htmlFor="task1-proxyIssue" className="text-sm font-medium text-gray-700 cursor-pointer">
+                              Proxy issue
+                            </label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="linkOpened" id="task1-linkOpened" />
+                            <label htmlFor="task1-linkOpened" className="text-sm font-medium text-gray-700 cursor-pointer">
+                              Link opened by mistake
+                            </label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="other" id="task1-other" />
+                            <label htmlFor="task1-other" className="text-sm font-medium text-gray-700 cursor-pointer">
+                              Other
+                            </label>
+                          </div>
+                        </RadioGroup>
+                        
+                        <Button 
+                          onClick={() => handleReloadLink(1)}
+                          variant="outline"
+                          className="w-full"
+                        >
+                          Reload Link
+                        </Button>
+                      </div>
+                    )}
+
+                    {viewerTask1Status === 'completed' && (
+                      <div className="space-y-3">
+                        <h5 className="font-medium">Did you visit 1 page or 2 pages on the site?</h5>
+                        <RadioGroup value={pageVisitCount} onValueChange={setPageVisitCount} className="flex space-x-6">
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="1" id="task1-page1" />
+                            <label htmlFor="task1-page1" className="text-sm font-medium text-gray-700 cursor-pointer">
+                              1 page
+                            </label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="2" id="task1-page2" />
+                            <label htmlFor="task1-page2" className="text-sm font-medium text-gray-700 cursor-pointer">
+                              2 pages
+                            </label>
+                          </div>
+                        </RadioGroup>
+                        
+                        <div className="space-y-2">
+                          <label className="block text-sm font-medium">
+                            Upload Screenshot <span className="text-red-500">*</span>
+                          </label>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleScreenshotUpload}
+                            className="w-full p-2 border rounded-md"
+                            required
+                          />
+                          {screenshot && (
+                            <p className="text-sm text-green-600">✓ Screenshot uploaded: {screenshot.name}</p>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    <Button 
+                      onClick={() => handleViewerTaskSubmit(1)}
+                      disabled={task1Submitted || !isFormValid(1)}
+                      className={`w-full ${task1Submitted ? 'bg-gray-400 cursor-not-allowed' : !isFormValid(1) ? 'bg-gray-300 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'}`}
+                    >
+                      {task1Submitted ? 'Submitted' : !isFormValid(1) ? 'Fill Required Fields' : 'Submit Task 1'}
+                    </Button>
+                  </CardContent>
+                </Card>
+
+                {/* IP and One time Link Instructions for Task 2 */}
+                <IPInstructions 
+                  taskType="viewer2"
+                  taskIndex={1}
+                timeRemaining={timeRemaining}
+                  formatTime={formatTime}
+                  startCountdown={startCountdown}
+                />
+
+                {/* Viewer Task 2 */}
+                <Card>
+                  <CardHeader className="bg-green-50 border-b-2 border-green-200">
+                    <CardTitle className="text-green-800 text-lg font-semibold">
+                      Viewer Task 2
+                    </CardTitle>
+                    <CardDescription>
+                      Complete the second viewer task
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="p-6 space-y-4">
+                    <div className="space-y-3">
+                      <h5 className="font-medium">Task status</h5>
+                      <RadioGroup value={viewerTask2Status} onValueChange={setViewerTask2Status} className="flex space-x-6">
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="completed" id="task2-completed" />
+                          <label htmlFor="task2-completed" className="text-sm font-medium text-gray-700 cursor-pointer">
+                            Completed
+                          </label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="notCompleted" id="task2-notCompleted" />
+                          <label htmlFor="task2-notCompleted" className="text-sm font-medium text-gray-700 cursor-pointer">
+                            Not completed
+                          </label>
+                        </div>
+                      </RadioGroup>
+                    </div>
+
+                    {viewerTask2Status === 'notCompleted' && (
+                      <div className="space-y-3">
+                        <h5 className="font-medium">Select the reason:</h5>
+                        <RadioGroup value={selectedReason2} onValueChange={setSelectedReason2} className="space-y-3">
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="networkError" id="task2-networkError" />
+                            <label htmlFor="task2-networkError" className="text-sm font-medium text-gray-700 cursor-pointer">
+                              Network error
+                            </label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="environmentCheck" id="task2-environmentCheck" />
+                            <label htmlFor="task2-environmentCheck" className="text-sm font-medium text-gray-700 cursor-pointer">
+                              Environment check failed
+                            </label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="proxyIssue" id="task2-proxyIssue" />
+                            <label htmlFor="task2-proxyIssue" className="text-sm font-medium text-gray-700 cursor-pointer">
+                              Proxy issue
+                            </label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="linkOpened" id="task2-linkOpened" />
+                            <label htmlFor="task2-linkOpened" className="text-sm font-medium text-gray-700 cursor-pointer">
+                              Link opened by mistake
+                            </label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="other" id="task2-other" />
+                            <label htmlFor="task2-other" className="text-sm font-medium text-gray-700 cursor-pointer">
+                              Other
+                            </label>
+                          </div>
+                        </RadioGroup>
+                        
+                        <Button 
+                          onClick={() => handleReloadLink(2)}
+                          variant="outline"
+                          className="w-full"
+                        >
+                          Reload Link
+                        </Button>
+                      </div>
+                    )}
+
+                    {viewerTask2Status === 'completed' && (
+                      <div className="space-y-3">
+                        <h5 className="font-medium">Did you visit 1 page or 2 pages on the site?</h5>
+                        <RadioGroup value={pageVisitCount} onValueChange={setPageVisitCount} className="flex space-x-6">
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="1" id="task2-page1" />
+                            <label htmlFor="task2-page1" className="text-sm font-medium text-gray-700 cursor-pointer">
+                              1 page
+                            </label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="2" id="task2-page2" />
+                            <label htmlFor="task2-page2" className="text-sm font-medium text-gray-700 cursor-pointer">
+                              2 pages
+                            </label>
+                          </div>
+                        </RadioGroup>
+                        
+                        <div className="space-y-2">
+                          <label className="block text-sm font-medium">
+                            Upload Screenshot <span className="text-red-500">*</span>
+                          </label>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleScreenshotUpload}
+                            className="w-full p-2 border rounded-md"
+                            required
+                          />
+                          {screenshot && (
+                            <p className="text-sm text-green-600">✓ Screenshot uploaded: {screenshot.name}</p>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    <Button 
+                      onClick={() => handleViewerTaskSubmit(2)}
+                      disabled={task2Submitted || !isFormValid(2)}
+                      className={`w-full ${task2Submitted ? 'bg-gray-400 cursor-not-allowed' : !isFormValid(2) ? 'bg-gray-300 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'}`}
+                    >
+                      {task2Submitted ? 'Submitted' : !isFormValid(2) ? 'Fill Required Fields' : 'Submit Task 2'}
+                    </Button>
+                  </CardContent>
+                </Card>
+
+            {/* Next Task Button */}
+              <Card className="p-6 bg-blue-50 border-blue-200">
+                <CardContent className="text-center space-y-4">
+                  <div className="flex items-center justify-center gap-2">
+                    <CheckCircle className="h-6 w-6 text-green-600" />
+                      <h3 className="text-lg font-medium text-green-800">Ready for Clicker Task?</h3>
             </div>
-
-            {/* Data Forms */}
-            <div className="space-y-3">
-              <p className="text-sm">Open this leads page to get data for forms.</p>
-              <div className="bg-blue-50 p-2 rounded">
-                <a 
-                  href={userTaskInstructions.sessionInstructions.leadsPageLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-600 underline text-sm"
-                >
-                  {userTaskInstructions.sessionInstructions.leadsPageLink}
-                </a>
-              </div>
-            </div>
-
-            {/* User Agents */}
-            <div className="space-y-3">
-              <p className="text-sm">
-                Please open or copy and paste this link in your browser to get the list of user agents you&apos;ll be using for iOS and Android profiles.
-              </p>
-              <div className="bg-blue-50 p-2 rounded">
-                <a 
-                  href={userTaskInstructions.sessionInstructions.userAgentsLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-600 underline text-sm"
-                >
-                  {userTaskInstructions.sessionInstructions.userAgentsLink}
-                </a>
-              </div>
-              <div className="bg-blue-50 p-2 rounded">
-                <a 
-                  href={userTaskInstructions.sessionInstructions.howToAddUserAgentsLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-600 underline text-sm"
-                >
-                  How To Add User Agents in Ads Power: {userTaskInstructions.sessionInstructions.howToAddUserAgentsLink}
-                </a>
-              </div>
-            </div>
-
-            {/* Platform Instructions */}
-            <div className="space-y-3">
-              <p className="text-sm">
-                If you are working on Android, use Android User Agents. If you are using iOS, use iPhone User Agents
-              </p>
-            </div>
-
-            {/* Target Breakdown */}
-            <div className="space-y-3">
-              <p className="text-sm">
-                Among the {userTaskInstructions.sessionInstructions.targetProfiles} target, you&apos;ll work on {userTaskInstructions.sessionInstructions.iosProfiles} iOS profiles, {userTaskInstructions.sessionInstructions.androidProfiles} Android profiles, and {userTaskInstructions.sessionInstructions.windowsMacProfiles} Windows/Mac profiles.
-              </p>
-            </div>
-
-            {/* Steps */}
-            <div className="space-y-3">
-              <ul className="list-disc list-inside space-y-1 text-sm ml-4">
-                <li>You&apos;ll choose the iOS or Android and copy the user agent from the sheet and paste it in Ads Power.</li>
-                <li>Check your profile settings and click on OK to create a profile.</li>
-                <li>Continue your work like normal.</li>
-              </ul>
-            </div>
-
-            {/* Final Step */}
-            <div className="space-y-3 pt-4 border-t">
-              <p className="text-sm font-medium">1. Copy the tracking link from above and open Ads Power and paste that link.</p>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Task Submission Form */}
-        <Card>
-          <CardHeader className="bg-blue-50 border-b-2 border-blue-200">
-            <CardTitle className="text-blue-800 text-lg font-semibold">
-              Task Submission
-            </CardTitle>
-            <CardDescription>
-              Complete the task and submit your results
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-6 space-y-6">
-            {/* Task Instructions */}
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <RichTextDisplay 
-                content={mockTaskContent}
-                showImages={true}
-              />
-            </div>
-
-            {/* Task Status */}
-            <div className="space-y-4">
-              <Label className="text-base font-semibold">Task status</Label>
-              <RadioGroup value={taskStatus} onValueChange={setTaskStatus}>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="completed" id="completed" />
-                  <Label htmlFor="completed">Completed</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="not-completed" id="not-completed" />
-                  <Label htmlFor="not-completed">Not completed</Label>
-                </div>
-              </RadioGroup>
-            </div>
-
-            {/* Page Count (only show if completed) */}
-            {taskStatus === "completed" && (
-              <div className="space-y-4">
-                <Label className="text-base font-semibold">Did you visit 1 page or 2 pages on the site?</Label>
-                <RadioGroup value={pageCount} onValueChange={setPageCount}>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="1" id="1-page" />
-                    <Label htmlFor="1-page">1 page</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="2" id="2-pages" />
-                    <Label htmlFor="2-pages">2 pages</Label>
-                  </div>
-                </RadioGroup>
-                <p className="text-sm text-gray-600">
-                  We will verify your current IP (the exit IP shown above) matches a recent visit to your short link before accepting.
-                </p>
-              </div>
-            )}
-
-            {/* Completion Reason (only show if not completed) */}
-            {taskStatus === "not-completed" && (
-              <div className="space-y-4">
-                <Label className="text-base font-semibold">Select the reason:</Label>
-                <RadioGroup value={completionReason} onValueChange={setCompletionReason}>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="network-error" id="network-error" />
-                    <Label htmlFor="network-error">Network error</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="environment-check-failed" id="environment-check-failed" />
-                    <Label htmlFor="environment-check-failed">Environment check failed</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="proxy-issue" id="proxy-issue" />
-                    <Label htmlFor="proxy-issue">Proxy issue</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="link-opened-mistake" id="link-opened-mistake" />
-                    <Label htmlFor="link-opened-mistake">Link opened by mistake</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="other" id="other" />
-                    <Label htmlFor="other">Other</Label>
-                  </div>
-                </RadioGroup>
-              </div>
-            )}
-
-            {/* Additional Details */}
-            <div className="space-y-2">
-              <Label htmlFor="additional-details">Add any details that might help (optional)</Label>
-              <Textarea
-                id="additional-details"
-                value={additionalDetails}
-                onChange={(e) => setAdditionalDetails(e.target.value)}
-                placeholder="Enter any additional details..."
-                className="min-h-[100px]"
-              />
-            </div>
-
-            {/* Submission Info */}
-            <div className="text-sm text-gray-600">
-              If there is a recent link visit for your exit IP, we&apos;ll attach it; otherwise the submission is saved without a visit.
-            </div>
-
-            {/* Submit Button */}
+                    <p className="text-gray-600">Complete both viewer tasks to proceed to the clicker task.</p>
             <Button 
-              onClick={handleTaskSubmit}
-              disabled={isSubmitting || (taskStatus === "not-completed" && !completionReason) || (taskStatus === "completed" && !pageCount)}
-              className="w-full bg-green-600 hover:bg-green-700 text-white"
-            >
-              {isSubmitting ? (
-                <>
-                  <Clock className="h-4 w-4 mr-2 animate-spin" />
-                  Submitting...
-                </>
-              ) : (
-                <>
-                  <Send className="h-4 w-4 mr-2" />
-                  Submit Task
-                </>
-              )}
+                      onClick={handleNextTask}
+                    className="bg-blue-600 hover:bg-blue-700 h-12 px-8"
+                  >
+                    <Play className="h-4 w-4 mr-2" />
+                      Next Task (Clicker)
+                    </Button>
+                  </CardContent>
+                </Card>
+              </>
+            ) : (
+              <>
+                {/* Clicker Task */}
+                <IPInstructions 
+                  taskType="clicker"
+                  taskIndex={0}
+                  timeRemaining={timeRemaining}
+                  formatTime={formatTime}
+                  startCountdown={startCountdown}
+                />
+
+                <TaskInstructions 
+                  task={currentTask} 
+                  taskType="clicker"
+                />
+
+                <SessionInstructions 
+                  task={currentTask} 
+                  taskType="clicker"
+                />
+
+                <Card>
+                  <CardHeader className="bg-purple-50 border-b-2 border-purple-200">
+                    <CardTitle className="text-purple-800 text-lg font-semibold">
+                      Clicker Task
+                    </CardTitle>
+                    <CardDescription>
+                      Complete the clicker task
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="p-6 space-y-4">
+                    <div className="space-y-3">
+                      <h5 className="font-medium">Task status</h5>
+                      <RadioGroup value={clickerTaskStatus} onValueChange={setClickerTaskStatus} className="flex space-x-6">
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="completed" id="clicker-completed" />
+                          <label htmlFor="clicker-completed" className="text-sm font-medium text-gray-700 cursor-pointer">
+                            Completed
+                          </label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="notCompleted" id="clicker-notCompleted" />
+                          <label htmlFor="clicker-notCompleted" className="text-sm font-medium text-gray-700 cursor-pointer">
+                            Not completed
+                          </label>
+                        </div>
+                      </RadioGroup>
+                    </div>
+
+                    {clickerTaskStatus === 'notCompleted' && (
+                      <div className="space-y-3">
+                        <h5 className="font-medium">Select the reason:</h5>
+                        <RadioGroup value={selectedReasonClicker} onValueChange={setSelectedReasonClicker} className="space-y-3">
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="networkError" id="clicker-networkError" />
+                            <label htmlFor="clicker-networkError" className="text-sm font-medium text-gray-700 cursor-pointer">
+                              Network error
+                            </label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="environmentCheck" id="clicker-environmentCheck" />
+                            <label htmlFor="clicker-environmentCheck" className="text-sm font-medium text-gray-700 cursor-pointer">
+                              Environment check failed
+                            </label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="proxyIssue" id="clicker-proxyIssue" />
+                            <label htmlFor="clicker-proxyIssue" className="text-sm font-medium text-gray-700 cursor-pointer">
+                              Proxy issue
+                            </label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="linkOpened" id="clicker-linkOpened" />
+                            <label htmlFor="clicker-linkOpened" className="text-sm font-medium text-gray-700 cursor-pointer">
+                              Link opened by mistake
+                            </label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="other" id="clicker-other" />
+                            <label htmlFor="clicker-other" className="text-sm font-medium text-gray-700 cursor-pointer">
+                              Other
+                            </label>
+                          </div>
+                        </RadioGroup>
+                        
+                        <Button 
+                          onClick={() => handleReloadLink(3)}
+                          variant="outline"
+                          className="w-full"
+                        >
+                          Reload Link
+                        </Button>
+                      </div>
+                    )}
+
+                    {clickerTaskStatus === 'completed' && (
+                      <div className="space-y-3">
+                        <h5 className="font-medium">Did you visit 1 page or 2 pages on the site?</h5>
+                        <RadioGroup value={pageVisitCount} onValueChange={setPageVisitCount} className="flex space-x-6">
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="1" id="clicker-page1" />
+                            <label htmlFor="clicker-page1" className="text-sm font-medium text-gray-700 cursor-pointer">
+                              1 page
+                            </label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="2" id="clicker-page2" />
+                            <label htmlFor="clicker-page2" className="text-sm font-medium text-gray-700 cursor-pointer">
+                              2 pages
+                            </label>
+                          </div>
+                        </RadioGroup>
+                        
+                        <div className="space-y-2">
+                          <label className="block text-sm font-medium">
+                            Upload Screenshot <span className="text-red-500">*</span>
+                          </label>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleScreenshotUpload}
+                            className="w-full p-2 border rounded-md"
+                            required
+                          />
+                          {screenshot && (
+                            <p className="text-sm text-green-600">✓ Screenshot uploaded: {screenshot.name}</p>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    <Button 
+                      onClick={() => {
+                        if (clickerTaskStatus === 'notCompleted' && !selectedReasonClicker) {
+                          toast.error("Please select a reason for not completing the task!");
+                          return;
+                        }
+                        
+                        if (clickerTaskStatus === 'completed') {
+                          if (!screenshot) {
+                            toast.error("Screenshot is mandatory when task is completed!");
+                            return;
+                          }
+                          if (!pageVisitCount) {
+                            toast.error("Please select how many pages you visited!");
+                            return;
+                          }
+                        }
+                        
+                        setClickerTaskStatus('completed');
+                        setClickerSubmitted(true);
+                        toast.success("Clicker task completed! All tasks finished.");
+                        
+                        // Reset all states for new cycle
+                        setCurrentTaskType('viewer');
+                        setViewerTask1Status('notCompleted');
+                        setViewerTask2Status('notCompleted');
+                        setClickerTaskStatus('notCompleted');
+                        setSelectedReason1('');
+                        setSelectedReason2('');
+                        setSelectedReasonClicker('');
+                        setAdditionalDetails('');
+                        setScreenshot(null);
+                        setPageVisitCount('');
+                        setTask1Submitted(false);
+                        setTask2Submitted(false);
+                        setClickerSubmitted(false);
+                        setCountdownStarted(false); // Reset countdown for new cycle
+                        
+                      }}
+                      disabled={clickerSubmitted || !isClickerFormValid()}
+                      className={`w-full ${clickerSubmitted ? 'bg-gray-400 cursor-not-allowed' : !isClickerFormValid() ? 'bg-gray-300 cursor-not-allowed' : 'bg-purple-600 hover:bg-purple-700'}`}
+                    >
+                      {clickerSubmitted ? 'Submitted' : !isClickerFormValid() ? 'Fill Required Fields' : 'Submit Clicker Task'}
             </Button>
           </CardContent>
         </Card>
+              </>
+            )}
+          </div>
+        ) : (
+          <Card>
+            <CardContent className="p-8 text-center">
+              <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No Current Task</h3>
+              <p className="text-gray-500">
+                You don't have any active tasks at the moment. Check back later for new assignments.
+              </p>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </UserMainLayout>
   );

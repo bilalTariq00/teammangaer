@@ -189,7 +189,7 @@ export default function HRAttendanceOverview() {
               <Users className="h-5 w-5 text-blue-500" />
               Workers ({attendanceByRole.workers.length})
             </CardTitle>
-            <CardDescription>Clickers and Viewers</CardDescription>
+            <CardDescription>Workers</CardDescription>
           </CardHeader>
           <CardContent>
             {attendanceByRole.workers.length === 0 ? (

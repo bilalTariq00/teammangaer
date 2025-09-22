@@ -93,7 +93,7 @@ export default function CreateEmployeePage() {
     }
 
     if (employee.role === "worker" && !employee.workCategory) {
-      toast.error("Please select a work category (Clicker or Viewer)");
+      toast.error("Please select a work category (Worker)");
       return;
     }
 
@@ -269,8 +269,7 @@ export default function CreateEmployeePage() {
                           <SelectValue placeholder="Select work category" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="clicker">Clicker</SelectItem>
-                          <SelectItem value="viewer">Viewer</SelectItem>
+                          <SelectItem value="worker">Worker</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -649,7 +648,7 @@ export default function CreateEmployeePage() {
                     <p>• <strong>Required fields</strong> are marked with *</p>
                     <p>• <strong>HR can only create:</strong> Workers and QC</p>
                     <p>• <strong>Worker Type:</strong> Permanent or Trainee only</p>
-                    <p>• <strong>Work Category:</strong> Clicker or Viewer (for Workers)</p>
+                    <p>• <strong>Work Category:</strong> Worker (for Workers)</p>
                     <p>• <strong>Salary:</strong> Required field - enter monthly salary in USD</p>
                     <p>• <strong>Employee ID</strong> will be auto-generated if empty</p>
                     <p>• <strong>Performance score</strong> should be 0-100</p>

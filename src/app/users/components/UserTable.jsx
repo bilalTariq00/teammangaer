@@ -64,7 +64,7 @@ const UserTable = ({
               </TableCell>
               <TableCell className="w-[120px] px-4 py-3 text-center">
                 <Badge variant="outline" className="text-xs">
-                  {user.workerType === "task-clicker" ? "Task Clicker" : "Task Viewer"}
+                  {user.workerType?.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
                 </Badge>
               </TableCell>
               <TableCell className="w-[150px] px-4 py-3 text-left text-sm">

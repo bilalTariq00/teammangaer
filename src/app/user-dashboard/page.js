@@ -275,16 +275,14 @@ export default function UserDashboardPage() {
   }
 
   // Determine user type based on workerType (only for workers, not managers)
-  const isClicker = user?.workerType?.includes('clicker');
-  const isViewer = user?.workerType?.includes('viewer');
+  const isWorker = user?.workerType?.includes('worker');
   const isPermanent = user?.workerType?.includes('permanent');
   const isTrainee = user?.workerType?.includes('trainee');
   
   // Debug logging
   console.log('User object:', user);
   console.log('WorkerType:', user?.workerType);
-  console.log('Is Clicker:', isClicker);
-  console.log('Is Viewer:', isViewer);
+  console.log('Is Worker:', isWorker);
   console.log('Is Permanent:', isPermanent);
   console.log('Is Trainee:', isTrainee);
   console.log('User ID:', user?.id);
@@ -472,120 +470,60 @@ export default function UserDashboardPage() {
 
         {/* Your Personal Metrics */}
         <div className="grid gap-6 md:grid-cols-3">
-          {/* Clicker Cards */}
-          {isClicker && (
+          {/* Worker Cards - Unified for both clicking and viewing tasks */}
+          {isWorker && (
             <>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Clicks</CardTitle>
+              <CardTitle className="text-sm font-medium">Total Tasks</CardTitle>
               <MousePointer className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-center">
-                <div className="text-4xl font-bold text-gray-900 mb-1">{userMetrics.totalClicks.toLocaleString()}</div>
+                <div className="text-4xl font-bold text-gray-900 mb-1">{(userMetrics.totalClicks + userMetrics.totalViews).toLocaleString()}</div>
                     <div className="text-sm text-muted-foreground font-medium">
-                      Your Total Clicks {isPermanent ? '(Permanent)' : isTrainee ? '(Trainee)' : ''}
+                      Your Total Tasks {isPermanent ? '(Permanent)' : isTrainee ? '(Trainee)' : ''}
                     </div>
               </div>
               <div className="mt-4 pt-4 border-t">
                 <p className="text-xs text-muted-foreground">
                   Range: {format(fromDate, "yyyy-MM-dd")} → {format(toDate, "yyyy-MM-dd")}
                 </p>
-                <p className="text-xs text-muted-foreground">Recent: {userMetrics.recentClicks}</p>
+                <p className="text-xs text-muted-foreground">Recent: {userMetrics.recentClicks + userMetrics.recentViews}</p>
               </div>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Good Clicks</CardTitle>
+              <CardTitle className="text-sm font-medium">Successful Tasks</CardTitle>
               <CheckCircle className="h-4 w-4 text-green-600" />
             </CardHeader>
             <CardContent>
               <div className="text-center">
-                <div className="text-4xl font-bold text-green-600 mb-1">{userMetrics.goodClicks.toLocaleString()}</div>
-                    <div className="text-sm text-muted-foreground font-medium">Successful Clicks</div>
+                <div className="text-4xl font-bold text-green-600 mb-1">{(userMetrics.goodClicks + userMetrics.goodViews).toLocaleString()}</div>
+                    <div className="text-sm text-muted-foreground font-medium">Quality Tasks Completed</div>
               </div>
               <div className="mt-4 pt-4 border-t">
-                    <p className="text-xs text-muted-foreground">Success rate: {userMetrics.totalClicks > 0 ? Math.round((userMetrics.goodClicks / userMetrics.totalClicks) * 100) : 0}%</p>
-                <p className="text-xs text-muted-foreground">Recent: {userMetrics.goodClicks}</p>
+                    <p className="text-xs text-muted-foreground">Success rate: {((userMetrics.totalClicks + userMetrics.totalViews) > 0 ? Math.round(((userMetrics.goodClicks + userMetrics.goodViews) / (userMetrics.totalClicks + userMetrics.totalViews)) * 100) : 0)}%</p>
+                <p className="text-xs text-muted-foreground">Recent: {userMetrics.goodClicks + userMetrics.goodViews}</p>
               </div>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Bad Clicks</CardTitle>
+              <CardTitle className="text-sm font-medium">Failed Tasks</CardTitle>
               <TrendingUp className="h-4 w-4 text-red-600" />
             </CardHeader>
             <CardContent>
               <div className="text-center">
-                <div className="text-4xl font-bold text-red-600 mb-1">{userMetrics.badClicks.toLocaleString()}</div>
-                    <div className="text-sm text-muted-foreground font-medium">Unsuccessful Clicks</div>
+                <div className="text-4xl font-bold text-red-600 mb-1">{(userMetrics.badClicks + userMetrics.badViews).toLocaleString()}</div>
+                    <div className="text-sm text-muted-foreground font-medium">Tasks Needing Improvement</div>
               </div>
               <div className="mt-4 pt-4 border-t">
-                <p className="text-xs text-muted-foreground">Allowed clicks without success</p>
-                <p className="text-xs text-muted-foreground">Recent: {userMetrics.badClicks}</p>
-              </div>
-            </CardContent>
-          </Card>
-            </>
-          )}
-
-          {/* Viewer Cards */}
-          {isViewer && (
-            <>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Total Views</CardTitle>
-                  <Eye className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-center">
-                    <div className="text-4xl font-bold text-blue-600 mb-1">{userMetrics.totalViews.toLocaleString()}</div>
-                    <div className="text-sm text-muted-foreground font-medium">
-                      Your Total Views {isPermanent ? '(Permanent)' : isTrainee ? '(Trainee)' : ''}
-                    </div>
-                  </div>
-                  <div className="mt-4 pt-4 border-t">
-                    <p className="text-xs text-muted-foreground">
-                      Range: {format(fromDate, "yyyy-MM-dd")} → {format(toDate, "yyyy-MM-dd")}
-                    </p>
-                    <p className="text-xs text-muted-foreground">Recent: {userMetrics.recentViews}</p>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Good Views</CardTitle>
-                  <CheckCircle className="h-4 w-4 text-green-600" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-center">
-                    <div className="text-4xl font-bold text-green-600 mb-1">{userMetrics.goodViews.toLocaleString()}</div>
-                    <div className="text-sm text-muted-foreground font-medium">Quality Views</div>
-                  </div>
-                  <div className="mt-4 pt-4 border-t">
-                    <p className="text-xs text-muted-foreground">Success rate: {userMetrics.totalViews > 0 ? Math.round((userMetrics.goodViews / userMetrics.totalViews) * 100) : 0}%</p>
-                    <p className="text-xs text-muted-foreground">Recent: {userMetrics.goodViews}</p>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Bad Views</CardTitle>
-                  <TrendingUp className="h-4 w-4 text-red-600" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-center">
-                    <div className="text-4xl font-bold text-red-600 mb-1">{userMetrics.badViews.toLocaleString()}</div>
-                    <div className="text-sm text-muted-foreground font-medium">Low Quality Views</div>
-                  </div>
-                  <div className="mt-4 pt-4 border-t">
-                    <p className="text-xs text-muted-foreground">Views without success</p>
-                    <p className="text-xs text-muted-foreground">Recent: {userMetrics.badViews}</p>
+                    <p className="text-xs text-muted-foreground">Failure rate: {((userMetrics.totalClicks + userMetrics.totalViews) > 0 ? Math.round(((userMetrics.badClicks + userMetrics.badViews) / (userMetrics.totalClicks + userMetrics.totalViews)) * 100) : 0)}%</p>
+                <p className="text-xs text-muted-foreground">Recent: {userMetrics.badClicks + userMetrics.badViews}</p>
                   </div>
                 </CardContent>
               </Card>
@@ -593,7 +531,7 @@ export default function UserDashboardPage() {
           )}
 
           {/* Default Cards for unknown types */}
-          {!isClicker && !isViewer && (
+          {!isWorker && (
             <>
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">

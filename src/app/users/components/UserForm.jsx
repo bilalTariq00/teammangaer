@@ -18,16 +18,16 @@ const UserForm = ({
 }) => {
   // Available users for manager assignment (excluding admins and other managers)
   const availableUsers = [
-    { id: 1, name: "Hasan Abbas", email: "abbas_hasan12@joysapps.com", role: "worker", workerType: "permanent-clicker" },
-    { id: 2, name: "Muhammad Shahood", email: "Shahood1@joyapps.net", role: "worker", workerType: "permanent-viewer" },
-    { id: 3, name: "Abid", email: "Abid1@joyapps.net", role: "worker", workerType: "permanent-clicker" },
-    { id: 4, name: "Sarah Johnson", email: "sarah@joyapps.net", role: "worker", workerType: "trainee-viewer" },
-    { id: 5, name: "John Doe", email: "john@joyapps.net", role: "worker", workerType: "trainee-clicker" },
-    { id: 6, name: "Jane Smith", email: "jane@joyapps.net", role: "worker", workerType: "permanent-clicker" },
-    { id: 7, name: "Mike Wilson", email: "mike@joyapps.net", role: "worker", workerType: "permanent-viewer" },
-    { id: 8, name: "Lisa Brown", email: "lisa@joyapps.net", role: "worker", workerType: "trainee-viewer" },
-    { id: 9, name: "David Lee", email: "david@joyapps.net", role: "worker", workerType: "trainee-clicker" },
-    { id: 10, name: "Emma Davis", email: "emma@joyapps.net", role: "worker", workerType: "permanent-clicker" }
+    { id: 1, name: "Hasan Abbas", email: "abbas_hasan12@joysapps.com", role: "worker", workerType: "permanent-worker" },
+    { id: 2, name: "Muhammad Shahood", email: "Shahood1@joyapps.net", role: "worker", workerType: "permanent-worker" },
+    { id: 3, name: "Abid", email: "Abid1@joyapps.net", role: "worker", workerType: "permanent-worker" },
+    { id: 4, name: "Sarah Johnson", email: "sarah@joyapps.net", role: "worker", workerType: "trainee-worker" },
+    { id: 5, name: "John Doe", email: "john@joyapps.net", role: "worker", workerType: "trainee-worker" },
+    { id: 6, name: "Jane Smith", email: "jane@joyapps.net", role: "worker", workerType: "permanent-worker" },
+    { id: 7, name: "Mike Wilson", email: "mike@joyapps.net", role: "worker", workerType: "permanent-worker" },
+    { id: 8, name: "Lisa Brown", email: "lisa@joyapps.net", role: "worker", workerType: "trainee-worker" },
+    { id: 9, name: "David Lee", email: "david@joyapps.net", role: "worker", workerType: "trainee-worker" },
+    { id: 10, name: "Emma Davis", email: "emma@joyapps.net", role: "worker", workerType: "permanent-worker" }
   ];
 
   const [selectedUsers, setSelectedUsers] = useState(user?.assignedUsers || []);
@@ -186,10 +186,8 @@ const UserForm = ({
                 <SelectValue placeholder="Select worker type" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="permanent-clicker">Permanent Clicker</SelectItem>
-                <SelectItem value="permanent-viewer">Permanent Viewer</SelectItem>
-                <SelectItem value="trainee-clicker">Trainee Clicker</SelectItem>
-                <SelectItem value="trainee-viewer">Trainee Viewer</SelectItem>
+                <SelectItem value="permanent-worker">Permanent Worker</SelectItem>
+                <SelectItem value="trainee-worker">Trainee Worker</SelectItem>
                 <SelectItem value="manager">Manager</SelectItem>
                 <SelectItem value="qc">QC (Quality Control)</SelectItem>
                 <SelectItem value="hr">HR (Human Resources)</SelectItem>

@@ -11,9 +11,11 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Eye, Edit, Ban, Trash2, AlertTriangle, Power, PowerOff, Image as ImageIcon } from "lucide-react";
 import SimpleShadcnEditor from "@/components/SimpleShadcnEditor";
 import RichTextDisplay from "@/components/RichTextDisplay";
+import AdminTaskCreator from "@/components/tasks/AdminTaskCreator";
 
 const mockTaskers = [
   {
@@ -49,6 +51,7 @@ const mockTaskers = [
 ];
 
 export default function TasksPage() {
+  const [activeTab, setActiveTab] = useState("legacy");
   const [taskers, setTaskers] = useState(mockTaskers);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -210,6 +213,16 @@ export default function TasksPage() {
         </div>
       </div>
 
+      {/* Tabs */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <TabsList className="grid w-full grid-cols-2 max-w-md">
+          <TabsTrigger value="legacy">Legacy Tasks</TabsTrigger>
+          <TabsTrigger value="enhanced">Enhanced Tasks</TabsTrigger>
+        </TabsList>
+
+        {/* Legacy Tasks Tab */}
+        <TabsContent value="legacy" className="space-y-6">
+
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Create Tasker Form */}
         <Card>
@@ -280,7 +293,7 @@ export default function TasksPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Title</TableHead>
-                  <TableHead>Screenshot?</TableHead>
+                  <TableHead>Screenshots?</TableHead>
                   <TableHead>Images</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Created</TableHead>
@@ -373,6 +386,14 @@ export default function TasksPage() {
             </Table>
           </CardContent>
         </Card>
+      </div>
+        </TabsContent>
+
+        {/* Enhanced Tasks Tab */}
+        <TabsContent value="enhanced" className="space-y-6">
+          <AdminTaskCreator />
+        </TabsContent>
+      </Tabs>
       </div>
 
       {/* View Tasker Dialog */}
@@ -607,7 +628,6 @@ export default function TasksPage() {
           )}
         </DialogContent>
       </Dialog>
-      </div>
     </MainLayout>
   );
 }

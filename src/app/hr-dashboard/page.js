@@ -41,7 +41,7 @@ const mockEmployees = [
     id: 1, 
     name: "Muhammad Shahood", 
     email: "Shahood1@joyapps.net", 
-    role: "Permanent Viewer", 
+    role: "Permanent Worker", 
     department: "Operations",
     status: "Active", 
     joinDate: "2023-01-15",
@@ -64,7 +64,7 @@ const mockEmployees = [
     id: 2, 
     name: "Sarah Johnson", 
     email: "sarah.johnson@joyapps.net", 
-    role: "Permanent Viewer", 
+    role: "Permanent Worker", 
     department: "Operations",
     status: "Active", 
     joinDate: "2023-03-20",
@@ -87,7 +87,7 @@ const mockEmployees = [
     id: 3, 
     name: "Hasan Abbas", 
     email: "hasan.abbas@joyapps.net", 
-    role: "Permanent Clicker", 
+    role: "Permanent Worker", 
     department: "Operations",
     status: "Active", 
     joinDate: "2022-11-10",
@@ -156,7 +156,7 @@ const mockEmployees = [
     id: 6, 
     name: "Lisa Thompson", 
     email: "lisa.thompson@joyapps.net", 
-    role: "Trainee Viewer", 
+    role: "Trainee Worker", 
     department: "Operations",
     status: "Active", 
     joinDate: "2024-01-08",
@@ -516,10 +516,8 @@ function HRDashboardContent() {
                               <SelectValue placeholder="Select role" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="Permanent Viewer">Permanent Viewer</SelectItem>
-                              <SelectItem value="Permanent Clicker">Permanent Clicker</SelectItem>
-                              <SelectItem value="Trainee Viewer">Trainee Viewer</SelectItem>
-                              <SelectItem value="Trainee Clicker">Trainee Clicker</SelectItem>
+                              <SelectItem value="Permanent Worker">Permanent Worker</SelectItem>
+                              <SelectItem value="Trainee Worker">Trainee Worker</SelectItem>
                               <SelectItem value="Manager">Manager</SelectItem>
                               <SelectItem value="QC">QC</SelectItem>
                               <SelectItem value="HR">HR</SelectItem>
@@ -802,10 +800,8 @@ function HRDashboardContent() {
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="Permanent Viewer">Permanent Viewer</SelectItem>
-                            <SelectItem value="Permanent Clicker">Permanent Clicker</SelectItem>
-                            <SelectItem value="Trainee Viewer">Trainee Viewer</SelectItem>
-                            <SelectItem value="Trainee Clicker">Trainee Clicker</SelectItem>
+                            <SelectItem value="Permanent Worker">Permanent Worker</SelectItem>
+                            <SelectItem value="Trainee Worker">Trainee Worker</SelectItem>
                             <SelectItem value="Manager">Manager</SelectItem>
                             <SelectItem value="QC">QC</SelectItem>
                             <SelectItem value="HR">HR</SelectItem>

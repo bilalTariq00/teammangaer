@@ -33,17 +33,18 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useUsers } from "@/contexts/UsersContext";
 import AttendanceVerification from "@/components/AttendanceVerification";
 import PerformanceMarking from "@/components/PerformanceMarking";
+import TaskAssignment from "@/components/tasks/TaskAssignment";
 
 // Mock data for manager's team
 const mockTeamMembers = [
-  { id: 1, name: "Muhammad Shahood", email: "Shahood1@joyapps.net", type: "Permanent Viewer", status: "Active", totalClicks: 139, goodClicks: 123, badClicks: 16, performance: 88.5 },
-  { id: 2, name: "Sarah Johnson", email: "sarah.johnson@joyapps.net", type: "Permanent Viewer", status: "Active", totalClicks: 45, goodClicks: 38, badClicks: 7, performance: 84.4 },
-  { id: 3, name: "Emma Wilson", email: "emma.wilson@joyapps.net", type: "Permanent Viewer", status: "Active", totalClicks: 92, goodClicks: 78, badClicks: 14, performance: 84.8 },
-  { id: 4, name: "Hasan Abbas", email: "hasan.abbas@joyapps.net", type: "Permanent Clicker", status: "Active", totalClicks: 156, goodClicks: 142, badClicks: 14, performance: 91.0 },
-  { id: 5, name: "Alex Rodriguez", email: "alex.rodriguez@joyapps.net", type: "Permanent Clicker", status: "Active", totalClicks: 134, goodClicks: 118, badClicks: 16, performance: 88.1 },
-  { id: 6, name: "James Brown", email: "james.brown@joyapps.net", type: "Permanent Clicker", status: "Active", totalClicks: 142, goodClicks: 125, badClicks: 17, performance: 88.0 },
-  { id: 7, name: "Lisa Thompson", email: "lisa.thompson@joyapps.net", type: "Trainee Viewer", status: "Active", totalClicks: 28, goodClicks: 22, badClicks: 6, performance: 78.6 },
-  { id: 8, name: "Abid", email: "abid1@joyapps.net", type: "Trainee Clicker", status: "Active", totalClicks: 45, goodClicks: 38, badClicks: 7, performance: 84.4 }
+  { id: 1, name: "Muhammad Shahood", email: "Shahood1@joyapps.net", type: "Permanent Worker", status: "Active", totalClicks: 139, goodClicks: 123, badClicks: 16, performance: 88.5 },
+  { id: 2, name: "Sarah Johnson", email: "sarah.johnson@joyapps.net", type: "Permanent Worker", status: "Active", totalClicks: 45, goodClicks: 38, badClicks: 7, performance: 84.4 },
+  { id: 3, name: "Emma Wilson", email: "emma.wilson@joyapps.net", type: "Permanent Worker", status: "Active", totalClicks: 92, goodClicks: 78, badClicks: 14, performance: 84.8 },
+  { id: 4, name: "Hasan Abbas", email: "hasan.abbas@joyapps.net", type: "Permanent Worker", status: "Active", totalClicks: 156, goodClicks: 142, badClicks: 14, performance: 91.0 },
+  { id: 5, name: "Alex Rodriguez", email: "alex.rodriguez@joyapps.net", type: "Permanent Worker", status: "Active", totalClicks: 134, goodClicks: 118, badClicks: 16, performance: 88.1 },
+  { id: 6, name: "James Brown", email: "james.brown@joyapps.net", type: "Permanent Worker", status: "Active", totalClicks: 142, goodClicks: 125, badClicks: 17, performance: 88.0 },
+  { id: 7, name: "Lisa Thompson", email: "lisa.thompson@joyapps.net", type: "Trainee Worker", status: "Active", totalClicks: 28, goodClicks: 22, badClicks: 6, performance: 78.6 },
+  { id: 8, name: "Abid", email: "abid1@joyapps.net", type: "Trainee Worker", status: "Active", totalClicks: 45, goodClicks: 38, badClicks: 7, performance: 84.4 }
 ];
 
 // Mock data for campaigns
@@ -437,10 +438,8 @@ function ManagerDashboardContent() {
                           <SelectValue placeholder="Select role" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="Permanent Viewer">Permanent Viewer</SelectItem>
-                          <SelectItem value="Trainee Viewer">Trainee Viewer</SelectItem>
-                          <SelectItem value="Permanent Clicker">Permanent Clicker</SelectItem>
-                          <SelectItem value="Trainee Clicker">Trainee Clicker</SelectItem>
+                          <SelectItem value="Permanent Worker">Permanent Worker</SelectItem>
+                          <SelectItem value="Trainee Worker">Trainee Worker</SelectItem>
                           <SelectItem value="QC">QC</SelectItem>
                         </SelectContent>
                       </Select>
@@ -568,10 +567,8 @@ function ManagerDashboardContent() {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="Permanent Viewer">Permanent Viewer</SelectItem>
-                          <SelectItem value="Trainee Viewer">Trainee Viewer</SelectItem>
-                          <SelectItem value="Permanent Clicker">Permanent Clicker</SelectItem>
-                          <SelectItem value="Trainee Clicker">Trainee Clicker</SelectItem>
+                          <SelectItem value="Permanent Worker">Permanent Worker</SelectItem>
+                          <SelectItem value="Trainee Worker">Trainee Worker</SelectItem>
                           <SelectItem value="QC">QC</SelectItem>
                         </SelectContent>
                       </Select>
@@ -647,51 +644,38 @@ function ManagerDashboardContent() {
 
         {/* Tasks Tab */}
         {activeTab === "tasks" && (
-          <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-bold">Assigned Tasks</h2>
-              <Button 
-                onClick={openAddTaskModal}
-                className="flex items-center gap-2"
-              >
-                <Plus className="h-4 w-4" />
-                Add Task
-              </Button>
-            </div>
+          <TaskAssignment />
+        )}
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Task List */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Task List</CardTitle>
-                  <CardDescription>All tasks assigned to your team</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {/* Task Filters */}
-                  <div className="mb-4 space-y-3">
-                    <div className="flex gap-2">
-                      <Input
-                        placeholder="Search tasks..."
-                        value={taskSearch}
-                        onChange={(e) => setTaskSearch(e.target.value)}
-                        className="flex-1"
-                      />
-                      <Select value={taskFilter} onValueChange={setTaskFilter}>
-                        <SelectTrigger className="w-32">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All</SelectItem>
-                          <SelectItem value="pending">Pending</SelectItem>
-                          <SelectItem value="in_progress">In Progress</SelectItem>
-                          <SelectItem value="completed">Completed</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-4">
-                    {filteredTasks.map((task) => (
+        {/* Performance Tab */}
+        {activeTab === "performance" && (
+          <div className="space-y-6">
+            <PerformanceMarking />
+          </div>
+        )}
+
+        {/* Attendance Tab */}
+        {activeTab === "attendance" && (
+          <div className="space-y-6">
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">Attendance Management</h2>
+              <AttendanceVerification />
+            </div>
+          </div>
+        )}
+      </div>
+    </ManagerMainLayout>
+  );
+}
+
+
+export default function ManagerDashboard() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <ManagerDashboardContent />
+    </Suspense>
+  );
+}
                       <div key={task.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors">
                         <div className="flex items-center space-x-3">
                           <button

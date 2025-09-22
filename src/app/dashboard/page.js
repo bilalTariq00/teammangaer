@@ -56,16 +56,16 @@ const mockCampaigns = [
 ];
 
 const mockWorkers = [
-  { id: 1, name: "Muhammad Shahood", email: "Shahood1@joyapps.net", type: "Permanent Viewer", status: "Active", totalClicks: 139, success: 123, formFills: 0, failed: 19 },
-  { id: 2, name: "Sarah Johnson", email: "sarah.johnson@joyapps.net", type: "Permanent Viewer", status: "Active", totalClicks: 45, success: 38, formFills: 0, failed: 7 },
-  { id: 3, name: "Emma Wilson", email: "emma.wilson@joyapps.net", type: "Permanent Viewer", status: "Active", totalClicks: 92, success: 78, formFills: 0, failed: 14 },
-  { id: 4, name: "Hasan Abbas", email: "hasan.abbas@joyapps.net", type: "Permanent Clicker", status: "Active", totalClicks: 156, success: 142, formFills: 28, failed: 14 },
-  { id: 5, name: "Alex Rodriguez", email: "alex.rodriguez@joyapps.net", type: "Permanent Clicker", status: "Active", totalClicks: 134, success: 118, formFills: 32, failed: 16 },
-  { id: 6, name: "James Brown", email: "james.brown@joyapps.net", type: "Permanent Clicker", status: "Active", totalClicks: 142, success: 125, formFills: 25, failed: 17 },
-  { id: 7, name: "Lisa Thompson", email: "lisa.thompson@joyapps.net", type: "Trainee Viewer", status: "Active", totalClicks: 28, success: 22, formFills: 0, failed: 6 },
-  { id: 8, name: "Abid", email: "abid1@joyapps.net", type: "Trainee Clicker", status: "Active", totalClicks: 45, success: 38, formFills: 28, failed: 7 },
-  { id: 9, name: "Mike Chen", email: "mike.chen@joyapps.net", type: "Trainee Clicker", status: "Active", totalClicks: 32, success: 26, formFills: 18, failed: 6 },
-  { id: 10, name: "David Kim", email: "david.kim@joyapps.net", type: "Trainee Clicker", status: "Active", totalClicks: 38, success: 31, formFills: 15, failed: 7 }
+  { id: 1, name: "Muhammad Shahood", email: "Shahood1@joyapps.net", type: "Permanent Worker", status: "Active", totalClicks: 139, success: 123, formFills: 0, failed: 19 },
+  { id: 2, name: "Sarah Johnson", email: "sarah.johnson@joyapps.net", type: "Permanent Worker", status: "Active", totalClicks: 45, success: 38, formFills: 0, failed: 7 },
+  { id: 3, name: "Emma Wilson", email: "emma.wilson@joyapps.net", type: "Permanent Worker", status: "Active", totalClicks: 92, success: 78, formFills: 0, failed: 14 },
+  { id: 4, name: "Hasan Abbas", email: "hasan.abbas@joyapps.net", type: "Permanent Worker", status: "Active", totalClicks: 156, success: 142, formFills: 28, failed: 14 },
+  { id: 5, name: "Alex Rodriguez", email: "alex.rodriguez@joyapps.net", type: "Permanent Worker", status: "Active", totalClicks: 134, success: 118, formFills: 32, failed: 16 },
+  { id: 6, name: "James Brown", email: "james.brown@joyapps.net", type: "Permanent Worker", status: "Active", totalClicks: 142, success: 125, formFills: 25, failed: 17 },
+  { id: 7, name: "Lisa Thompson", email: "lisa.thompson@joyapps.net", type: "Trainee Worker", status: "Active", totalClicks: 28, success: 22, formFills: 0, failed: 6 },
+  { id: 8, name: "Abid", email: "abid1@joyapps.net", type: "Trainee Worker", status: "Active", totalClicks: 45, success: 38, formFills: 28, failed: 7 },
+  { id: 9, name: "Mike Chen", email: "mike.chen@joyapps.net", type: "Trainee Worker", status: "Active", totalClicks: 32, success: 26, formFills: 18, failed: 6 },
+  { id: 10, name: "David Kim", email: "david.kim@joyapps.net", type: "Trainee Worker", status: "Active", totalClicks: 38, success: 31, formFills: 15, failed: 7 }
 ];
 
 const mockTasks = [
@@ -99,10 +99,8 @@ const campaignStatusData = [
 ];
 
 const workerTypeData = [
-  { name: "Permanent Viewers", value: 3, color: "#3b82f6" },
-  { name: "Permanent Clickers", value: 3, color: "#8b5cf6" },
-  { name: "Trainee Viewers", value: 1, color: "#06b6d4" },
-  { name: "Trainee Clickers", value: 3, color: "#f59e0b" }
+  { name: "Permanent Workers", value: 6, color: "#3b82f6" },
+  { name: "Trainee Workers", value: 4, color: "#8b5cf6" }
 ];
 
 export default function DashboardPage() {
@@ -115,8 +113,8 @@ export default function DashboardPage() {
   const totalCampaigns = mockCampaigns.length;
   const activeCampaigns = mockCampaigns.filter(c => c.status === "active").length;
   const totalWorkers = mockWorkers.length;
-  const totalViewers = mockWorkers.filter(w => w.type.includes("Viewer")).length;
-  const totalClickers = mockWorkers.filter(w => w.type.includes("Clicker")).length;
+  const permanentWorkers = mockWorkers.filter(w => w.type.includes("Permanent Worker")).length;
+  const traineeWorkers = mockWorkers.filter(w => w.type.includes("Trainee Worker")).length;
   const totalTasks = mockTasks.length;
   const activeTasks = mockTasks.filter(t => t.status === "active").length;
   const completedTasks = mockTasks.filter(t => t.status === "completed").length;
@@ -314,7 +312,7 @@ export default function DashboardPage() {
             <CardContent>
               <div className="text-2xl font-bold">{totalWorkers}</div>
               <p className="text-xs text-muted-foreground">
-                <span className="text-blue-600 font-medium">{totalViewers} viewers</span> • <span className="text-purple-600 font-medium">{totalClickers} clickers</span>
+                <span className="text-blue-600 font-medium">{permanentWorkers} permanent workers</span> • <span className="text-purple-600 font-medium">{traineeWorkers} trainee workers</span>
               </p>
             </CardContent>
           </Card>

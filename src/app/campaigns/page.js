@@ -30,7 +30,7 @@ const quickDateRanges = [
 ];
 
 // Mock worker data
-const permanentViewers = [
+const permanentWorkers = [
   {
     id: 1,
     name: "Muhammad Shahood",
@@ -72,7 +72,7 @@ const permanentViewers = [
   }
 ];
 
-const permanentClickers = [
+const traineeWorkers = [
   {
     id: 4,
     name: "Hasan Abbas",
@@ -114,7 +114,7 @@ const permanentClickers = [
   }
 ];
 
-const traineeViewers = [
+const additionalWorkers = [
   {
     id: 7,
     name: "Lisa Thompson",
@@ -130,7 +130,7 @@ const traineeViewers = [
   }
 ];
 
-const traineeClickers = [
+const moreWorkers = [
   {
     id: 8,
     name: "Abid",
@@ -190,10 +190,8 @@ const getMetricsForRange = (selectedRange, campaignWorkers) => {
   const multiplier = rangeMultipliers[selectedRange] || 1;
 
   // Calculate actual worker counts and metrics from the campaign data
-  const permanentViewersCount = campaignWorkers.permanentViewers.length;
-  const permanentClickersCount = campaignWorkers.permanentClickers.length;
-  const traineeViewersCount = campaignWorkers.traineeViewers.length;
-  const traineeClickersCount = campaignWorkers.traineeClickers.length;
+  const permanentWorkersCount = campaignWorkers.permanentWorkers.length;
+  const traineeWorkersCount = campaignWorkers.traineeWorkers.length;
 
   // Calculate total clicks for each category
   const permanentViewersClicks = campaignWorkers.permanentViewers.reduce((sum, workerId) => {
@@ -266,50 +264,28 @@ const getMetricsForRange = (selectedRange, campaignWorkers) => {
 
   const permanentMetrics = [
     {
-      title: "Viewers",
+      title: "Workers",
       icon: Users,
       metrics: {
-        activeWorkers: permanentViewersCount,
-        totalClicks: Math.floor(permanentViewersClicks * multiplier),
-        goodClicks: Math.floor(permanentViewersSuccess * multiplier),
-        badClicks: Math.floor(permanentViewersFailed * multiplier),
-        formFills: Math.floor(permanentViewersFormFills * multiplier)
-      }
-    },
-    {
-      title: "Clickers",
-      icon: MousePointer,
-      metrics: {
-        activeWorkers: permanentClickersCount,
-        totalClicks: Math.floor(permanentClickersClicks * multiplier),
-        goodClicks: Math.floor(permanentClickersSuccess * multiplier),
-        badClicks: Math.floor(permanentClickersFailed * multiplier),
-        formFills: Math.floor(permanentClickersFormFills * multiplier)
+        activeWorkers: permanentWorkersCount,
+        totalClicks: Math.floor((permanentViewersClicks + permanentClickersClicks) * multiplier),
+        goodClicks: Math.floor((permanentViewersSuccess + permanentClickersSuccess) * multiplier),
+        badClicks: Math.floor((permanentViewersFailed + permanentClickersFailed) * multiplier),
+        formFills: Math.floor((permanentViewersFormFills + permanentClickersFormFills) * multiplier)
       }
     }
   ];
 
   const traineeMetrics = [
     {
-      title: "Viewers",
+      title: "Workers",
       icon: Users,
       metrics: {
-        activeWorkers: traineeViewersCount,
-        totalClicks: Math.floor(traineeViewersClicks * multiplier),
-        goodClicks: Math.floor(traineeViewersSuccess * multiplier),
-        badClicks: Math.floor(traineeViewersFailed * multiplier),
-        formFills: Math.floor(traineeViewersFormFills * multiplier)
-      }
-    },
-    {
-      title: "Clickers",
-      icon: MousePointer,
-      metrics: {
-        activeWorkers: traineeClickersCount,
-        totalClicks: Math.floor(traineeClickersClicks * multiplier),
-        goodClicks: Math.floor(traineeClickersSuccess * multiplier),
-        badClicks: Math.floor(traineeClickersFailed * multiplier),
-        formFills: Math.floor(traineeClickersFormFills * multiplier)
+        activeWorkers: traineeWorkersCount,
+        totalClicks: Math.floor((traineeViewersClicks + traineeClickersClicks) * multiplier),
+        goodClicks: Math.floor((traineeViewersSuccess + traineeClickersSuccess) * multiplier),
+        badClicks: Math.floor((traineeViewersFailed + traineeClickersFailed) * multiplier),
+        formFills: Math.floor((traineeViewersFormFills + traineeClickersFormFills) * multiplier)
       }
     }
   ];
@@ -332,10 +308,8 @@ const mockCampaigns = [
     budget: 50000,
     spent: 32500,
     workers: {
-      permanentViewers: [1, 2, 3], // Worker IDs
-      permanentClickers: [4, 5, 6],
-      traineeViewers: [7],
-      traineeClickers: [8, 9, 10]
+      permanentWorkers: [1, 2, 3, 4, 5, 6], // Worker IDs
+      traineeWorkers: [7, 8, 9, 10]
     },
     createdAt: "2024-05-15",
     updatedAt: "2024-12-19"
@@ -353,10 +327,8 @@ const mockCampaigns = [
     budget: 75000,
     spent: 68000,
     workers: {
-      permanentViewers: [1, 2],
-      permanentClickers: [4, 5, 6],
-      traineeViewers: [7, 8],
-      traineeClickers: [9, 10]
+      permanentWorkers: [1, 2, 4, 5, 6],
+      traineeWorkers: [7, 8, 9, 10]
     },
     createdAt: "2024-11-01",
     updatedAt: "2024-12-19"
@@ -374,10 +346,8 @@ const mockCampaigns = [
     budget: 40000,
     spent: 18500,
     workers: {
-      permanentViewers: [1, 3],
-      permanentClickers: [4, 6],
-      traineeViewers: [7, 8, 9],
-      traineeClickers: [10]
+      permanentWorkers: [1, 3, 4, 6],
+      traineeWorkers: [7, 8, 9, 10]
     },
     createdAt: "2024-11-15",
     updatedAt: "2024-12-19"
@@ -395,10 +365,8 @@ const mockCampaigns = [
     budget: 60000,
     spent: 60000,
     workers: {
-      permanentViewers: [1, 2, 3],
-      permanentClickers: [4, 5],
-      traineeViewers: [7, 8],
-      traineeClickers: [9, 10]
+      permanentWorkers: [1, 2, 3, 4, 5],
+      traineeWorkers: [7, 8, 9, 10]
     },
     createdAt: "2024-08-15",
     updatedAt: "2024-11-01"
@@ -412,7 +380,7 @@ export default function CampaignsPage() {
   const [fromDate, setFromDate] = useState(new Date());
   const [toDate, setToDate] = useState(new Date());
   const [selectedRange, setSelectedRange] = useState("Today");
-  const [activeTab, setActiveTab] = useState("permanent");
+  const [activeTab, setActiveTab] = useState("permanent-workers");
   const [detailedView, setDetailedView] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [pageSize, setPageSize] = useState("100");
@@ -563,14 +531,12 @@ export default function CampaignsPage() {
     if (!selectedCampaign) return [];
     
     // Get all workers from all categories
-    const allWorkers = [...permanentViewers, ...permanentClickers, ...traineeViewers, ...traineeClickers];
+    const allWorkers = [...permanentWorkers, ...traineeWorkers, ...additionalWorkers, ...moreWorkers];
     
     // Get campaign-specific worker IDs
     const campaignWorkerIds = [
-      ...selectedCampaign.workers.permanentViewers,
-      ...selectedCampaign.workers.permanentClickers,
-      ...selectedCampaign.workers.traineeViewers,
-      ...selectedCampaign.workers.traineeClickers
+      ...selectedCampaign.workers.permanentWorkers,
+      ...selectedCampaign.workers.traineeWorkers
     ];
     
     // Filter workers to only include those assigned to this campaign
@@ -579,21 +545,13 @@ export default function CampaignsPage() {
     // If detailed view is active, filter by specific worker type
     if (detailedView) {
       switch (detailedView) {
-        case "permanent-viewers":
+        case "permanent-workers":
           return campaignWorkers.filter(worker => 
-            selectedCampaign.workers.permanentViewers.includes(worker.id)
+            selectedCampaign.workers.permanentWorkers.includes(worker.id)
           );
-        case "permanent-clickers":
+        case "trainee-workers":
           return campaignWorkers.filter(worker => 
-            selectedCampaign.workers.permanentClickers.includes(worker.id)
-          );
-        case "trainee-viewers":
-          return campaignWorkers.filter(worker => 
-            selectedCampaign.workers.traineeViewers.includes(worker.id)
-          );
-        case "trainee-clickers":
-          return campaignWorkers.filter(worker => 
-            selectedCampaign.workers.traineeClickers.includes(worker.id)
+            selectedCampaign.workers.traineeWorkers.includes(worker.id)
           );
         default:
           return campaignWorkers;
@@ -606,14 +564,10 @@ export default function CampaignsPage() {
   const getViewTitle = () => {
     const campaignPrefix = selectedCampaign ? `${selectedCampaign.name} · ` : "";
     switch (detailedView) {
-      case "permanent-viewers":
-        return `${campaignPrefix}Workers · Viewers`;
-      case "permanent-clickers":
-        return `${campaignPrefix}Workers · Clickers`;
-      case "trainee-viewers":
-        return `${campaignPrefix}Workers · Viewers`;
-      case "trainee-clickers":
-        return `${campaignPrefix}Workers · Clickers`;
+      case "permanent-workers":
+        return `${campaignPrefix}Permanent Workers`;
+      case "trainee-workers":
+        return `${campaignPrefix}Trainee Workers`;
       default:
         return `${campaignPrefix}Workers`;
     }
@@ -751,7 +705,7 @@ export default function CampaignsPage() {
               <CardDescription>
                 {(() => {
                   // Get all workers assigned to this campaign
-                  const allWorkers = [...permanentViewers, ...permanentClickers, ...traineeViewers, ...traineeClickers];
+                  const allWorkers = [...permanentWorkers, ...traineeWorkers, ...additionalWorkers, ...moreWorkers];
                   const campaignWorkerIds = [
                     ...selectedCampaign.workers.permanentViewers,
                     ...selectedCampaign.workers.permanentClickers,
@@ -780,7 +734,7 @@ export default function CampaignsPage() {
                 <TableBody>
                   {(() => {
                     // Get all workers assigned to this campaign
-                    const allWorkers = [...permanentViewers, ...permanentClickers, ...traineeViewers, ...traineeClickers];
+                    const allWorkers = [...permanentWorkers, ...traineeWorkers, ...additionalWorkers, ...moreWorkers];
                     const campaignWorkerIds = [
                       ...selectedCampaign.workers.permanentViewers,
                       ...selectedCampaign.workers.permanentClickers,
@@ -848,8 +802,7 @@ export default function CampaignsPage() {
                 <span>Status: <span className="font-medium text-green-600">{selectedCampaign.status}</span></span>
                 <span>•</span>
                 <span>Workers: <span className="font-medium">
-                  {selectedCampaign.workers.permanentViewers.length + selectedCampaign.workers.permanentClickers.length + 
-                   selectedCampaign.workers.traineeViewers.length + selectedCampaign.workers.traineeClickers.length}
+                  {selectedCampaign.workers.permanentWorkers.length + selectedCampaign.workers.traineeWorkers.length}
                 </span></span>
                 <span>•</span>
                 <span>Period: {selectedCampaign.startDate} → {selectedCampaign.endDate}</span>
@@ -949,34 +902,34 @@ export default function CampaignsPage() {
             <div className="flex justify-center">
               <TabsList className="grid w-full grid-cols-2 max-w-md">
                 <TabsTrigger 
-                  value="permanent"
+                  value="permanent-workers"
                   className={`${
-                    activeTab === "permanent" 
+                    activeTab === "permanent-workers" 
                       ? "!bg-black !text-white shadow-md" 
                       : ""
                   }`}
-                  style={activeTab === "permanent" ? { backgroundColor: 'black', color: 'white' } : {}}
+                  style={activeTab === "permanent-workers" ? { backgroundColor: 'black', color: 'white' } : {}}
                 >
                   Permanent
                 </TabsTrigger>
                 <TabsTrigger 
-                  value="trainee"
+                  value="trainee-workers"
                   className={`${
-                    activeTab === "trainee" 
+                    activeTab === "trainee-workers" 
                       ? "!bg-black !text-white shadow-md" 
                       : ""
                   }`}
-                  style={activeTab === "trainee" ? { backgroundColor: 'black', color: 'white' } : {}}
+                  style={activeTab === "trainee-workers" ? { backgroundColor: 'black', color: 'white' } : {}}
                 >
                   Trainee
                 </TabsTrigger>
               </TabsList>
             </div>
             
-            <TabsContent value="permanent" className="space-y-6">
+            <TabsContent value="permanent-workers" className="space-y-6">
               <div className="grid gap-6 md:grid-cols-2 animate-fade-in">
                 {permanentMetrics.map((item) => {
-                  const cardType = item.title === "Viewers" ? "permanent-viewers" : "permanent-clickers";
+                  const cardType = "permanent-workers";
                   return (
                     <Card 
                       key={item.title} 
@@ -1031,10 +984,10 @@ export default function CampaignsPage() {
               </div>
             </TabsContent>
             
-            <TabsContent value="trainee" className="space-y-6">
+            <TabsContent value="trainee-workers" className="space-y-6">
               <div className="grid gap-6 md:grid-cols-2 animate-fade-in">
                 {traineeMetrics.map((item) => {
-                  const cardType = item.title === "Viewers" ? "trainee-viewers" : "trainee-clickers";
+                  const cardType = "trainee-workers";
                   return (
                     <Card 
                       key={item.title} 
