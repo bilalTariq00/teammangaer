@@ -624,7 +624,86 @@ export const EnhancedTaskProvider = ({ children }) => {
   const getTasksForUser = (userId) => {
     console.log("getTasksForUser called with userId:", userId);
     console.log("All tasks:", tasks);
-    const userTasks = tasks.filter(task => task.assignedTo === userId);
+    let userTasks = tasks.filter(task => task.assignedTo === userId);
+
+    // Fallback seeding for fresh environments: if no tasks exist for this user, seed based on taskRole
+    if (userTasks.length === 0 && typeof window !== 'undefined') {
+      try {
+        // Try to find the user's taskRole from the current session or saved users
+        const currentUser = JSON.parse(localStorage.getItem('user') || 'null');
+        const allUsers = JSON.parse(localStorage.getItem('users') || '[]');
+        const userRecord = currentUser?.id === userId ? currentUser : allUsers.find(u => u.id === userId);
+        const taskRole = userRecord?.taskRole || 'viewer';
+
+        const now = new Date();
+        const toIso = (d) => d.toISOString();
+        const makeViewerTask = (id, titleSuffix) => ({
+          id,
+          title: `Viewer Session ${titleSuffix}`,
+          type: 'viewer',
+          description: 'Auto-seeded viewer session',
+          assignedTo: userId,
+          assignedBy: 0,
+          status: 'assigned',
+          priority: 'medium',
+          expiryDate: toIso(new Date(now.getTime() + 7*24*3600*1000)),
+          createdAt: toIso(now),
+          completedAt: null,
+          sessionInstructions: { title: 'Session Task Instructions', content: 'Complete viewer tasks.', collapsed: true },
+          taskInstructions: { title: 'Task Instructions', content: 'Open each link and review.', collapsed: true },
+          subtasks: [
+            { id: 1, title: 'Viewer Task 1', type: 'viewer', status: 'pending', links: [ { id: 1, displayUrl: 'https://masked-auto-1.example.com', realUrl: 'https://example.com/auto-1', proxy: 'proxy.auto:8080', title: 'Auto 1', instructions: 'Review', timeRequired: 90, completed: false, completedAt: null, notes: '' } ], submission: { completed: false, notes: '', screenshot: null, submittedAt: null } },
+            { id: 2, title: 'Viewer Task 2', type: 'viewer', status: 'pending', links: [ { id: 2, displayUrl: 'https://masked-auto-2.example.com', realUrl: 'https://example.com/auto-2', proxy: 'proxy.auto:8080', title: 'Auto 2', instructions: 'Review', timeRequired: 90, completed: false, completedAt: null, notes: '' } ], submission: { completed: false, notes: '', screenshot: null, submittedAt: null } },
+          ],
+          finalSubmission: { completed: false, notes: '', submittedAt: null },
+          metrics: { totalViews: 0, goodViews: 0, badViews: 0, totalClicks: 0, goodClicks: 0, badClicks: 0 }
+        });
+
+        const makeClickerTask = (id, titleSuffix) => ({
+          id,
+          title: `Clicker Session ${titleSuffix}`,
+          type: 'clicker',
+          description: 'Auto-seeded clicker session',
+          assignedTo: userId,
+          assignedBy: 0,
+          status: 'assigned',
+          priority: 'medium',
+          expiryDate: toIso(new Date(now.getTime() + 7*24*3600*1000)),
+          createdAt: toIso(now),
+          completedAt: null,
+          sessionInstructions: { title: 'Session Task Instructions', content: 'Complete clicker analysis.', collapsed: true },
+          taskInstructions: { title: 'Task Instructions', content: 'Open link and perform clicks.', collapsed: true },
+          subtasks: [],
+          clickerTask: {
+            id: 1,
+            title: 'Auto Click Analysis',
+            type: 'clicker',
+            status: 'pending',
+            links: [ { id: 1, displayUrl: 'https://masked-auto-click.example.com', realUrl: 'https://example.com/auto-click', proxy: 'proxy.auto:8080', title: 'Auto Click', instructions: 'Analyze', timeRequired: 120, completed: false, completedAt: null, notes: '' } ],
+            submission: { completed: false, notes: '', submittedAt: null }
+          },
+          finalSubmission: { completed: false, notes: '', submittedAt: null },
+          metrics: { totalViews: 0, goodViews: 0, badViews: 0, totalClicks: 0, goodClicks: 0, badClicks: 0 }
+        });
+
+        let seeded = [];
+        if (taskRole === 'viewer') {
+          seeded = [makeViewerTask(Math.max(1000, ...tasks.map(t => t.id)) + 1, 'A'), makeViewerTask(Math.max(1000, ...tasks.map(t => t.id)) + 2, 'B')];
+        } else if (taskRole === 'clicker') {
+          seeded = [makeClickerTask(Math.max(1000, ...tasks.map(t => t.id)) + 1, '1'), makeClickerTask(Math.max(1000, ...tasks.map(t => t.id)) + 2, '2')];
+        } else {
+          // both: start with viewer tasks followed by a clicker task
+          seeded = [makeViewerTask(Math.max(1000, ...tasks.map(t => t.id)) + 1, 'A'), makeViewerTask(Math.max(1000, ...tasks.map(t => t.id)) + 2, 'B'), makeClickerTask(Math.max(1000, ...tasks.map(t => t.id)) + 3, '1')];
+        }
+
+        if (seeded.length > 0) {
+          setTasks(prev => [...prev, ...seeded]);
+          userTasks = seeded;
+        }
+      } catch (e) {
+        // ignore
+      }
+    }
     console.log("User tasks:", userTasks);
     return userTasks;
   };
