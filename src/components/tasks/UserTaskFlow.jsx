@@ -11,8 +11,10 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { CheckCircle, AlertCircle, ExternalLink, Copy, Send, Play, MousePointer, Timer, RefreshCw, Upload, Clock, X } from "lucide-react";
 import { useEnhancedTasks } from "@/contexts/EnhancedTaskContext";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function UserTaskFlow({ currentTask, onTaskComplete }) {
+  const { user } = useAuth();
   const { 
     startLinkReview,
     completeLinkReview,
@@ -220,7 +222,9 @@ export default function UserTaskFlow({ currentTask, onTaskComplete }) {
 
   const currentSubtask = currentTask.subtasks?.[currentSubtaskIndex];
   const allSubtasksCompleted = currentTask.subtasks?.every(subtask => subtask.submission.completed) || false;
-  const showClickerTask = allSubtasksCompleted && currentTask.clickerTask;
+  const canSeeViewer = user?.taskRole === "viewer" || user?.taskRole === "both" || !user?.taskRole;
+  const canSeeClicker = user?.taskRole === "clicker" || user?.taskRole === "both" || !user?.taskRole;
+  const showClickerTask = canSeeClicker && allSubtasksCompleted && currentTask.clickerTask;
 
   return (
     <div className="space-y-6">
@@ -257,7 +261,7 @@ export default function UserTaskFlow({ currentTask, onTaskComplete }) {
       </div>
 
       {/* Current Viewer Subtask */}
-      {currentSubtask && !allSubtasksCompleted && (
+      {canSeeViewer && currentSubtask && !allSubtasksCompleted && (
         <Card className="border-l-4 border-l-blue-500">
           <CardHeader>
             <div className="flex items-center justify-between">

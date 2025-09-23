@@ -59,15 +59,23 @@ export default function EnhancedTaskInterface() {
 
   useEffect(() => {
     if (user?.id) {
-      const userTasks = getTasksForUser(user.id);
-      const current = getCurrentTask(user.id);
-      const next = getNextTask(user.id);
-      
+      // Filter tasks by three statuses: viewer | clicker | both
+      const baseTasks = getTasksForUser(user.id);
+      const filtered = (user.taskRole === "viewer")
+        ? baseTasks.filter(t => t.type === "viewer")
+        : (user.taskRole === "clicker")
+          ? baseTasks.filter(t => t.type === "clicker")
+          : baseTasks; // both or undefined
+
+      const active = filtered.filter(t => t.status === "assigned" || t.status === "in_progress");
+      const current = active[0] || null;
+      const next = active[1] || null;
+
       setCurrentTask(current);
       setNextTask(next);
-      setCompletedTasks(userTasks.filter(task => task.status === "completed"));
+      setCompletedTasks(filtered.filter(task => task.status === "completed"));
     }
-  }, [user?.id, getTasksForUser, getCurrentTask, getNextTask]);
+  }, [user?.id, user?.taskRole, getTasksForUser, getCurrentTask, getNextTask]);
 
   const handleStartTask = (taskId) => {
     startTask(taskId);
@@ -168,6 +176,9 @@ export default function EnhancedTaskInterface() {
     const secs = seconds % 60;
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
+
+  const canSeeViewer = user?.taskRole === "viewer" || user?.taskRole === "both" || !user?.taskRole;
+  const canSeeClicker = user?.taskRole === "clicker" || user?.taskRole === "both" || !user?.taskRole;
 
   return (
     <div className="space-y-6">
@@ -324,7 +335,8 @@ export default function EnhancedTaskInterface() {
             </Collapsible>
           </div>
 
-          {/* Subtasks */}
+          {/* Subtasks (viewer) */}
+          {canSeeViewer && (
           <div className="space-y-6">
             {currentTask.subtasks?.map((subtask, subtaskIndex) => (
               <Card key={subtask.id}>
@@ -469,7 +481,7 @@ export default function EnhancedTaskInterface() {
             ))}
 
             {/* Clicker Task */}
-            {currentTask.clickerTask && (
+            {canSeeClicker && currentTask.clickerTask && (
               <Card>
                 <CardHeader>
                   <div className="flex items-center justify-between">
@@ -626,6 +638,7 @@ export default function EnhancedTaskInterface() {
               </Card>
             )}
           </div>
+          )}
         </div>
       )}
 

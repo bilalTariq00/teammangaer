@@ -197,6 +197,8 @@ export const UsersProvider = ({ children }) => {
     const newUser = {
       ...userData,
       id: nextId,
+      // Ensure taskRole is captured for login/display flows
+      taskRole: userData.taskRole || 'viewer',
       created: new Date().toLocaleString('en-US', {
         year: 'numeric',
         month: '2-digit',

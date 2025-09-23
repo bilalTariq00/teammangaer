@@ -102,6 +102,8 @@ export function AuthProvider({ children }) {
         password: "user123",
         role: "user",
         avatar: null,
+        // Three-status demo: this user can do both viewer and clicker
+        taskRole: "both",
         locked: "unlocked",
         // Basic contact info (user can edit)
         contactNumber: "+1-555-0123",
@@ -131,6 +133,8 @@ export function AuthProvider({ children }) {
         password: "user123",
         role: "user",
         avatar: null,
+        // Viewer-only
+        taskRole: "viewer",
         locked: "unlocked",
         // Basic contact info (user can edit)
         contactNumber: "+1-555-0125",
@@ -161,6 +165,8 @@ export function AuthProvider({ children }) {
         role: "user",
         avatar: null,
         workerType: "trainee-worker",
+        // Clicker-only
+        taskRole: "clicker",
         locked: "unlocked",
         // Basic contact info (user can edit)
         contactNumber: "+1-555-0127",
@@ -185,7 +191,21 @@ export function AuthProvider({ children }) {
       }
     ];
 
-    const foundUser = users.find(u => u.email === email && u.password === password);
+    // Also include users created via UsersContext (stored in localStorage)
+    let dynamicUsers = [];
+    if (typeof window !== 'undefined') {
+      try {
+        const savedUsers = localStorage.getItem('users');
+        if (savedUsers) {
+          dynamicUsers = JSON.parse(savedUsers);
+        }
+      } catch (e) {
+        dynamicUsers = [];
+      }
+    }
+
+    const allUsers = [...users, ...dynamicUsers];
+    const foundUser = allUsers.find(u => u.email === email && u.password === password);
     
     if (foundUser) {
       // Check if user is locked
@@ -203,6 +223,8 @@ export function AuthProvider({ children }) {
         email: foundUser.email,
         role: foundUser.role,
         avatar: foundUser.avatar,
+        // New: task role for three user flows (viewer | clicker | both)
+        taskRole: foundUser.taskRole || null,
         workerType: foundUser.workerType || null, // Add worker type
         locked: foundUser.locked || "unlocked", // Add lock status
         assignedUsers: foundUser.assignedUsers || [], // For managers

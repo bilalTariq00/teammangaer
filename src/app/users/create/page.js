@@ -22,6 +22,7 @@ export default function CreateUserPage() {
     role: "worker",
     workerType: "",
     status: "trainee",
+    taskRole: "viewer",
     password: "",
     assignedUsers: [],
     defaultTasker: "none"

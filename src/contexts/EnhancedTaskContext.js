@@ -431,6 +431,145 @@ const initialTasks = [
       badClicks: 0
     }
   }
+  ,
+  // Viewer-only sample task assigned to Adnan (id: 6)
+  {
+    id: 101,
+    title: "Viewer Session A",
+    type: "viewer",
+    description: "Viewer-only session with two subtasks",
+    assignedTo: 6,
+    assignedBy: 2,
+    status: "assigned",
+    priority: "medium",
+    expiryDate: "2025-12-26T23:59:59Z",
+    createdAt: "2025-09-21T10:00:00Z",
+    completedAt: null,
+    sessionInstructions: { title: "Session Task Instructions", content: "Complete both viewer tasks.", collapsed: true },
+    taskInstructions: { title: "Task Instructions", content: "Open each link and review.", collapsed: true },
+    subtasks: [
+      {
+        id: 1,
+        title: "Viewer A - Task 1",
+        type: "viewer",
+        status: "pending",
+        links: [
+          { id: 1, displayUrl: "https://masked-a1.example.com", realUrl: "https://example.com/a1", proxy: "proxyA:8080", title: "A1", instructions: "Review A1", timeRequired: 90, completed: false, completedAt: null, notes: "" }
+        ],
+        submission: { completed: false, notes: "", screenshot: null, submittedAt: null }
+      },
+      {
+        id: 2,
+        title: "Viewer A - Task 2",
+        type: "viewer",
+        status: "pending",
+        links: [
+          { id: 2, displayUrl: "https://masked-a2.example.com", realUrl: "https://example.com/a2", proxy: "proxyB:8080", title: "A2", instructions: "Review A2", timeRequired: 90, completed: false, completedAt: null, notes: "" }
+        ],
+        submission: { completed: false, notes: "", screenshot: null, submittedAt: null }
+      }
+    ],
+    // No clickerTask for viewer-only flow
+    finalSubmission: { completed: false, notes: "", submittedAt: null },
+    metrics: { totalViews: 0, goodViews: 0, badViews: 0, totalClicks: 0, goodClicks: 0, badClicks: 0 }
+  },
+  // Second viewer-only task so next appears after finishing first
+  {
+    id: 102,
+    title: "Viewer Session B",
+    type: "viewer",
+    description: "Second viewer-only session",
+    assignedTo: 6,
+    assignedBy: 2,
+    status: "assigned",
+    priority: "low",
+    expiryDate: "2025-12-27T23:59:59Z",
+    createdAt: "2025-09-21T11:00:00Z",
+    completedAt: null,
+    sessionInstructions: { title: "Session Task Instructions", content: "Complete both viewer tasks.", collapsed: true },
+    taskInstructions: { title: "Task Instructions", content: "Open each link and review.", collapsed: true },
+    subtasks: [
+      {
+        id: 1,
+        title: "Viewer B - Task 1",
+        type: "viewer",
+        status: "pending",
+        links: [
+          { id: 1, displayUrl: "https://masked-b1.example.com", realUrl: "https://example.com/b1", proxy: "proxyC:8080", title: "B1", instructions: "Review B1", timeRequired: 80, completed: false, completedAt: null, notes: "" }
+        ],
+        submission: { completed: false, notes: "", screenshot: null, submittedAt: null }
+      },
+      {
+        id: 2,
+        title: "Viewer B - Task 2",
+        type: "viewer",
+        status: "pending",
+        links: [
+          { id: 2, displayUrl: "https://masked-b2.example.com", realUrl: "https://example.com/b2", proxy: "proxyD:8080", title: "B2", instructions: "Review B2", timeRequired: 85, completed: false, completedAt: null, notes: "" }
+        ],
+        submission: { completed: false, notes: "", screenshot: null, submittedAt: null }
+      }
+    ],
+    finalSubmission: { completed: false, notes: "", submittedAt: null },
+    metrics: { totalViews: 0, goodViews: 0, badViews: 0, totalClicks: 0, goodClicks: 0, badClicks: 0 }
+  },
+  // Clicker-only tasks for Waleed (id: 7)
+  {
+    id: 201,
+    title: "Clicker Session 1",
+    type: "clicker",
+    description: "Clicker-only task",
+    assignedTo: 7,
+    assignedBy: 2,
+    status: "assigned",
+    priority: "medium",
+    expiryDate: "2025-12-28T23:59:59Z",
+    createdAt: "2025-09-21T12:00:00Z",
+    completedAt: null,
+    sessionInstructions: { title: "Session Task Instructions", content: "Complete the clicker analysis.", collapsed: true },
+    taskInstructions: { title: "Task Instructions", content: "Open link and perform clicks.", collapsed: true },
+    subtasks: [],
+    clickerTask: {
+      id: 1,
+      title: "Click Analysis 1",
+      type: "clicker",
+      status: "pending",
+      links: [
+        { id: 1, displayUrl: "https://masked-c1.example.com", realUrl: "https://example.com/c1", proxy: "proxyE:8080", title: "C1", instructions: "Analyze clicks on landing.", timeRequired: 120, completed: false, completedAt: null, notes: "" }
+      ],
+      submission: { completed: false, notes: "", submittedAt: null }
+    },
+    finalSubmission: { completed: false, notes: "", submittedAt: null },
+    metrics: { totalViews: 0, goodViews: 0, badViews: 0, totalClicks: 0, goodClicks: 0, badClicks: 0 }
+  },
+  {
+    id: 202,
+    title: "Clicker Session 2",
+    type: "clicker",
+    description: "Second clicker-only task",
+    assignedTo: 7,
+    assignedBy: 2,
+    status: "assigned",
+    priority: "low",
+    expiryDate: "2025-12-29T23:59:59Z",
+    createdAt: "2025-09-21T13:00:00Z",
+    completedAt: null,
+    sessionInstructions: { title: "Session Task Instructions", content: "Complete the clicker analysis.", collapsed: true },
+    taskInstructions: { title: "Task Instructions", content: "Open link and perform clicks.", collapsed: true },
+    subtasks: [],
+    clickerTask: {
+      id: 1,
+      title: "Click Analysis 2",
+      type: "clicker",
+      status: "pending",
+      links: [
+        { id: 1, displayUrl: "https://masked-c2.example.com", realUrl: "https://example.com/c2", proxy: "proxyF:8080", title: "C2", instructions: "Analyze clicks on signup.", timeRequired: 100, completed: false, completedAt: null, notes: "" }
+      ],
+      submission: { completed: false, notes: "", submittedAt: null }
+    },
+    finalSubmission: { completed: false, notes: "", submittedAt: null },
+    metrics: { totalViews: 0, goodViews: 0, badViews: 0, totalClicks: 0, goodClicks: 0, badClicks: 0 }
+  }
 ];
 
 export const EnhancedTaskProvider = ({ children }) => {
@@ -683,8 +822,10 @@ export const EnhancedTaskProvider = ({ children }) => {
 
   // Check if all subtasks are completed
   const areAllSubtasksCompleted = (task) => {
-    return task.subtasks.every(subtask => subtask.status === "completed") &&
-           task.clickerTask.status === "completed";
+    const viewerDone = (task.subtasks || []).every(subtask => subtask.status === "completed");
+    const hasClicker = !!task.clickerTask;
+    const clickerDone = !hasClicker || task.clickerTask.status === "completed";
+    return viewerDone && clickerDone;
   };
 
   // Reset tasks to initial state (for debugging)

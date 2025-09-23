@@ -58,14 +58,18 @@ export default function EnhancedTaskFlow() {
 
   useEffect(() => {
     if (user?.id) {
-      const userTasks = getTasksForUser(user.id);
-      const current = getCurrentTask(user.id);
-      const next = getNextTask(user.id);
-      
-      setCurrentTask(current);
-      setNextTask(next);
+      const baseTasks = getTasksForUser(user.id);
+      const filtered = (user.taskRole === "viewer")
+        ? baseTasks.filter(t => t.type === "viewer")
+        : (user.taskRole === "clicker")
+          ? baseTasks.filter(t => t.type === "clicker")
+          : baseTasks;
+
+      const active = filtered.filter(t => t.status === "assigned" || t.status === "in_progress");
+      setCurrentTask(active[0] || null);
+      setNextTask(active[1] || null);
     }
-  }, [user?.id, getTasksForUser, getCurrentTask, getNextTask]);
+  }, [user?.id, user?.taskRole, getTasksForUser, getCurrentTask, getNextTask]);
 
   const handleStartTask = (taskId) => {
     startTask(taskId);
@@ -169,6 +173,9 @@ export default function EnhancedTaskFlow() {
     );
   }
 
+  const canSeeViewer = user?.taskRole === "viewer" || user?.taskRole === "both" || !user?.taskRole;
+  const canSeeClicker = user?.taskRole === "clicker" || user?.taskRole === "both" || !user?.taskRole;
+
   return (
     <div className="space-y-6">
       {/* Task Header */}
@@ -258,7 +265,8 @@ export default function EnhancedTaskFlow() {
         </Collapsible>
       </div>
 
-      {/* Subtasks */}
+      {/* Subtasks (viewer) */}
+      {canSeeViewer && (
       <div className="space-y-6">
         {currentTask.subtasks?.map((subtask, subtaskIndex) => (
           <Card key={subtask.id} className="border-l-4 border-l-blue-500">
@@ -424,7 +432,7 @@ export default function EnhancedTaskFlow() {
         ))}
 
         {/* Clicker Task */}
-        {currentTask.clickerTask && (
+        {canSeeClicker && currentTask.clickerTask && (
           <Card className="border-l-4 border-l-purple-500">
             <CardHeader>
               <div className="flex items-center justify-between">
@@ -620,6 +628,7 @@ export default function EnhancedTaskFlow() {
           </Card>
         )}
       </div>
+      )}
     </div>
   );
 }

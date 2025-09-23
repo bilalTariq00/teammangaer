@@ -20,7 +20,7 @@ import { toast } from "sonner";
 
 export default function UserTasksPage() {
   const { user } = useAuth();
-  const { isAttendanceMarkedToday } = useAttendance();
+  const { isAttendanceMarkedToday, markAttendance } = useAttendance();
   const { 
     getCurrentTask, 
     getNextTask, 
@@ -60,29 +60,58 @@ export default function UserTasksPage() {
   const [expireTime, setExpireTime] = useState(null);
   const [countdownStarted, setCountdownStarted] = useState(false);
 
+  // Role-based visibility
+  const canSeeViewer = user?.taskRole === 'viewer' || user?.taskRole === 'both' || !user?.taskRole;
+  const canSeeClicker = user?.taskRole === 'clicker' || user?.taskRole === 'both' || !user?.taskRole;
+
+  // Ensure initial UI matches role
+  useEffect(() => {
+    if (!user) return;
+    if (user.taskRole === 'clicker') {
+      setCurrentTaskType('clicker');
+    } else {
+      setCurrentTaskType('viewer');
+    }
+  }, [user?.taskRole]);
+
   // Check if attendance is marked for today
   useEffect(() => {
     if (user && (user.role === 'worker' || user.role === 'user')) {
       const attendanceMarked = isAttendanceMarkedToday(user.id);
       if (!attendanceMarked) {
-        router.push('/user-dashboard');
+        // Auto-mark present for demo so tasks show up
+        markAttendance(user.id, user, { status: 'present' });
       }
     }
-  }, [user, isAttendanceMarkedToday, router]);
+  }, [user, isAttendanceMarkedToday, markAttendance]);
 
-  // Load current task
+  // Load current task with taskRole filtering
   useEffect(() => {
     if (user?.id) {
-      console.log("User ID:", user.id);
-      console.log("User:", user);
-      const current = getCurrentTask(user.id);
-      const next = getNextTask(user.id);
-      console.log("Current task:", current);
-      console.log("Next task:", next);
+      const baseCurrent = getCurrentTask(user.id);
+      const baseNext = getNextTask(user.id);
+      let current = baseCurrent;
+      let next = baseNext;
+      if (user.taskRole === 'viewer') {
+        // ensure current and next are viewer tasks if available
+        if (current && current.type !== 'viewer') {
+          current = null;
+        }
+        if (next && next.type !== 'viewer') {
+          next = null;
+        }
+      } else if (user.taskRole === 'clicker') {
+        if (current && current.type !== 'clicker') {
+          current = null;
+        }
+        if (next && next.type !== 'clicker') {
+          next = null;
+        }
+      }
       setCurrentTask(current);
       setNextTask(next);
     }
-  }, [user?.id, getCurrentTask, getNextTask]);
+  }, [user?.id, user?.taskRole, getCurrentTask, getNextTask]);
 
   // Timer effect
   useEffect(() => {
@@ -279,6 +308,13 @@ export default function UserTasksPage() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [currentTaskType]);
 
+  // Scroll to top when a new task loads
+  useEffect(() => {
+    if (currentTask?.id) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [currentTask?.id]);
+
   const handleViewerTaskSubmit = (taskNumber) => {
     const taskStatus = taskNumber === 1 ? viewerTask1Status : viewerTask2Status;
     const selectedReason = taskNumber === 1 ? selectedReason1 : selectedReason2;
@@ -310,16 +346,34 @@ export default function UserTasksPage() {
       pageVisitCount
     };
 
-            // Update the specific task status
-            if (taskNumber === 1) {
-              setViewerTask1Status('completed');
-              setTask1Submitted(true);
-              toast.success("Viewer Task 1 completed!");
-            } else {
-              setViewerTask2Status('completed');
-              setTask2Submitted(true);
-              toast.success("Viewer Task 2 completed!");
-            }
+    // If NOT COMPLETED: stay on the same task and "reload" data (simulate AJAX)
+    if (taskStatus === 'notCompleted') {
+      // Simulate AJAX refresh
+      setIsSubmitting(true);
+      setTimeout(() => {
+        handleReloadLink(taskNumber);
+        // Refresh task data from context
+        const refreshedCurrent = getCurrentTask(user.id);
+        const refreshedNext = getNextTask(user.id);
+        setCurrentTask(refreshedCurrent);
+        setNextTask(refreshedNext);
+        setIsSubmitting(false);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        toast.success(`Viewer Task ${taskNumber} reloaded. Stay on the same task.`);
+      }, 500);
+      return;
+    }
+
+    // Otherwise (COMPLETED): update the specific task status and proceed
+    if (taskNumber === 1) {
+      setViewerTask1Status('completed');
+      setTask1Submitted(true);
+      toast.success("Viewer Task 1 completed!");
+    } else {
+      setViewerTask2Status('completed');
+      setTask2Submitted(true);
+      toast.success("Viewer Task 2 completed!");
+    }
 
     // Reset form
     if (taskNumber === 1) {
@@ -330,6 +384,34 @@ export default function UserTasksPage() {
     setAdditionalDetails('');
     setScreenshot(null);
     setPageVisitCount('');
+
+    // For viewer-only users: when both viewer tasks are submitted, complete this viewer task session and load next
+    if (user?.taskRole === 'viewer') {
+      const task1Done = taskNumber === 1 ? true : task1Submitted;
+      const task2Done = taskNumber === 2 ? true : task2Submitted;
+      if (task1Done && task2Done) {
+        try {
+          // Mark the current task completed so provider advances to the next assigned viewer task
+          completeFinalSubmission(currentTask.id, "viewer-only auto-complete");
+          // Refresh task data and reset UI states for next viewer pair
+          const refreshedCurrent = getCurrentTask(user.id);
+          const refreshedNext = getNextTask(user.id);
+          setCurrentTask(refreshedCurrent && refreshedCurrent.type === 'viewer' ? refreshedCurrent : null);
+          setNextTask(refreshedNext && refreshedNext.type === 'viewer' ? refreshedNext : null);
+          setViewerTask1Status('notCompleted');
+          setViewerTask2Status('notCompleted');
+          setTask1Submitted(false);
+          setTask2Submitted(false);
+          setCurrentTaskType('viewer');
+          setCurrentSubtaskIndex(0);
+          setCountdownStarted(false);
+          toast.success('Viewer session completed! Loaded next viewer tasks.');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        } catch (e) {
+          // no-op
+        }
+      }
+    }
   };
 
   const handleReloadLink = (taskNumber) => {
@@ -349,6 +431,11 @@ export default function UserTasksPage() {
   };
 
   const handleNextTask = () => {
+    // Only switch to clicker for BOTH users
+    if (user?.taskRole !== 'both') {
+      toast.info("Viewer-only mode: continue with viewer tasks.");
+      return;
+    }
     if (viewerTask1Status !== 'completed' || viewerTask2Status !== 'completed') {
       toast.error("Please complete both viewer tasks first!");
       return;
@@ -357,6 +444,8 @@ export default function UserTasksPage() {
     setCurrentTaskType('clicker');
     setCountdownStarted(false); // Reset countdown for new task
     toast.success("Moving to Clicker Task!");
+    // Scroll to top when moving to next task
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   if (!user) {
@@ -427,7 +516,7 @@ export default function UserTasksPage() {
         {/* Show current task if available */}
         {currentTask ? (
           <div className="space-y-6">
-            {currentTaskType === 'viewer' ? (
+            {currentTaskType === 'viewer' && canSeeViewer ? (
               <>
                 {/* IP and One time Link Instructions for Task 1 */}
                 <IPInstructions 
@@ -701,25 +790,27 @@ export default function UserTasksPage() {
                   </CardContent>
                 </Card>
 
-            {/* Next Task Button */}
-              <Card className="p-6 bg-blue-50 border-blue-200">
-                <CardContent className="text-center space-y-4">
-                  <div className="flex items-center justify-center gap-2">
-                    <CheckCircle className="h-6 w-6 text-green-600" />
+            {/* Next Task Button - only for BOTH users */}
+              {user?.taskRole === 'both' && (
+                <Card className="p-6 bg-blue-50 border-blue-200">
+                  <CardContent className="text-center space-y-4">
+                    <div className="flex items-center justify-center gap-2">
+                      <CheckCircle className="h-6 w-6 text-green-600" />
                       <h3 className="text-lg font-medium text-green-800">Ready for Clicker Task?</h3>
-            </div>
+                    </div>
                     <p className="text-gray-600">Complete both viewer tasks to proceed to the clicker task.</p>
-            <Button 
+                    <Button 
                       onClick={handleNextTask}
-                    className="bg-blue-600 hover:bg-blue-700 h-12 px-8"
-                  >
-                    <Play className="h-4 w-4 mr-2" />
+                      className="bg-blue-600 hover:bg-blue-700 h-12 px-8"
+                    >
+                      <Play className="h-4 w-4 mr-2" />
                       Next Task (Clicker)
                     </Button>
                   </CardContent>
                 </Card>
+              )}
               </>
-            ) : (
+            ) : currentTaskType !== 'viewer' && canSeeClicker ? (
               <>
                 {/* Clicker Task */}
                 <IPInstructions 
@@ -868,12 +959,51 @@ export default function UserTasksPage() {
                           }
                         }
                         
+                        // If NOT COMPLETED: stay on same clicker task, reload masked link (simulate AJAX)
+                        if (clickerTaskStatus === 'notCompleted') {
+                          setIsSubmitting(true);
+                          setTimeout(() => {
+                            handleReloadLink(3);
+                            const refreshedCurrent = getCurrentTask(user.id);
+                            const refreshedNext = getNextTask(user.id);
+                            setCurrentTask(refreshedCurrent);
+                            setNextTask(refreshedNext);
+                            setIsSubmitting(false);
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                            toast.success('Clicker task reloaded. Stay on the same task.');
+                          }, 500);
+                          return;
+                        }
+
+                        // Mark the clicker task completed in context
+                        completeClickerTask(
+                          currentTask.id,
+                          additionalDetails,
+                          'good',
+                          screenshot ? URL.createObjectURL(screenshot) : null
+                        );
                         setClickerTaskStatus('completed');
                         setClickerSubmitted(true);
-                        toast.success("Clicker task completed! All tasks finished.");
                         
-                        // Reset all states for new cycle
-                        setCurrentTaskType('viewer');
+                        // For clicker-only users, complete the whole task and load the next clicker task
+                        if (user?.taskRole === 'clicker') {
+                          completeFinalSubmission(currentTask.id, 'clicker-only auto-complete');
+                          const refreshedCurrent = getCurrentTask(user.id);
+                          const refreshedNext = getNextTask(user.id);
+                          setCurrentTask(refreshedCurrent && refreshedCurrent.type === 'clicker' ? refreshedCurrent : null);
+                          setNextTask(refreshedNext && refreshedNext.type === 'clicker' ? refreshedNext : null);
+                          setCurrentTaskType('clicker');
+                          toast.success('Clicker task completed! Loaded next clicker task.');
+                        } else if (user?.taskRole === 'both') {
+                          // In BOTH flow, after clicker completion we cycle back to viewer
+                          setCurrentTaskType('viewer');
+                          toast.success('Clicker task completed! Back to viewer tasks.');
+                        } else {
+                          setCurrentTaskType('viewer');
+                          toast.success('Clicker task completed.');
+                        }
+
+                        // Reset common UI state
                         setViewerTask1Status('notCompleted');
                         setViewerTask2Status('notCompleted');
                         setClickerTaskStatus('notCompleted');
@@ -886,8 +1016,9 @@ export default function UserTasksPage() {
                         setTask1Submitted(false);
                         setTask2Submitted(false);
                         setClickerSubmitted(false);
-                        setCountdownStarted(false); // Reset countdown for new cycle
-                        
+                        setCountdownStarted(false);
+                        // Scroll to top
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
                       }}
                       disabled={clickerSubmitted || !isClickerFormValid()}
                       className={`w-full ${clickerSubmitted ? 'bg-gray-400 cursor-not-allowed' : !isClickerFormValid() ? 'bg-gray-300 cursor-not-allowed' : 'bg-purple-600 hover:bg-purple-700'}`}
@@ -897,7 +1028,7 @@ export default function UserTasksPage() {
           </CardContent>
         </Card>
               </>
-            )}
+            ) : null}
           </div>
         ) : (
           <Card>

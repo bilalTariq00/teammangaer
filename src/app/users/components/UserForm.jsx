@@ -195,6 +195,28 @@ const UserForm = ({
             </Select>
           </div>
         </div>
+
+        {/* Task Role (Viewer/Clicker/Both) - only for Worker role */}
+        {user?.role === "worker" && (
+          <div className="space-y-2">
+            <Label htmlFor={isEdit ? "edit-taskRole" : "taskRole"} className="text-sm font-medium text-gray-700">
+              Task Role
+            </Label>
+            <Select 
+              value={getSafeSelectValue(user?.taskRole, "viewer")} 
+              onValueChange={(value) => onUserChange({...user, taskRole: getSafeSelectValue(value, "viewer")})}
+            >
+              <SelectTrigger className="h-10">
+                <SelectValue placeholder="Select task role" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="viewer">Viewer</SelectItem>
+                <SelectItem value="clicker">Clicker</SelectItem>
+                <SelectItem value="both">Both (Viewer + Clicker)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        )}
       </div>
       
       {/* Account Status Section */}
@@ -419,6 +441,7 @@ const UserForm = ({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="none">— none —</SelectItem>
+              {/* Align with taskRole semantics */}
               <SelectItem value="tasker-click">Tasker Click</SelectItem>
               <SelectItem value="tasker-views">Tasker Views</SelectItem>
             </SelectContent>
