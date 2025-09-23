@@ -119,6 +119,11 @@ export default function LoginPage() {
               <p>manager@joyapps.com / manager123</p>
               <p>qc@joyapps.com / qc123</p>
               <p>hr@joyapps.com / hr123</p>
+              <p>User</p>
+              <p>Viewer: adnan@joyapps.net / user123</p>
+              <p>Clicker: waleed@joyapps.net / user123</p>
+              <p>Both: hasan@joyapps.net / user123</p>
+              
             </div>
           </div>
         </CardContent>
