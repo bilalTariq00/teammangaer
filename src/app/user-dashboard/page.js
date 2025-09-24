@@ -60,7 +60,15 @@ const getUserMetrics = (userId, fromDate, toDate, selectedRange) => {
       totalViews: 1234,
       goodViews: 1089,
       badViews: 145,
-      recentViews: 12
+      recentViews: 12,
+      // Session data
+      sessionTotal: 856,
+      sessionGood: 734,
+      sessionBad: 122,
+      // Search data
+      searchTotal: 378,
+      searchGood: 355,
+      searchBad: 23
     },
     5: { // Hasan Abbas - Permanent Clicker
       totalClicks: 3847,
@@ -79,27 +87,52 @@ const getUserMetrics = (userId, fromDate, toDate, selectedRange) => {
       avgDailyClicks: 128,
       bestDayClicks: 45,
       currentStreak: 7,
-      longestStreak: 23
+      longestStreak: 23,
+      // Session data (for both roles)
+      sessionTotal: 1245,
+      sessionGood: 1089,
+      sessionBad: 156,
+      // Search data (for both roles)
+      searchTotal: 567,
+      searchGood: 523,
+      searchBad: 44
     },
-    6: { // Adnan Amir - Trainee Clicker
-      totalClicks: 26,
-      goodClicks: 21,
-      badClicks: 5,
-      recentClicks: 3,
-      totalViews: 0,
-      goodViews: 0,
-      badViews: 0,
-      recentViews: 0
-    },
-    7: { // Waleed Bin Shakeel - Trainee Viewer
+    6: { // Adnan Amir - Viewer
       totalClicks: 0,
       goodClicks: 0,
       badClicks: 0,
       recentClicks: 0,
-      totalViews: 1847,
-      goodViews: 1654,
-      badViews: 193,
-      recentViews: 15
+      totalViews: 0,
+      goodViews: 0,
+      badViews: 0,
+      recentViews: 0,
+      // Session data
+      sessionTotal: 1456,
+      sessionGood: 1234,
+      sessionBad: 222,
+      // Search data
+      searchTotal: 678,
+      searchGood: 612,
+      searchBad: 66
+    },
+    7: { // Waleed Bin Shakeel - Clicker
+      totalClicks: 2156,
+      goodClicks: 1890,
+      badClicks: 266,
+      recentClicks: 12,
+      totalViews: 0,
+      goodViews: 0,
+      badViews: 0,
+      recentViews: 0,
+      // Additional activity metrics
+      todayClicks: 18,
+      yesterdayClicks: 15,
+      thisWeekClicks: 98,
+      lastWeekClicks: 87,
+      avgDailyClicks: 89,
+      bestDayClicks: 35,
+      currentStreak: 5,
+      longestStreak: 18
     },
     9: { // Mike Wilson - Permanent Viewer
       totalClicks: 0,
@@ -200,7 +233,14 @@ const getUserMetrics = (userId, fromDate, toDate, selectedRange) => {
     avgDailyClicks: userData.avgDailyClicks || 0,
     bestDayClicks: userData.bestDayClicks || 0,
     currentStreak: userData.currentStreak || 0,
-    longestStreak: userData.longestStreak || 0
+    longestStreak: userData.longestStreak || 0,
+    // Session and Search data (also affected by date range filters)
+    sessionTotal: Math.floor((userData.sessionTotal || 0) * finalMultiplier),
+    sessionGood: Math.floor((userData.sessionGood || 0) * finalMultiplier),
+    sessionBad: Math.floor((userData.sessionBad || 0) * finalMultiplier),
+    searchTotal: Math.floor((userData.searchTotal || 0) * finalMultiplier),
+    searchGood: Math.floor((userData.searchGood || 0) * finalMultiplier),
+    searchBad: Math.floor((userData.searchBad || 0) * finalMultiplier)
   };
 };
 
@@ -228,11 +268,16 @@ export default function UserDashboardPage() {
   // Get user-specific metrics based on current user and date range
   const userMetrics = getUserMetrics(user?.id, fromDate, toDate, selectedRange);
   
-  // Debug logging for Hasan
-  if (user?.id === 5) {
-    console.log('Hasan user data:', user);
-    console.log('Hasan metrics:', userMetrics);
-  }
+  // Debug logging for all users
+  console.log('=== USER DASHBOARD DEBUG ===');
+  console.log('User object:', user);
+  console.log('User role:', user?.role);
+  console.log('User taskRole:', user?.taskRole);
+  console.log('User email:', user?.email);
+  console.log('Is viewer condition:', user?.role === 'worker' && user?.taskRole === 'viewer');
+  console.log('Is clicker condition:', user?.role === 'worker' && user?.taskRole === 'clicker');
+  console.log('Is both condition:', user?.role === 'worker' && user?.taskRole === 'both');
+  console.log('================================');
   
   // If no user is logged in, show a message
   if (!user) {
@@ -509,142 +554,280 @@ export default function UserDashboardPage() {
           </CardContent>
         </Card>
 
-        {/* Your Personal Metrics */}
-        <div className="grid gap-6 md:grid-cols-3">
-          {/* Worker Cards - Unified for both clicking and viewing tasks */}
-          {(isWorker || user?.email === 'hasan@joyapps.net') && (
-            <>
+
+        {/* Task Breakdown Section */}
+        {user && (
+          <div className="mt-8">
+           
+            
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              
+              {/* Debug Card - Shows for any user */}
+           
+              
+              {/* Viewer Cards - Session and Search */}
+              {(user?.taskRole === 'viewer' || user?.email === 'adnan@joyapps.net') && (
+                <>
+                  {/* Session Task Card */}
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 border-b-2 border-green-200">
+                      <CardTitle className="text-green-800 text-lg font-semibold">Session Tasks</CardTitle>
+                      <Eye className="h-4 w-4 text-green-600" />
+                    </CardHeader>
+                    <CardContent className="pt-4">
+                      <div className="space-y-4">
+                        <div className="text-center">
+                          <div className="text-3xl font-bold text-gray-900 mb-1">{userMetrics.sessionTotal.toLocaleString()}</div>
+                          <div className="text-sm text-muted-foreground font-medium">Total Sessions</div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="text-center">
+                            <div className="text-2xl font-bold text-green-600">{userMetrics.sessionGood.toLocaleString()}</div>
+                            <div className="text-xs text-muted-foreground">Good</div>
+                          </div>
+                          <div className="text-center">
+                            <div className="text-2xl font-bold text-red-600">{userMetrics.sessionBad.toLocaleString()}</div>
+                            <div className="text-xs text-muted-foreground">Bad</div>
+                          </div>
+                        </div>
+                        <div className="pt-2 border-t">
+                          <p className="text-xs text-muted-foreground text-center">
+                            Success Rate: {userMetrics.sessionTotal > 0 ? Math.round((userMetrics.sessionGood / userMetrics.sessionTotal) * 100) : 0}%
+                          </p>
+                          <p className="text-xs text-muted-foreground text-center mt-1">
+                            Range: {format(fromDate, "MM/dd/yyyy")} → {format(toDate, "MM/dd/yyyy")}
+                          </p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Search Task Card */}
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 border-b-2 border-blue-200">
+                      <CardTitle className="text-blue-800 text-lg font-semibold">Search Tasks</CardTitle>
+                      <MousePointer className="h-4 w-4 text-blue-600" />
+                    </CardHeader>
+                    <CardContent className="pt-4">
+                      <div className="space-y-4">
+                        <div className="text-center">
+                          <div className="text-3xl font-bold text-gray-900 mb-1">{userMetrics.searchTotal.toLocaleString()}</div>
+                          <div className="text-sm text-muted-foreground font-medium">Total Searches</div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="text-center">
+                            <div className="text-2xl font-bold text-green-600">{userMetrics.searchGood.toLocaleString()}</div>
+                            <div className="text-xs text-muted-foreground">Good</div>
+                          </div>
+                          <div className="text-center">
+                            <div className="text-2xl font-bold text-red-600">{userMetrics.searchBad.toLocaleString()}</div>
+                            <div className="text-xs text-muted-foreground">Bad</div>
+                          </div>
+                        </div>
+                        <div className="pt-2 border-t">
+                          <p className="text-xs text-muted-foreground text-center">
+                            Success Rate: {userMetrics.searchTotal > 0 ? Math.round((userMetrics.searchGood / userMetrics.searchTotal) * 100) : 0}%
+                          </p>
+                          <p className="text-xs text-muted-foreground text-center mt-1">
+                            Range: {format(fromDate, "MM/dd/yyyy")} → {format(toDate, "MM/dd/yyyy")}
+                          </p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </>
+              )}
+
+              {/* Clicker Cards - Total, Good, Bad */}
+              {(user?.taskRole === 'clicker' || user?.email === 'waleed@joyapps.net') && (
+                <>
+                  {/* Total Clicks Card */}
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Tasks</CardTitle>
+                      <CardTitle className="text-sm font-medium">Total Clicks</CardTitle>
               <MousePointer className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-center">
-                <div className="text-4xl font-bold text-gray-900 mb-1">{(userMetrics.totalClicks + userMetrics.totalViews).toLocaleString()}</div>
+                        <div className="text-4xl font-bold text-gray-900 mb-1">{userMetrics.totalClicks.toLocaleString()}</div>
                     <div className="text-sm text-muted-foreground font-medium">
-                      Your Total Tasks {isPermanent ? '(Permanent)' : isTrainee ? '(Trainee)' : ''}
+                          Your Total Clicks {isPermanent ? '(Permanent)' : isTrainee ? '(Trainee)' : ''}
                     </div>
               </div>
               <div className="mt-4 pt-4 border-t">
                 <p className="text-xs text-muted-foreground">
-                  Range: {format(fromDate, "yyyy-MM-dd")} → {format(toDate, "yyyy-MM-dd")}
-                </p>
-                <p className="text-xs text-muted-foreground">Recent: {userMetrics.recentClicks + userMetrics.recentViews}</p>
-                {(user?.id === 5 || user?.email === 'hasan@joyapps.net') && (
-                  <>
-                    <p className="text-xs text-muted-foreground">Today: {userMetrics.todayClicks || 23}</p>
-                    <p className="text-xs text-muted-foreground">Avg Daily: {userMetrics.avgDailyClicks || 128}</p>
-                  </>
-                )}
+                          Range: {format(fromDate, "MM/dd/yyyy")} → {format(toDate, "MM/dd/yyyy")}
+                        </p>
+                        <p className="text-xs text-muted-foreground">Recent: {userMetrics.recentClicks}</p>
+                        {(user?.id === 5 || user?.email === 'hasan@joyapps.net') && (
+                          <>
+                            <p className="text-xs text-muted-foreground">Today: {userMetrics.todayClicks || 23}</p>
+                            <p className="text-xs text-muted-foreground">Avg Daily: {userMetrics.avgDailyClicks || 128}</p>
+                          </>
+                        )}
               </div>
             </CardContent>
           </Card>
 
+                  {/* Good Clicks Card */}
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Successful Tasks</CardTitle>
+                      <CardTitle className="text-sm font-medium">Good Clicks</CardTitle>
               <CheckCircle className="h-4 w-4 text-green-600" />
             </CardHeader>
             <CardContent>
               <div className="text-center">
-                <div className="text-4xl font-bold text-green-600 mb-1">{(userMetrics.goodClicks + userMetrics.goodViews).toLocaleString()}</div>
-                    <div className="text-sm text-muted-foreground font-medium">Quality Tasks Completed</div>
+                        <div className="text-4xl font-bold text-green-600 mb-1">{userMetrics.goodClicks.toLocaleString()}</div>
+                        <div className="text-sm text-muted-foreground font-medium">Quality Clicks Completed</div>
               </div>
               <div className="mt-4 pt-4 border-t">
-                    <p className="text-xs text-muted-foreground">Success rate: {((userMetrics.totalClicks + userMetrics.totalViews) > 0 ? Math.round(((userMetrics.goodClicks + userMetrics.goodViews) / (userMetrics.totalClicks + userMetrics.totalViews)) * 100) : 0)}%</p>
-                <p className="text-xs text-muted-foreground">Recent: {userMetrics.goodClicks + userMetrics.goodViews}</p>
-                {(user?.id === 5 || user?.email === 'hasan@joyapps.net') && (
-                  <>
-                    <p className="text-xs text-muted-foreground">This Week: {userMetrics.thisWeekClicks || 156}</p>
-                    <p className="text-xs text-green-600">+{((userMetrics.thisWeekClicks || 156) - (userMetrics.lastWeekClicks || 142))} vs last week</p>
-                  </>
-                )}
+                        <p className="text-xs text-muted-foreground">Success rate: {userMetrics.totalClicks > 0 ? Math.round((userMetrics.goodClicks / userMetrics.totalClicks) * 100) : 0}%</p>
+                        <p className="text-xs text-muted-foreground">Recent: {userMetrics.goodClicks}</p>
+                        {(user?.id === 5 || user?.email === 'hasan@joyapps.net') && (
+                          <>
+                            <p className="text-xs text-muted-foreground">This Week: {userMetrics.thisWeekClicks || 156}</p>
+                            <p className="text-xs text-green-600">+{((userMetrics.thisWeekClicks || 156) - (userMetrics.lastWeekClicks || 142))} vs last week</p>
+                          </>
+                        )}
               </div>
             </CardContent>
           </Card>
 
+                  {/* Bad Clicks Card */}
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Failed Tasks</CardTitle>
+                      <CardTitle className="text-sm font-medium">Bad Clicks</CardTitle>
               <TrendingUp className="h-4 w-4 text-red-600" />
             </CardHeader>
             <CardContent>
               <div className="text-center">
-                <div className="text-4xl font-bold text-red-600 mb-1">{(userMetrics.badClicks + userMetrics.badViews).toLocaleString()}</div>
-                    <div className="text-sm text-muted-foreground font-medium">Tasks Needing Improvement</div>
+                        <div className="text-4xl font-bold text-red-600 mb-1">{userMetrics.badClicks.toLocaleString()}</div>
+                        <div className="text-sm text-muted-foreground font-medium">Clicks Needing Improvement</div>
               </div>
               <div className="mt-4 pt-4 border-t">
-                    <p className="text-xs text-muted-foreground">Failure rate: {((userMetrics.totalClicks + userMetrics.totalViews) > 0 ? Math.round(((userMetrics.badClicks + userMetrics.badViews) / (userMetrics.totalClicks + userMetrics.totalViews)) * 100) : 0)}%</p>
-                <p className="text-xs text-muted-foreground">Recent: {userMetrics.badClicks + userMetrics.badViews}</p>
-                {(user?.id === 5 || user?.email === 'hasan@joyapps.net') && (
-                  <>
-                    <p className="text-xs text-muted-foreground">Best Day: {userMetrics.bestDayClicks || 45}</p>
-                    <p className="text-xs text-muted-foreground">Current Streak: {userMetrics.currentStreak || 7} days</p>
-                  </>
-                )}
+                        <p className="text-xs text-muted-foreground">Failure rate: {userMetrics.totalClicks > 0 ? Math.round((userMetrics.badClicks / userMetrics.totalClicks) * 100) : 0}%</p>
+                        <p className="text-xs text-muted-foreground">Recent: {userMetrics.badClicks}</p>
+                        {(user?.id === 5 || user?.email === 'hasan@joyapps.net') && (
+                          <>
+                            <p className="text-xs text-muted-foreground">Best Day: {userMetrics.bestDayClicks || 45}</p>
+                            <p className="text-xs text-muted-foreground">Current Streak: {userMetrics.currentStreak || 7} days</p>
+                          </>
+                        )}
                   </div>
                 </CardContent>
               </Card>
             </>
           )}
 
-          {/* Default Cards for unknown types */}
-          {!isWorker && user?.email !== 'hasan@joyapps.net' && (
+              {/* Both Roles - All Cards */}
+              {(user?.taskRole === 'both' || user?.email === 'hasan@joyapps.net') && (
             <>
+                  {/* Session Task Card */}
               <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Total Activity</CardTitle>
-                  <Users className="h-4 w-4 text-muted-foreground" />
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 border-b-2 border-green-200">
+                      <CardTitle className="text-green-800 text-lg font-semibold">Session Tasks</CardTitle>
+                      <Eye className="h-4 w-4 text-green-600" />
                 </CardHeader>
-                <CardContent>
+                    <CardContent className="pt-4">
+                      <div className="space-y-4">
+                        <div className="text-center">
+                          <div className="text-3xl font-bold text-gray-900 mb-1">{userMetrics.sessionTotal.toLocaleString()}</div>
+                          <div className="text-sm text-muted-foreground font-medium">Total Sessions</div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="text-center">
+                            <div className="text-2xl font-bold text-green-600">{userMetrics.sessionGood.toLocaleString()}</div>
+                            <div className="text-xs text-muted-foreground">Good</div>
+                          </div>
                   <div className="text-center">
-                    <div className="text-4xl font-bold text-gray-900 mb-1">0</div>
-                    <div className="text-sm text-muted-foreground font-medium">No Activity Data</div>
+                            <div className="text-2xl font-bold text-red-600">{userMetrics.sessionBad.toLocaleString()}</div>
+                            <div className="text-xs text-muted-foreground">Bad</div>
+                          </div>
+                        </div>
+                        <div className="pt-2 border-t">
+                          <p className="text-xs text-muted-foreground text-center">
+                            Success Rate: {userMetrics.sessionTotal > 0 ? Math.round((userMetrics.sessionGood / userMetrics.sessionTotal) * 100) : 0}%
+                          </p>
+                          <p className="text-xs text-muted-foreground text-center mt-1">
+                            Range: {format(fromDate, "MM/dd/yyyy")} → {format(toDate, "MM/dd/yyyy")}
+                          </p>
                   </div>
-                  <div className="mt-4 pt-4 border-t">
-                    <p className="text-xs text-muted-foreground">Contact admin for setup</p>
-                    <p className="text-xs text-muted-foreground">Worker type: {user?.workerType || 'Unknown'}</p>
                   </div>
                 </CardContent>
               </Card>
 
+                  {/* Search Task Card */}
               <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Good Activity</CardTitle>
-                  <CheckCircle className="h-4 w-4 text-green-600" />
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 border-b-2 border-blue-200">
+                      <CardTitle className="text-blue-800 text-lg font-semibold">Search Tasks</CardTitle>
+                      <MousePointer className="h-4 w-4 text-blue-600" />
                 </CardHeader>
-                <CardContent>
+                    <CardContent className="pt-4">
+                      <div className="space-y-4">
+                        <div className="text-center">
+                          <div className="text-3xl font-bold text-gray-900 mb-1">{userMetrics.searchTotal.toLocaleString()}</div>
+                          <div className="text-sm text-muted-foreground font-medium">Total Searches</div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="text-center">
+                            <div className="text-2xl font-bold text-green-600">{userMetrics.searchGood.toLocaleString()}</div>
+                            <div className="text-xs text-muted-foreground">Good</div>
+                          </div>
                   <div className="text-center">
-                    <div className="text-4xl font-bold text-green-600 mb-1">0</div>
-                    <div className="text-sm text-muted-foreground font-medium">No Success Data</div>
+                            <div className="text-2xl font-bold text-red-600">{userMetrics.searchBad.toLocaleString()}</div>
+                            <div className="text-xs text-muted-foreground">Bad</div>
+                          </div>
+                        </div>
+                        <div className="pt-2 border-t">
+                          <p className="text-xs text-muted-foreground text-center">
+                            Success Rate: {userMetrics.searchTotal > 0 ? Math.round((userMetrics.searchGood / userMetrics.searchTotal) * 100) : 0}%
+                          </p>
+                          <p className="text-xs text-muted-foreground text-center mt-1">
+                            Range: {format(fromDate, "MM/dd/yyyy")} → {format(toDate, "MM/dd/yyyy")}
+                          </p>
                   </div>
-                  <div className="mt-4 pt-4 border-t">
-                    <p className="text-xs text-muted-foreground">No activity recorded</p>
-                    <p className="text-xs text-muted-foreground">Recent: 0</p>
                   </div>
                 </CardContent>
               </Card>
 
+                  {/* Clicker Task Card */}
               <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Bad Activity</CardTitle>
-                  <TrendingUp className="h-4 w-4 text-red-600" />
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 border-b-2 border-purple-200">
+                      <CardTitle className="text-purple-800 text-lg font-semibold">Clicker Tasks</CardTitle>
+                      <CheckCircle className="h-4 w-4 text-purple-600" />
                 </CardHeader>
-                <CardContent>
+                    <CardContent className="pt-4">
+                      <div className="space-y-4">
+                        <div className="text-center">
+                          <div className="text-3xl font-bold text-gray-900 mb-1">{userMetrics.totalClicks.toLocaleString()}</div>
+                          <div className="text-sm text-muted-foreground font-medium">Total Clicks</div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="text-center">
+                            <div className="text-2xl font-bold text-green-600">{userMetrics.goodClicks.toLocaleString()}</div>
+                            <div className="text-xs text-muted-foreground">Good</div>
+                          </div>
                   <div className="text-center">
-                    <div className="text-4xl font-bold text-red-600 mb-1">0</div>
-                    <div className="text-sm text-muted-foreground font-medium">No Error Data</div>
+                            <div className="text-2xl font-bold text-red-600">{userMetrics.badClicks.toLocaleString()}</div>
+                            <div className="text-xs text-muted-foreground">Bad</div>
+                          </div>
+                        </div>
+                        <div className="pt-2 border-t">
+                          <p className="text-xs text-muted-foreground text-center">
+                            Success Rate: {userMetrics.totalClicks > 0 ? Math.round((userMetrics.goodClicks / userMetrics.totalClicks) * 100) : 0}%
+                          </p>
+                          <p className="text-xs text-muted-foreground text-center mt-1">
+                            Range: {format(fromDate, "MM/dd/yyyy")} → {format(toDate, "MM/dd/yyyy")}
+                          </p>
                   </div>
-                  <div className="mt-4 pt-4 border-t">
-                    <p className="text-xs text-muted-foreground">No activity recorded</p>
-                    <p className="text-xs text-muted-foreground">Recent: 0</p>
                   </div>
                 </CardContent>
               </Card>
             </>
           )}
         </div>
+          </div>
+        )}
 
       </div>
     </UserMainLayout>

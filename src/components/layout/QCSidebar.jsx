@@ -27,11 +27,11 @@ const navigation = [
     href: "/qc-tasks",
     icon: CheckSquare,
   },
-  {
-    name: "Quality Reports",
-    href: "/qc-reports",
-    icon: BarChart3,
-  },
+  // {
+  //   name: "Quality Reports",
+  //   href: "/qc-reports",
+  //   icon: BarChart3,
+  // },
   // {
   //   name: "Settings",
   //   href: "/qc-settings",

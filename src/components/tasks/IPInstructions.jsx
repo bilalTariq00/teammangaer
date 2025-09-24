@@ -138,6 +138,7 @@ export default function IPInstructions({
   const [selectedReason, setSelectedReason] = useState('');
   const [pageVisitCount, setPageVisitCount] = useState('');
   const [screenshot, setScreenshot] = useState(null);
+  const [screenshot2, setScreenshot2] = useState(null); // Second screenshot for clicker
   const [isSubmitted, setIsSubmitted] = useState(false);
   
   // Dialog states for clicker data
@@ -159,6 +160,7 @@ export default function IPInstructions({
     setSelectedReason('');
     setPageVisitCount('');
     setScreenshot(null);
+    setScreenshot2(null);
     setIsSubmitted(false);
     
     // Reset clicker-specific states
@@ -217,11 +219,66 @@ export default function IPInstructions({
     }
   };
 
+  const handleScreenshot2Upload = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      setScreenshot2(file);
+      toast.success("Second screenshot uploaded successfully!");
+    }
+  };
+
+  const handleScreenshotPaste = (event) => {
+    event.preventDefault();
+    const items = event.clipboardData?.items;
+    
+    if (items) {
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        if (item.type.indexOf('image') !== -1) {
+          const file = item.getAsFile();
+          if (file) {
+            // Create a File object with a name
+            const namedFile = new File([file], `screenshot-${Date.now()}.png`, { type: file.type });
+            setScreenshot(namedFile);
+            toast.success("Screenshot pasted successfully!");
+            return;
+          }
+        }
+      }
+    }
+    
+    toast.error("No image found in clipboard. Please copy an image first.");
+  };
+
+  const handleScreenshot2Paste = (event) => {
+    event.preventDefault();
+    const items = event.clipboardData?.items;
+    
+    if (items) {
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        if (item.type.indexOf('image') !== -1) {
+          const file = item.getAsFile();
+          if (file) {
+            // Create a File object with a name
+            const namedFile = new File([file], `screenshot2-${Date.now()}.png`, { type: file.type });
+            setScreenshot2(namedFile);
+            toast.success("Second screenshot pasted successfully!");
+            return;
+          }
+        }
+      }
+    }
+    
+    toast.error("No image found in clipboard. Please copy an image first.");
+  };
+
   const handleReloadLink = () => {
     setTaskStatus('');
     setSelectedReason('');
     setPageVisitCount('');
     setScreenshot(null);
+    setScreenshot2(null);
     setIsSubmitted(false);
     setFormFillAvailability(false);
     toast.success(`Viewer Task ${taskNumber} link reloaded!`);
@@ -237,7 +294,13 @@ export default function IPInstructions({
 
   const isFormValid = () => {
     if (taskStatus === 'completed') {
+      if (taskType === 'clicker' && pageVisitCount === 'yes') {
+        // For clicker with Yes, require both screenshots
+        return screenshot && screenshot2 && pageVisitCount;
+      } else {
+        // For viewer or clicker with No, only require first screenshot
       return screenshot && pageVisitCount;
+      }
     } else if (taskStatus === 'notCompleted') {
       return selectedReason;
     }
@@ -250,8 +313,16 @@ export default function IPInstructions({
         toast.error("Screenshot is mandatory when task is completed!");
         return;
       }
+      if (taskType === 'clicker' && pageVisitCount === 'yes' && !screenshot2) {
+        toast.error("Second screenshot is required when you filled the form!");
+        return;
+      }
       if (!pageVisitCount) {
+        if (taskType === 'clicker') {
+          toast.error("Please select if you filled the form!");
+        } else {
         toast.error("Please select how many pages you visited!");
+        }
         return;
       }
     } else if (taskStatus === 'notCompleted') {
@@ -292,9 +363,17 @@ export default function IPInstructions({
 
   return (
     <Card className="">
-      <CardHeader className=" pb-2 border-b-2 border-green-200">
+      <CardHeader className={`pb-2 border-b-2 ${
+        taskType === 'viewer1' ? 'border-green-200' : 
+        taskType === 'viewer2' ? 'border-blue-200' : 
+        'border-gray-200'
+      }`}>
         <div className="flex items-center justify-between">
-        <CardTitle className="text-green-800 text-lg font-semibold">
+        <CardTitle className={`text-lg font-semibold ${
+          taskType === 'viewer1' ? 'text-green-800' : 
+          taskType === 'viewer2' ? 'text-blue-800' : 
+          'text-gray-800'
+        }`}>
           {taskType === 'viewer1' ? 'Viewer Task 1/Session' : 
            taskType === 'viewer2' ? 'Viewer Task 2/Search' : 
            taskType === 'clicker' ? 'Clicker Task' : 'Task Instructions'}
@@ -375,7 +454,7 @@ export default function IPInstructions({
           {timeRemaining === 0 && (
             <div className="bg-red-100 border border-red-300 rounded p-3">
               <div className="flex items-center justify-between">
-                <p className="text-xs text-red-700 font-medium">
+              <p className="text-xs text-red-700 font-medium">
                   ❌ Link has expired! Click reload to get a new link.
                 </p>
                 <Button 
@@ -422,7 +501,7 @@ export default function IPInstructions({
           {timeRemaining === 0 && (
             <div className="bg-red-100 border border-red-300 rounded p-3">
               <div className="flex items-center justify-between">
-                <p className="text-xs text-red-700 font-medium">
+              <p className="text-xs text-red-700 font-medium">
                   ❌ Link has expired! Click reload to get a new link.
                 </p>
                 <Button 
@@ -502,6 +581,27 @@ export default function IPInstructions({
           {/* Completed Section */}
           {taskStatus === 'completed' && (
             <div className="space-y-3">
+              {/* Different questions based on task type */}
+              {taskType === 'clicker' ? (
+                <>
+                  <h5 className="font-medium">Did you fill the form in this link?</h5>
+                  <RadioGroup value={pageVisitCount} onValueChange={setPageVisitCount} className="flex space-x-6">
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="yes" id={`task${taskNumber}-formYes`} />
+                      <label htmlFor={`task${taskNumber}-formYes`} className="text-sm font-medium text-gray-700 cursor-pointer">
+                        Yes
+                      </label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="no" id={`task${taskNumber}-formNo`} />
+                      <label htmlFor={`task${taskNumber}-formNo`} className="text-sm font-medium text-gray-700 cursor-pointer">
+                        No
+                      </label>
+                    </div>
+                  </RadioGroup>
+                </>
+              ) : (
+                <>
               <h5 className="font-medium">Did you visit 1 page or 2 pages on the site?</h5>
               <RadioGroup value={pageVisitCount} onValueChange={setPageVisitCount} className="flex space-x-6">
                 <div className="flex items-center space-x-2">
@@ -517,9 +617,11 @@ export default function IPInstructions({
                   </label>
                 </div>
               </RadioGroup>
+                </>
+              )}
               
               {/* Form Fill Availability - Only for Clicker Tasks */}
-              {taskType === 'clicker' && (
+              {/* {taskType === 'clicker' && (
                 <div className="space-y-2">
                   <div className="flex items-center space-x-2">
                     <Checkbox 
@@ -532,23 +634,115 @@ export default function IPInstructions({
                     </label>
                   </div>
                 </div>
-              )}
+              )} */}
               
               <div className="space-y-2">
                 <label className="block text-sm font-medium">
                   Upload Screenshot <span className="text-red-500">*</span>
                 </label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleScreenshotUpload}
-                  className="w-full p-2 border rounded-md"
-                  required
-                />
-                {screenshot && (
-                  <p className="text-sm text-green-600">✓ Screenshot uploaded: {screenshot.name}</p>
-                )}
+                
+                {/* Screenshot Paste Area - Only for Clicker Tasks */}
+                
+                  <div 
+                    className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center cursor-pointer hover:border-gray-400 transition-colors"
+                    onPaste={handleScreenshotPaste}
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.ctrlKey && e.key === 'v') {
+                        e.preventDefault();
+                        handleScreenshotPaste(e);
+                      }
+                    }}
+                  >
+                    {screenshot ? (
+                      <div className="space-y-2">
+                        <img 
+                          src={URL.createObjectURL(screenshot)} 
+                          alt="Screenshot preview" 
+                          className="w-32 h-24 object-cover rounded border mx-auto"
+                        />
+                        <div className="flex items-center justify-center gap-2">
+                          <p className="text-sm text-green-600">✓ Screenshot pasted successfully!</p>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setScreenshot(null);
+                              toast.success("Screenshot removed!");
+                            }}
+                            className="text-red-500 hover:text-red-700 text-xs underline"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                        <p className="text-xs text-gray-500">Click to paste a different image</p>
+                      </div>
+                    ) : (
+                      <div className="text-gray-500">
+                        <p className="text-sm mb-2">📋 Paste screenshot with <kbd className="px-2 py-1 bg-gray-100 rounded text-xs">Ctrl + V</kbd></p>
+                        <p className="text-xs text-gray-400">Click here and press Ctrl+V to paste your screenshot</p>
+                      </div>
+                    )}
+                  </div>
+               
+               
+                
+               
               </div>
+
+              {/* Second Screenshot - Only for Clicker when Yes is selected */}
+              {taskType === 'clicker' && pageVisitCount === 'yes' && (
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium">
+                    Upload Form Screenshot <span className="text-red-500">*</span>
+                  </label>
+                  
+                  {/* Second Screenshot Paste Area - Only for Clicker Tasks */}
+                  <div 
+                    className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center cursor-pointer hover:border-gray-400 transition-colors"
+                    onPaste={handleScreenshot2Paste}
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.ctrlKey && e.key === 'v') {
+                        e.preventDefault();
+                        handleScreenshot2Paste(e);
+                      }
+                    }}
+                  >
+                    {screenshot2 ? (
+                      <div className="space-y-2">
+                        <img 
+                          src={URL.createObjectURL(screenshot2)} 
+                          alt="Form screenshot preview" 
+                          className="w-32 h-24 object-cover rounded border mx-auto"
+                        />
+                        <div className="flex items-center justify-center gap-2">
+                          <p className="text-sm text-green-600">✓ Form screenshot pasted successfully!</p>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setScreenshot2(null);
+                              toast.success("Form screenshot removed!");
+                            }}
+                            className="text-red-500 hover:text-red-700 text-xs underline"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                        <p className="text-xs text-gray-500">Click to paste a different image</p>
+                      </div>
+                    ) : (
+                      <div className="text-gray-500">
+                        <p className="text-sm mb-2">📋 Paste form screenshot with <kbd className="px-2 py-1 bg-gray-100 rounded text-xs">Ctrl + V</kbd></p>
+                        <p className="text-xs text-gray-400">Click here and press Ctrl+V to paste your form screenshot</p>
+                      </div>
+                    )}
+                  </div>
+                  
+                
+                </div>
+              )}
             </div>
           )}
 
@@ -558,7 +752,10 @@ export default function IPInstructions({
             disabled={isSubmitted || !taskStatus || !isFormValid()}
             className={`w-full ${isSubmitted ? 'bg-gray-400 cursor-not-allowed' : !taskStatus || !isFormValid() ? 'bg-gray-300 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'}`}
           >
-            {isSubmitted ? 'Submitted' : !taskStatus ? 'Select Task Status' : !isFormValid() ? 'Fill Required Fields' : `Submit Task ${taskNumber}`}
+            {isSubmitted ? 'Submitted' : 
+             !taskStatus ? 'Select Task Status' : 
+             !isFormValid() ? (taskType === 'clicker' && pageVisitCount === 'yes' ? 'Upload Both Screenshots' : 'Fill Required Fields') : 
+             (taskType === 'clicker' ? 'Submit Clicker Task' : `Submit Task ${taskNumber}`)}
           </Button>
         </div>
       </CardContent>
