@@ -189,76 +189,46 @@ const getMetricsForRange = (selectedRange, campaignWorkers) => {
 
   const multiplier = rangeMultipliers[selectedRange] || 1;
 
+  // Safely get worker arrays with fallbacks
+  const permanentWorkers = campaignWorkers?.permanentWorkers || [];
+  const traineeWorkers = campaignWorkers?.traineeWorkers || [];
+
   // Calculate actual worker counts and metrics from the campaign data
-  const permanentWorkersCount = campaignWorkers.permanentWorkers.length;
-  const traineeWorkersCount = campaignWorkers.traineeWorkers.length;
+  const permanentWorkersCount = permanentWorkers.length;
+  const traineeWorkersCount = traineeWorkers.length;
 
-  // Calculate total clicks for each category
-  const permanentViewersClicks = campaignWorkers.permanentViewers.reduce((sum, workerId) => {
-    const worker = permanentViewers.find(w => w.id === workerId);
+  // Calculate total clicks for each category - using the actual worker data
+  const permanentWorkersClicks = permanentWorkers.reduce((sum, workerId) => {
+    const worker = permanentWorkers.find(w => w.id === workerId);
     return sum + (worker ? worker.clicks : 0);
   }, 0);
-  const permanentViewersSuccess = campaignWorkers.permanentViewers.reduce((sum, workerId) => {
-    const worker = permanentViewers.find(w => w.id === workerId);
+  const permanentWorkersSuccess = permanentWorkers.reduce((sum, workerId) => {
+    const worker = permanentWorkers.find(w => w.id === workerId);
     return sum + (worker ? worker.success : 0);
   }, 0);
-  const permanentViewersFailed = campaignWorkers.permanentViewers.reduce((sum, workerId) => {
-    const worker = permanentViewers.find(w => w.id === workerId);
+  const permanentWorkersFailed = permanentWorkers.reduce((sum, workerId) => {
+    const worker = permanentWorkers.find(w => w.id === workerId);
     return sum + (worker ? worker.failed : 0);
   }, 0);
-  const permanentViewersFormFills = campaignWorkers.permanentViewers.reduce((sum, workerId) => {
-    const worker = permanentViewers.find(w => w.id === workerId);
+  const permanentWorkersFormFills = permanentWorkers.reduce((sum, workerId) => {
+    const worker = permanentWorkers.find(w => w.id === workerId);
     return sum + (worker ? worker.formFills : 0);
   }, 0);
 
-  const permanentClickersClicks = campaignWorkers.permanentClickers.reduce((sum, workerId) => {
-    const worker = permanentClickers.find(w => w.id === workerId);
+  const traineeWorkersClicks = traineeWorkers.reduce((sum, workerId) => {
+    const worker = traineeWorkers.find(w => w.id === workerId);
     return sum + (worker ? worker.clicks : 0);
   }, 0);
-  const permanentClickersSuccess = campaignWorkers.permanentClickers.reduce((sum, workerId) => {
-    const worker = permanentClickers.find(w => w.id === workerId);
+  const traineeWorkersSuccess = traineeWorkers.reduce((sum, workerId) => {
+    const worker = traineeWorkers.find(w => w.id === workerId);
     return sum + (worker ? worker.success : 0);
   }, 0);
-  const permanentClickersFailed = campaignWorkers.permanentClickers.reduce((sum, workerId) => {
-    const worker = permanentClickers.find(w => w.id === workerId);
+  const traineeWorkersFailed = traineeWorkers.reduce((sum, workerId) => {
+    const worker = traineeWorkers.find(w => w.id === workerId);
     return sum + (worker ? worker.failed : 0);
   }, 0);
-  const permanentClickersFormFills = campaignWorkers.permanentClickers.reduce((sum, workerId) => {
-    const worker = permanentClickers.find(w => w.id === workerId);
-    return sum + (worker ? worker.formFills : 0);
-  }, 0);
-
-  const traineeViewersClicks = campaignWorkers.traineeViewers.reduce((sum, workerId) => {
-    const worker = traineeViewers.find(w => w.id === workerId);
-    return sum + (worker ? worker.clicks : 0);
-  }, 0);
-  const traineeViewersSuccess = campaignWorkers.traineeViewers.reduce((sum, workerId) => {
-    const worker = traineeViewers.find(w => w.id === workerId);
-    return sum + (worker ? worker.success : 0);
-  }, 0);
-  const traineeViewersFailed = campaignWorkers.traineeViewers.reduce((sum, workerId) => {
-    const worker = traineeViewers.find(w => w.id === workerId);
-    return sum + (worker ? worker.failed : 0);
-  }, 0);
-  const traineeViewersFormFills = campaignWorkers.traineeViewers.reduce((sum, workerId) => {
-    const worker = traineeViewers.find(w => w.id === workerId);
-    return sum + (worker ? worker.formFills : 0);
-  }, 0);
-
-  const traineeClickersClicks = campaignWorkers.traineeClickers.reduce((sum, workerId) => {
-    const worker = traineeClickers.find(w => w.id === workerId);
-    return sum + (worker ? worker.clicks : 0);
-  }, 0);
-  const traineeClickersSuccess = campaignWorkers.traineeClickers.reduce((sum, workerId) => {
-    const worker = traineeClickers.find(w => w.id === workerId);
-    return sum + (worker ? worker.success : 0);
-  }, 0);
-  const traineeClickersFailed = campaignWorkers.traineeClickers.reduce((sum, workerId) => {
-    const worker = traineeClickers.find(w => w.id === workerId);
-    return sum + (worker ? worker.failed : 0);
-  }, 0);
-  const traineeClickersFormFills = campaignWorkers.traineeClickers.reduce((sum, workerId) => {
-    const worker = traineeClickers.find(w => w.id === workerId);
+  const traineeWorkersFormFills = traineeWorkers.reduce((sum, workerId) => {
+    const worker = traineeWorkers.find(w => w.id === workerId);
     return sum + (worker ? worker.formFills : 0);
   }, 0);
 
@@ -268,10 +238,10 @@ const getMetricsForRange = (selectedRange, campaignWorkers) => {
       icon: Users,
       metrics: {
         activeWorkers: permanentWorkersCount,
-        totalClicks: Math.floor((permanentViewersClicks + permanentClickersClicks) * multiplier),
-        goodClicks: Math.floor((permanentViewersSuccess + permanentClickersSuccess) * multiplier),
-        badClicks: Math.floor((permanentViewersFailed + permanentClickersFailed) * multiplier),
-        formFills: Math.floor((permanentViewersFormFills + permanentClickersFormFills) * multiplier)
+        totalClicks: Math.floor(permanentWorkersClicks * multiplier),
+        goodClicks: Math.floor(permanentWorkersSuccess * multiplier),
+        badClicks: Math.floor(permanentWorkersFailed * multiplier),
+        formFills: Math.floor(permanentWorkersFormFills * multiplier)
       }
     }
   ];
@@ -282,10 +252,10 @@ const getMetricsForRange = (selectedRange, campaignWorkers) => {
       icon: Users,
       metrics: {
         activeWorkers: traineeWorkersCount,
-        totalClicks: Math.floor((traineeViewersClicks + traineeClickersClicks) * multiplier),
-        goodClicks: Math.floor((traineeViewersSuccess + traineeClickersSuccess) * multiplier),
-        badClicks: Math.floor((traineeViewersFailed + traineeClickersFailed) * multiplier),
-        formFills: Math.floor((traineeViewersFormFills + traineeClickersFormFills) * multiplier)
+        totalClicks: Math.floor(traineeWorkersClicks * multiplier),
+        goodClicks: Math.floor(traineeWorkersSuccess * multiplier),
+        badClicks: Math.floor(traineeWorkersFailed * multiplier),
+        formFills: Math.floor(traineeWorkersFormFills * multiplier)
       }
     }
   ];
@@ -707,10 +677,8 @@ export default function CampaignsPage() {
                   // Get all workers assigned to this campaign
                   const allWorkers = [...permanentWorkers, ...traineeWorkers, ...additionalWorkers, ...moreWorkers];
                   const campaignWorkerIds = [
-                    ...selectedCampaign.workers.permanentViewers,
-                    ...selectedCampaign.workers.permanentClickers,
-                    ...selectedCampaign.workers.traineeViewers,
-                    ...selectedCampaign.workers.traineeClickers
+                    ...selectedCampaign.workers.permanentWorkers,
+                    ...selectedCampaign.workers.traineeWorkers
                   ];
                   const campaignWorkers = allWorkers.filter(worker => campaignWorkerIds.includes(worker.id));
                   
@@ -736,10 +704,8 @@ export default function CampaignsPage() {
                     // Get all workers assigned to this campaign
                     const allWorkers = [...permanentWorkers, ...traineeWorkers, ...additionalWorkers, ...moreWorkers];
                     const campaignWorkerIds = [
-                      ...selectedCampaign.workers.permanentViewers,
-                      ...selectedCampaign.workers.permanentClickers,
-                      ...selectedCampaign.workers.traineeViewers,
-                      ...selectedCampaign.workers.traineeClickers
+                      ...selectedCampaign.workers.permanentWorkers,
+                      ...selectedCampaign.workers.traineeWorkers
                     ];
                     const campaignWorkers = allWorkers.filter(worker => campaignWorkerIds.includes(worker.id));
                     
