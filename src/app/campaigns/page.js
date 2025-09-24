@@ -20,12 +20,9 @@ const quickDateRanges = [
   "Today",
   "Yesterday", 
   "Last 7 Days",
-  "Last 14 Days",
+  
   "Last 30 Days",
-  "Last 60 Days",
-  "Last 90 Days",
-  "This Month",
-  "Last Month",
+  
   "All Time"
 ];
 
@@ -412,41 +409,41 @@ export default function CampaignsPage() {
         setFromDate(last7Days);
         setToDate(today);
         break;
-      case "Last 14 Days":
-        const last14Days = new Date(today);
-        last14Days.setDate(last14Days.getDate() - 14);
-        setFromDate(last14Days);
-        setToDate(today);
-        break;
+      // case "Last 14 Days":
+      //   const last14Days = new Date(today);
+      //   last14Days.setDate(last14Days.getDate() - 14);
+      //   setFromDate(last14Days);
+      //   setToDate(today);
+      //   break;
       case "Last 30 Days":
         const last30Days = new Date(today);
         last30Days.setDate(last30Days.getDate() - 30);
         setFromDate(last30Days);
         setToDate(today);
         break;
-      case "Last 60 Days":
-        const last60Days = new Date(today);
-        last60Days.setDate(last60Days.getDate() - 60);
-        setFromDate(last60Days);
-        setToDate(today);
-        break;
-      case "Last 90 Days":
-        const last90Days = new Date(today);
-        last90Days.setDate(last90Days.getDate() - 90);
-        setFromDate(last90Days);
-        setToDate(today);
-        break;
-      case "This Month":
-        const thisMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-        setFromDate(thisMonth);
-        setToDate(today);
-        break;
-      case "Last Month":
-        const lastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-        const lastMonthEnd = new Date(today.getFullYear(), today.getMonth(), 0);
-        setFromDate(lastMonth);
-        setToDate(lastMonthEnd);
-        break;
+      // case "Last 60 Days":
+      //   const last60Days = new Date(today);
+      //   last60Days.setDate(last60Days.getDate() - 60);
+      //   setFromDate(last60Days);
+      //   setToDate(today);
+      //   break;
+      // case "Last 90 Days":
+      //   const last90Days = new Date(today);
+      //   last90Days.setDate(last90Days.getDate() - 90);
+      //   setFromDate(last90Days);
+      //   setToDate(today);
+      //   break;
+      // case "This Month":
+      //   const thisMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+      //   setFromDate(thisMonth);
+      //   setToDate(today);
+      //   break;
+      // case "Last Month":
+      //   const lastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+      //   const lastMonthEnd = new Date(today.getFullYear(), today.getMonth(), 0);
+      //   setFromDate(lastMonth);
+      //   setToDate(lastMonthEnd);
+      //   break;
       case "All Time":
         const allTime = new Date(2024, 0, 1);
         setFromDate(allTime);
@@ -464,12 +461,12 @@ export default function CampaignsPage() {
       "Today": 0.1,
       "Yesterday": 0.15,
       "Last 7 Days": 0.3,
-      "Last 14 Days": 0.5,
+      // "Last 14 Days": 0.5,
       "Last 30 Days": 0.7,
-      "Last 60 Days": 0.85,
-      "Last 90 Days": 0.95,
-      "This Month": 0.6,
-      "Last Month": 0.4,
+      // "Last 60 Days": 0.85,
+      // "Last 90 Days": 0.95,
+      // "This Month": 0.6,
+      // "Last Month": 0.4,
       "All Time": 1.0
     };
     
@@ -493,7 +490,7 @@ export default function CampaignsPage() {
   };
 
   // Get metrics based on selected range and campaign
-  const { permanentMetrics, traineeMetrics } = selectedCampaign 
+  const { permanentMetrics, traineeMetrics } = selectedCampaign && selectedCampaign.workers
     ? getMetricsForRange(selectedRange, selectedCampaign.workers)
     : { permanentMetrics: [], traineeMetrics: [] };
 
@@ -785,7 +782,7 @@ export default function CampaignsPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex flex-row sm:flex-row gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="from-date">From</Label>
                   <Popover>
@@ -916,19 +913,19 @@ export default function CampaignsPage() {
                           
                           {/* Total Clicks */}
                           <div className="text-center">
-                            <div className="text-3xl font-bold text-orange-600 mb-1">{item.metrics.totalClicks.toLocaleString()}</div>
+                            <div className="text-3xl font-bold text-orange-600 mb-1">{(item.metrics.totalClicks || 0).toLocaleString()}</div>
                             <div className="text-sm text-muted-foreground font-medium">Total Clicks</div>
                           </div>
                           
                           {/* Good Clicks */}
                           <div className="text-center">
-                            <div className="text-3xl font-bold text-green-600 mb-1">{item.metrics.goodClicks.toLocaleString()}</div>
+                            <div className="text-3xl font-bold text-green-600 mb-1">{(item.metrics.goodClicks || 0).toLocaleString()}</div>
                             <div className="text-sm text-muted-foreground font-medium">Good Clicks</div>
                           </div>
                           
                           {/* Bad Clicks */}
                           <div className="text-center">
-                            <div className="text-3xl font-bold text-red-600 mb-1">{item.metrics.badClicks.toLocaleString()}</div>
+                            <div className="text-3xl font-bold text-red-600 mb-1">{(item.metrics.badClicks || 0).toLocaleString()}</div>
                             <div className="text-sm text-muted-foreground font-medium">Bad Clicks</div>
                           </div>
                           
@@ -974,19 +971,19 @@ export default function CampaignsPage() {
                           
                           {/* Total Clicks */}
                           <div className="text-center">
-                            <div className="text-3xl font-bold text-orange-600 mb-1">{item.metrics.totalClicks.toLocaleString()}</div>
+                            <div className="text-3xl font-bold text-orange-600 mb-1">{(item.metrics.totalClicks || 0).toLocaleString()}</div>
                             <div className="text-sm text-muted-foreground font-medium">Total Clicks</div>
                           </div>
                           
                           {/* Good Clicks */}
                           <div className="text-center">
-                            <div className="text-3xl font-bold text-green-600 mb-1">{item.metrics.goodClicks.toLocaleString()}</div>
+                            <div className="text-3xl font-bold text-green-600 mb-1">{(item.metrics.goodClicks || 0).toLocaleString()}</div>
                             <div className="text-sm text-muted-foreground font-medium">Good Clicks</div>
                           </div>
                           
                           {/* Bad Clicks */}
                           <div className="text-center">
-                            <div className="text-3xl font-bold text-red-600 mb-1">{item.metrics.badClicks.toLocaleString()}</div>
+                            <div className="text-3xl font-bold text-red-600 mb-1">{(item.metrics.badClicks || 0).toLocaleString()}</div>
                             <div className="text-sm text-muted-foreground font-medium">Bad Clicks</div>
                           </div>
                           
@@ -1139,9 +1136,9 @@ export default function CampaignsPage() {
                           {filteredCampaign.status}
                         </span>
                       </TableCell>
-                      <TableCell>{filteredCampaign.totalClicks.toLocaleString()}</TableCell>
+                      <TableCell>{(filteredCampaign.totalClicks || 0).toLocaleString()}</TableCell>
                       <TableCell>{filteredCampaign.conversionRate}%</TableCell>
-                      <TableCell>${filteredCampaign.spent.toLocaleString()} / ${filteredCampaign.budget.toLocaleString()}</TableCell>
+                      <TableCell>${(filteredCampaign.spent || 0).toLocaleString()} / ${(filteredCampaign.budget || 0).toLocaleString()}</TableCell>
                       <TableCell>
                         <Button variant="outline" size="sm">
                           View Details

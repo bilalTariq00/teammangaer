@@ -590,12 +590,12 @@ const quickDateRanges = [
   "Today",
   "Yesterday",
   "Last 7 Days",
-  "Last 14 Days",
+  // "Last 14 Days",
   "Last 30 Days",
-  "Last 60 Days",
-  "Last 90 Days",
-  "This Month",
-  "Last Month",
+  // "Last 60 Days",
+  // "Last 90 Days",
+  // "This Month",
+  // "Last Month",
   "All Time"
 ];
 

@@ -19,12 +19,12 @@ const quickDateRanges = [
   "Today",
   "Yesterday", 
   "Last 7 Days",
-  "Last 14 Days",
+  // "Last 14 Days",
   "Last 30 Days",
-  "Last 60 Days",
-  "Last 90 Days",
-  "This Month",
-  "Last Month",
+  // "Last 60 Days",
+  // "Last 90 Days",
+  // "This Month",
+  // "Last Month",
   "All Time"
 ];
 
@@ -63,14 +63,23 @@ const getUserMetrics = (userId, fromDate, toDate, selectedRange) => {
       recentViews: 12
     },
     5: { // Hasan Abbas - Permanent Clicker
-      totalClicks: 2847,
-      goodClicks: 2456,
-      badClicks: 391,
-      recentClicks: 12,
+      totalClicks: 3847,
+      goodClicks: 3256,
+      badClicks: 591,
+      recentClicks: 18,
       totalViews: 0,
       goodViews: 0,
       badViews: 0,
-      recentViews: 0
+      recentViews: 0,
+      // Additional activity metrics
+      todayClicks: 23,
+      yesterdayClicks: 19,
+      thisWeekClicks: 156,
+      lastWeekClicks: 142,
+      avgDailyClicks: 128,
+      bestDayClicks: 45,
+      currentStreak: 7,
+      longestStreak: 23
     },
     6: { // Adnan Amir - Trainee Clicker
       totalClicks: 26,
@@ -147,29 +156,51 @@ const getUserMetrics = (userId, fromDate, toDate, selectedRange) => {
 
   // Simulate different data based on date range
   const rangeMultipliers = {
-    "Today": 0.1,
-    "Yesterday": 0.08,
-    "Last 7 Days": 0.3,
-    "Last 14 Days": 0.6,
+    "Today": 0.15,
+    "Yesterday": 0.12,
+    "Last 7 Days": 0.45,
+    // "Last 14 Days": 0.6,
     "Last 30 Days": 1,
-    "Last 60 Days": 1.5,
-    "Last 90 Days": 2,
-    "This Month": 0.8,
-    "Last Month": 0.7,
-    "All Time": 1
+    // "Last 60 Days": 1.5,
+    // "Last 90 Days": 2,
+    // "This Month": 0.8,
+    // "Last Month": 0.7,
+    "All Time": 1.2
   };
 
   const multiplier = rangeMultipliers[selectedRange] || 1;
   
+  // Add some daily variation for more realistic data
+  const today = new Date();
+  const dayOfWeek = today.getDay(); // 0 = Sunday, 6 = Saturday
+  const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+  
+  // Weekend activity is typically lower
+  const weekendMultiplier = isWeekend ? 0.7 : 1;
+  
+  // Add some random variation (±5%) for more realistic data
+  const randomVariation = 0.95 + Math.random() * 0.1; // 0.95 to 1.05
+  
+  const finalMultiplier = multiplier * weekendMultiplier * randomVariation;
+  
   return {
-    totalClicks: Math.floor(userData.totalClicks * multiplier),
-    goodClicks: Math.floor(userData.goodClicks * multiplier),
-    badClicks: Math.floor(userData.badClicks * multiplier),
-    recentClicks: Math.floor(userData.recentClicks * multiplier),
-    totalViews: Math.floor(userData.totalViews * multiplier),
-    goodViews: Math.floor(userData.goodViews * multiplier),
-    badViews: Math.floor(userData.badViews * multiplier),
-    recentViews: Math.floor(userData.recentViews * multiplier)
+    totalClicks: Math.floor(userData.totalClicks * finalMultiplier),
+    goodClicks: Math.floor(userData.goodClicks * finalMultiplier),
+    badClicks: Math.floor(userData.badClicks * finalMultiplier),
+    recentClicks: Math.floor(userData.recentClicks * finalMultiplier),
+    totalViews: Math.floor(userData.totalViews * finalMultiplier),
+    goodViews: Math.floor(userData.goodViews * finalMultiplier),
+    badViews: Math.floor(userData.badViews * finalMultiplier),
+    recentViews: Math.floor(userData.recentViews * finalMultiplier),
+    // Additional metrics for Hasan
+    todayClicks: userData.todayClicks || 0,
+    yesterdayClicks: userData.yesterdayClicks || 0,
+    thisWeekClicks: userData.thisWeekClicks || 0,
+    lastWeekClicks: userData.lastWeekClicks || 0,
+    avgDailyClicks: userData.avgDailyClicks || 0,
+    bestDayClicks: userData.bestDayClicks || 0,
+    currentStreak: userData.currentStreak || 0,
+    longestStreak: userData.longestStreak || 0
   };
 };
 
@@ -196,6 +227,12 @@ export default function UserDashboardPage() {
 
   // Get user-specific metrics based on current user and date range
   const userMetrics = getUserMetrics(user?.id, fromDate, toDate, selectedRange);
+  
+  // Debug logging for Hasan
+  if (user?.id === 5) {
+    console.log('Hasan user data:', user);
+    console.log('Hasan metrics:', userMetrics);
+  }
   
   // If no user is logged in, show a message
   if (!user) {
@@ -275,13 +312,15 @@ export default function UserDashboardPage() {
   }
 
   // Determine user type based on workerType (only for workers, not managers)
-  const isWorker = user?.workerType?.includes('worker');
-  const isPermanent = user?.workerType?.includes('permanent');
-  const isTrainee = user?.workerType?.includes('trainee');
+  const isWorker = user?.workerType?.includes('worker') || user?.role === 'worker';
+  const isPermanent = user?.workerType?.includes('permanent') || user?.status === 'permanent';
+  const isTrainee = user?.workerType?.includes('trainee') || user?.status === 'trainee';
   
   // Debug logging
   console.log('User object:', user);
   console.log('WorkerType:', user?.workerType);
+  console.log('Role:', user?.role);
+  console.log('Status:', user?.status);
   console.log('Is Worker:', isWorker);
   console.log('Is Permanent:', isPermanent);
   console.log('Is Trainee:', isTrainee);
@@ -323,12 +362,12 @@ export default function UserDashboardPage() {
         setFromDate(last7Days);
         setToDate(today);
         break;
-      case "Last 14 Days":
-        const last14Days = new Date(today);
-        last14Days.setDate(last14Days.getDate() - 14);
-        setFromDate(last14Days);
-        setToDate(today);
-        break;
+      // case "Last 14 Days":
+      //   const last14Days = new Date(today);
+      //   last14Days.setDate(last14Days.getDate() - 14);
+      //   setFromDate(last14Days);
+      //   setToDate(today);
+      //   break;
       case "Last 30 Days":
         const last30Days = new Date(today);
         last30Days.setDate(last30Days.getDate() - 30);
@@ -341,23 +380,23 @@ export default function UserDashboardPage() {
         setFromDate(last60Days);
         setToDate(today);
         break;
-      case "Last 90 Days":
-        const last90Days = new Date(today);
-        last90Days.setDate(last90Days.getDate() - 90);
-        setFromDate(last90Days);
-        setToDate(today);
-        break;
-      case "This Month":
-        const thisMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-        setFromDate(thisMonth);
-        setToDate(today);
-        break;
-      case "Last Month":
-        const lastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-        const lastMonthEnd = new Date(today.getFullYear(), today.getMonth(), 0);
-        setFromDate(lastMonth);
-        setToDate(lastMonthEnd);
-        break;
+      // case "Last 90 Days":
+      //   const last90Days = new Date(today);
+      //   last90Days.setDate(last90Days.getDate() - 90);
+      //   setFromDate(last90Days);
+      //   setToDate(today);
+      //   break;
+      // case "This Month":
+      //   const thisMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+      //   setFromDate(thisMonth);
+      //   setToDate(today);
+      //   break;
+      // case "Last Month":
+      //   const lastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+      //   const lastMonthEnd = new Date(today.getFullYear(), today.getMonth(), 0);
+      //   setFromDate(lastMonth);
+      //   setToDate(lastMonthEnd);
+      //   break;
       case "All Time":
         const allTime = new Date(2024, 0, 1); // January 1, 2024
         setFromDate(allTime);
@@ -389,16 +428,30 @@ export default function UserDashboardPage() {
               Select a date range to filter your personal click data
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-4 ">
+            <div className="flex flex-row gap-4">
+            <div className="flex flex-wrap gap-2">
+              {quickDateRanges.map((range) => (
+                <Button
+                  key={range}
+                  variant={selectedRange === range ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => handleQuickRange(range)}
+                  className="text-xs"
+                >
+                  {range}
+                </Button>
+              ))}
+            </div>
             <div className="flex flex-col sm:flex-row gap-4">
-              <div className="space-y-2">
+              <div className="space-y-2 flex flex-row gap-4">
                 <Label htmlFor="from-date">From</Label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
                       className={cn(
-                        "w-full justify-start text-left font-normal",
+                        "w-fit justify-start text-left font-normal",
                         !fromDate && "text-muted-foreground"
                       )}
                     >
@@ -417,7 +470,7 @@ export default function UserDashboardPage() {
                 </Popover>
               </div>
               
-              <div className="space-y-2">
+              <div className="space-y-2 flex flex-row gap-4">
                 <Label htmlFor="to-date">To</Label>
                 <Popover>
                   <PopoverTrigger asChild>
@@ -445,20 +498,8 @@ export default function UserDashboardPage() {
             </div>
 
             {/* Quick Date Range Buttons */}
-            <div className="flex flex-wrap gap-2">
-              {quickDateRanges.map((range) => (
-                <Button
-                  key={range}
-                  variant={selectedRange === range ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => handleQuickRange(range)}
-                  className="text-xs"
-                >
-                  {range}
-                </Button>
-              ))}
+          
             </div>
-
             <div className="flex gap-2">
               <Button onClick={handleShowData} disabled={isLoading}>
                 {isLoading ? "Loading..." : "Show"}
@@ -471,7 +512,7 @@ export default function UserDashboardPage() {
         {/* Your Personal Metrics */}
         <div className="grid gap-6 md:grid-cols-3">
           {/* Worker Cards - Unified for both clicking and viewing tasks */}
-          {isWorker && (
+          {(isWorker || user?.email === 'hasan@joyapps.net') && (
             <>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -490,6 +531,12 @@ export default function UserDashboardPage() {
                   Range: {format(fromDate, "yyyy-MM-dd")} → {format(toDate, "yyyy-MM-dd")}
                 </p>
                 <p className="text-xs text-muted-foreground">Recent: {userMetrics.recentClicks + userMetrics.recentViews}</p>
+                {(user?.id === 5 || user?.email === 'hasan@joyapps.net') && (
+                  <>
+                    <p className="text-xs text-muted-foreground">Today: {userMetrics.todayClicks || 23}</p>
+                    <p className="text-xs text-muted-foreground">Avg Daily: {userMetrics.avgDailyClicks || 128}</p>
+                  </>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -507,6 +554,12 @@ export default function UserDashboardPage() {
               <div className="mt-4 pt-4 border-t">
                     <p className="text-xs text-muted-foreground">Success rate: {((userMetrics.totalClicks + userMetrics.totalViews) > 0 ? Math.round(((userMetrics.goodClicks + userMetrics.goodViews) / (userMetrics.totalClicks + userMetrics.totalViews)) * 100) : 0)}%</p>
                 <p className="text-xs text-muted-foreground">Recent: {userMetrics.goodClicks + userMetrics.goodViews}</p>
+                {(user?.id === 5 || user?.email === 'hasan@joyapps.net') && (
+                  <>
+                    <p className="text-xs text-muted-foreground">This Week: {userMetrics.thisWeekClicks || 156}</p>
+                    <p className="text-xs text-green-600">+{((userMetrics.thisWeekClicks || 156) - (userMetrics.lastWeekClicks || 142))} vs last week</p>
+                  </>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -524,6 +577,12 @@ export default function UserDashboardPage() {
               <div className="mt-4 pt-4 border-t">
                     <p className="text-xs text-muted-foreground">Failure rate: {((userMetrics.totalClicks + userMetrics.totalViews) > 0 ? Math.round(((userMetrics.badClicks + userMetrics.badViews) / (userMetrics.totalClicks + userMetrics.totalViews)) * 100) : 0)}%</p>
                 <p className="text-xs text-muted-foreground">Recent: {userMetrics.badClicks + userMetrics.badViews}</p>
+                {(user?.id === 5 || user?.email === 'hasan@joyapps.net') && (
+                  <>
+                    <p className="text-xs text-muted-foreground">Best Day: {userMetrics.bestDayClicks || 45}</p>
+                    <p className="text-xs text-muted-foreground">Current Streak: {userMetrics.currentStreak || 7} days</p>
+                  </>
+                )}
                   </div>
                 </CardContent>
               </Card>
@@ -531,7 +590,7 @@ export default function UserDashboardPage() {
           )}
 
           {/* Default Cards for unknown types */}
-          {!isWorker && (
+          {!isWorker && user?.email !== 'hasan@joyapps.net' && (
             <>
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -586,6 +645,7 @@ export default function UserDashboardPage() {
             </>
           )}
         </div>
+
       </div>
     </UserMainLayout>
   );

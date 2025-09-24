@@ -14,8 +14,6 @@ import {
   Phone, 
   Shield, 
   Mail, 
-  Save, 
-  Edit3, 
   MapPin, 
   Calendar, 
   CreditCard, 
@@ -29,11 +27,9 @@ import {
 import { toast } from "sonner";
 
 export default function UserPersonalInfoPage() {
-  const { user, updatePersonalInfo } = useAuth();
+  const { user } = useAuth();
   const { isAttendanceMarkedToday } = useAttendance();
   const router = useRouter();
-  const [isEditing, setIsEditing] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const [showAttendanceModal, setShowAttendanceModal] = useState(false);
 
   // Check if attendance is marked for today
@@ -45,55 +41,6 @@ export default function UserPersonalInfoPage() {
       }
     }
   }, [user, isAttendanceMarkedToday]);
-  const [formData, setFormData] = useState({
-    contactNumber: "",
-    emergencyNumber: ""
-  });
-
-  // Initialize form data when user data loads
-  useEffect(() => {
-    if (user) {
-      setFormData({
-        contactNumber: user.contactNumber || "",
-        emergencyNumber: user.emergencyNumber || ""
-      });
-    }
-  }, [user]);
-
-  const handleInputChange = (field, value) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
-
-  const handleSave = async () => {
-    setIsLoading(true);
-    
-    try {
-      const result = updatePersonalInfo(formData.contactNumber, formData.emergencyNumber);
-      
-      if (result.success) {
-        toast.success("Personal information updated successfully!");
-        setIsEditing(false);
-      } else {
-        toast.error(result.error || "Failed to update personal information");
-      }
-    } catch (error) {
-      toast.error("An error occurred while updating your information");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleCancel = () => {
-    // Reset form data to current user data
-    setFormData({
-      contactNumber: user?.contactNumber || "",
-      emergencyNumber: user?.emergencyNumber || ""
-    });
-    setIsEditing(false);
-  };
 
   if (!user) {
     return (
@@ -159,26 +106,9 @@ export default function UserPersonalInfoPage() {
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Personal Information</h1>
             <p className="text-muted-foreground">
-              Manage your personal contact information and emergency details
+              View your personal information and contact details
             </p>
           </div>
-          <Button
-            onClick={() => setIsEditing(!isEditing)}
-            variant={isEditing ? "outline" : "default"}
-            className="flex items-center gap-2"
-          >
-            {isEditing ? (
-              <>
-                <Edit3 className="h-4 w-4" />
-                Cancel Edit
-              </>
-            ) : (
-              <>
-                <Edit3 className="h-4 w-4" />
-                Edit Info
-              </>
-            )}
-          </Button>
         </div>
 
         {/* Personal Information Card */}
@@ -261,7 +191,7 @@ export default function UserPersonalInfoPage() {
               Contact Information
             </CardTitle>
             <CardDescription>
-              Update your contact details and emergency contact information
+              Your personal contact details and emergency contact information
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -272,11 +202,9 @@ export default function UserPersonalInfoPage() {
                 <Input
                   id="contactNumber"
                   type="tel"
-                  placeholder="Enter your contact number"
-                  value={formData.contactNumber}
-                  onChange={(e) => handleInputChange("contactNumber", e.target.value)}
-                  disabled={!isEditing}
-                  className={!isEditing ? "bg-muted" : ""}
+                  value={user?.contactNumber || "Not provided"}
+                  readOnly
+                  className="bg-muted"
                 />
                 <p className="text-xs text-muted-foreground">
                   Your primary contact number
@@ -289,11 +217,9 @@ export default function UserPersonalInfoPage() {
                 <Input
                   id="emergencyNumber"
                   type="tel"
-                  placeholder="Enter emergency contact number"
-                  value={formData.emergencyNumber}
-                  onChange={(e) => handleInputChange("emergencyNumber", e.target.value)}
-                  disabled={!isEditing}
-                  className={!isEditing ? "bg-muted" : ""}
+                  value={user?.emergencyNumber || "Not provided"}
+                  readOnly
+                  className="bg-muted"
                 />
                 <p className="text-xs text-muted-foreground">
                   Emergency contact number for urgent situations
@@ -301,26 +227,6 @@ export default function UserPersonalInfoPage() {
               </div>
             </div>
 
-            {/* Action Buttons */}
-            {isEditing && (
-              <div className="flex items-center gap-2 pt-4 border-t">
-                <Button
-                  onClick={handleSave}
-                  disabled={isLoading}
-                  className="flex items-center gap-2"
-                >
-                  <Save className="h-4 w-4" />
-                  {isLoading ? "Saving..." : "Save Changes"}
-                </Button>
-                <Button
-                  onClick={handleCancel}
-                  variant="outline"
-                  disabled={isLoading}
-                >
-                  Cancel
-                </Button>
-              </div>
-            )}
           </CardContent>
         </Card>
 
