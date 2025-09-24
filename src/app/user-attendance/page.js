@@ -88,7 +88,7 @@ export default function AttendancePage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Today's Status</CardTitle>
+                <CardTitle className="text-sm font-medium">Todays Status</CardTitle>
                 <CheckCircle className="h-4 w-4 text-green-500" />
               </CardHeader>
               <CardContent>
@@ -127,7 +127,7 @@ export default function AttendancePage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Calendar className="h-5 w-5" />
-                Today's Summary
+                Todays Summary
               </CardTitle>
             </CardHeader>
             <CardContent>

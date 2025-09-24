@@ -660,7 +660,7 @@ function ManagerDashboardContent() {
             <Card>
               <CardHeader>
                 <CardTitle>Assigned Team Members</CardTitle>
-                <CardDescription>Members assigned to you and today\'s status</CardDescription>
+                <CardDescription>Members assigned to you and today\s status</CardDescription>
               </CardHeader>
               <CardContent>
                 {(() => {
