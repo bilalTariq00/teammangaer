@@ -71,7 +71,7 @@ export default function UserTasksPage() {
     } else {
       setCurrentTaskType('viewer');
     }
-  }, [user?.taskRole]);
+  }, [user?.taskRole, user]);
 
   // Check if attendance is marked for today
   useEffect(() => {

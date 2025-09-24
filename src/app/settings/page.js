@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSettings } from "@/contexts/SettingsContext";
 import MainLayout from "@/components/layout/MainLayout";
@@ -80,9 +81,11 @@ export default function SettingsPage() {
               <div className="flex items-center gap-4">
                 <div className="w-16 h-16 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center">
                   {logoPreview ? (
-                    <img
+                    <Image
                       src={logoPreview}
                       alt="Logo preview"
+                      width={48}
+                      height={48}
                       className="w-12 h-12 object-contain"
                     />
                   ) : (
