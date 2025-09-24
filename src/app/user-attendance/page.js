@@ -5,10 +5,43 @@ import UserMainLayout from "@/components/layout/UserMainLayout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Clock, CheckCircle, User, Calendar } from "lucide-react"
+import { Clock, CheckCircle, User, Calendar, TrendingUp } from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext"
 import { useAttendance } from "@/contexts/AttendanceContext"
 import { toast } from "sonner"
+
+// Mock data for previous month attendance
+const generateMockPreviousMonthData = () => {
+  const mockData = []
+  const currentDate = new Date()
+  const previousMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1)
+  const daysInPreviousMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 0).getDate()
+
+  for (let day = 1; day <= daysInPreviousMonth; day++) {
+    const date = new Date(previousMonth.getFullYear(), previousMonth.getMonth(), day)
+    const dayOfWeek = date.getDay()
+
+    // Skip weekends for work attendance
+    if (dayOfWeek === 0 || dayOfWeek === 6) continue
+
+    // Random attendance with 85% present rate
+    const isPresent = Math.random() > 0.15
+
+    mockData.push({
+      date: date.toISOString().split("T")[0],
+      day: date.getDate(),
+      dayName: date.toLocaleDateString("en-US", { weekday: "short" }),
+      status: isPresent ? "present" : "absent",
+      checkIn: isPresent
+        ? `${8 + Math.floor(Math.random() * 2)}:${Math.floor(Math.random() * 60)
+            .toString()
+            .padStart(2, "0")}`
+        : null,
+    })
+  }
+
+  return mockData.reverse() // Show most recent first
+}
 
 export default function AttendancePage() {
   const { user } = useAuth()
@@ -16,6 +49,7 @@ export default function AttendancePage() {
   const [currentTime, setCurrentTime] = useState(new Date())
   const [isMarking, setIsMarking] = useState(false)
   const [showDashboard, setShowDashboard] = useState(false)
+  const [previousMonthData] = useState(generateMockPreviousMonthData())
 
   // Update current time every second
   useEffect(() => {
@@ -70,9 +104,16 @@ export default function AttendancePage() {
   }
 
   if (showDashboard || attendanceMarked) {
+    const presentDays = previousMonthData.filter((day) => day.status === "present").length
+    const absentDays = previousMonthData.filter((day) => day.status === "absent").length
+    const totalWorkingDays = previousMonthData.length
+    const attendancePercentage = Math.round((presentDays / totalWorkingDays) * 100)
+
     return (
       <UserMainLayout>
         <div className="space-y-6">
+         
+
           {/* Success Message */}
           <Card className="border-green-200 bg-green-50">
             <CardHeader>
@@ -84,11 +125,10 @@ export default function AttendancePage() {
             </CardHeader>
           </Card>
 
-          {/* Dashboard */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Todays Status</CardTitle>
+                <CardTitle className="text-sm font-medium">Today's Status</CardTitle>
                 <CheckCircle className="h-4 w-4 text-green-500" />
               </CardHeader>
               <CardContent>
@@ -99,52 +139,78 @@ export default function AttendancePage() {
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Current Time</CardTitle>
-                <Clock className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="text-sm font-medium">This Month</CardTitle>
+                <TrendingUp className="h-4 w-4 text-blue-500" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{currentTime.toLocaleTimeString()}</div>
-                <p className="text-xs text-muted-foreground">{currentTime.toLocaleDateString()}</p>
+                <div className="text-2xl font-bold text-blue-600">{attendancePercentage}%</div>
+                <p className="text-xs text-muted-foreground">
+                  {presentDays} of {totalWorkingDays} days present
+                </p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Employee Info</CardTitle>
-                <User className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="text-sm font-medium">Streak</CardTitle>
+                <Calendar className="h-4 w-4 text-purple-500" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{user.name}</div>
-                <p className="text-xs text-muted-foreground">
-                  {user.role} • {user.workerType}
-                </p>
+                <div className="text-2xl font-bold text-purple-600">5 Days</div>
+                <p className="text-xs text-muted-foreground">Current attendance streak</p>
               </CardContent>
             </Card>
           </div>
 
-          {/* Additional Dashboard Content */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Calendar className="h-5 w-5" />
-                Todays Summary
+                Previous Month Summary
               </CardTitle>
+              <CardDescription>
+                {previousMonthData[0] &&
+                  new Date(previousMonthData[0].date).toLocaleDateString("en-US", {
+                    month: "long",
+                    year: "numeric",
+                  })}{" "}
+                attendance record
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">Attendance Status:</span>
-                  <Badge variant="outline" className="text-green-600 border-green-200">
-                    Present
-                  </Badge>
+                <div className="grid grid-cols-3 gap-4 p-4 bg-muted rounded-lg">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-green-600">{presentDays}</div>
+                    <div className="text-xs text-muted-foreground">Present</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-red-600">{absentDays}</div>
+                    <div className="text-xs text-muted-foreground">Absent</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-blue-600">{attendancePercentage}%</div>
+                    <div className="text-xs text-muted-foreground">Attendance</div>
+                  </div>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">Check-in Time:</span>
-                  <span className="text-sm">{currentTime.toLocaleTimeString()}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">Date:</span>
-                  <span className="text-sm">{currentTime.toLocaleDateString()}</span>
+
+                <div className="space-y-2 max-h-64 overflow-y-auto">
+                  {previousMonthData.map((day, index) => (
+                    <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <div className="text-sm font-medium">
+                          {day.dayName}, {day.day}
+                        </div>
+                        <Badge
+                          variant={day.status === "present" ? "default" : "destructive"}
+                          className={day.status === "present" ? "bg-green-100 text-green-700 border-green-200" : ""}
+                        >
+                          {day.status === "present" ? "Present" : "Absent"}
+                        </Badge>
+                      </div>
+                      <div className="text-sm text-muted-foreground">{day.checkIn || "--:--"}</div>
+                    </div>
+                  ))}
                 </div>
               </div>
             </CardContent>

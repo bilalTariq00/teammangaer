@@ -861,7 +861,11 @@ export default function ManagerPerformancePage() {
                     </div>
                     <p className="text-sm text-muted-foreground">{achievement.description}</p>
                     <p className="text-xs text-muted-foreground mt-1">
-                      {new Date(achievement.date).toLocaleDateString()}
+                      {new Date(achievement.date).toLocaleDateString('en-US', { 
+                        year: 'numeric', 
+                        month: '2-digit', 
+                        day: '2-digit' 
+                      })}
                     </p>
                   </div>
                 </div>
