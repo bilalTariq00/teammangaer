@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import ManagerMainLayout from "@/components/layout/ManagerMainLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -18,7 +18,8 @@ import {
   Award,
   Clock,
   FileText,
-  Table
+  Table,
+  CheckCircle
 } from "lucide-react";
 import { Document, Packer, Paragraph, TextRun, Table as DocxTable, TableRow, TableCell, WidthType } from "docx";
 import { saveAs } from "file-saver";
@@ -39,6 +40,10 @@ import {
   AreaChart,
   Area
 } from "recharts";
+import { useAuth } from "@/contexts/AuthContext";
+import { useUsers } from "@/contexts/UsersContext";
+import { usePerformance } from "@/contexts/PerformanceContext";
+import { Textarea } from "@/components/ui/textarea";
 
 // Mock data for team performance
 const teamPerformanceData = [
@@ -102,6 +107,47 @@ const recentAchievements = [
 export default function ManagerPerformancePage() {
   const [timeRange, setTimeRange] = useState("6months");
   const [viewType, setViewType] = useState("overview");
+  const { user } = useAuth();
+  const { users } = useUsers();
+  const {
+    performanceLevels,
+    markDailyPerformance,
+    getTeamPerformance,
+    isPerformanceMarkedToday,
+    getPerformanceLevelDetails,
+    getWorkerPerformanceHistory,
+    getWorkerPerformanceStats
+  } = usePerformance();
+
+  const today = new Date().toISOString().split('T')[0];
+  const managerId = user?.id;
+  const teamMembers = useMemo(() => {
+    const manager = users.find(u => u.id === managerId);
+    if (!manager?.assignedUsers) return [];
+    return manager.assignedUsers
+      .map(id => users.find(u => u.id === id))
+      .filter(Boolean);
+  }, [users, managerId]);
+
+  // Dummy fallback metrics for assigned users when no history exists
+  const dummyPerfByUserId = useMemo(() => ({
+    5: { performance: 88, quality: 91, efficiency: 85, tasksCompleted: 32, statusLabel: 'Good' },
+    6: { performance: 85, quality: 87, efficiency: 82, tasksCompleted: 28, statusLabel: 'Good' },
+    7: { performance: 78, quality: 80, efficiency: 75, tasksCompleted: 15, statusLabel: 'Needs Improvement' }
+  }), []);
+
+  const [ratingsByUser, setRatingsByUser] = useState({});
+  const [notesByUser, setNotesByUser] = useState({});
+
+  const handleMark = (worker) => {
+    const rating = ratingsByUser[worker.id] || 'average';
+    const notes = notesByUser[worker.id] || '';
+    markDailyPerformance(worker.id, managerId, user?.name || 'Manager', rating, notes);
+  };
+
+  // Today summary
+  const teamToday = useMemo(() => getTeamPerformance(managerId, today), [getTeamPerformance, managerId, today]);
+  const markedCount = (teamToday || []).filter(t => !!t.performance).length;
 
   const getAchievementIcon = (type) => {
     switch (type) {
@@ -331,8 +377,178 @@ export default function ManagerPerformancePage() {
           </div>
         </div>
 
-        {/* Filters */}
+        {/* Status banner: No Performance Marked Today */}
+        {teamMembers.length > 0 && (
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-start gap-3">
+                <Calendar className="h-5 w-5 text-red-600 mt-0.5" />
+                <div>
+                  <CardTitle className="text-lg">
+                    {markedCount === 0 ? 'No Performance Marked Today' : 'Today\'s Performance Progress'}
+                  </CardTitle>
+                  <CardDescription>
+                    {markedCount === 0
+                      ? 'Start marking performance for your team members to track their daily progress.'
+                      : `${markedCount} of ${teamMembers.length} team members marked today.`}
+                  </CardDescription>
+                </div>
+              </div>
+              {markedCount > 0 && (
+                <div className="mt-4">
+                  <div className="flex items-center justify-between text-xs mb-1">
+                    <span>Progress</span>
+                    <span>{Math.round((markedCount / Math.max(teamMembers.length, 1)) * 100)}%</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div
+                      className="bg-green-500 h-2 rounded-full"
+                      style={{ width: `${(markedCount / Math.max(teamMembers.length, 1)) * 100}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Daily Performance Marking */}
         <Card>
+          <CardHeader>
+            <CardTitle>Daily Performance</CardTitle>
+            <CardDescription>Mark today’s performance for your team members</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {teamMembers.length === 0 ? (
+              <div className="text-sm text-muted-foreground">No team members assigned.</div>
+            ) : (
+              <div className="space-y-4">
+                {teamMembers.map((member) => {
+                  const marked = isPerformanceMarkedToday(member.id);
+                  const history = getWorkerPerformanceHistory(member.id, 7);
+                  const level = getPerformanceLevelDetails(ratingsByUser[member.id] || 'average');
+                  return (
+                    <Card key={member.id} className="border">
+                      <CardHeader className="pb-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <Users className="h-4 w-4 text-muted-foreground" />
+                            <div>
+                              <CardTitle className="text-base">{member.name}</CardTitle>
+                              <CardDescription>{member.email}</CardDescription>
+                            </div>
+                          </div>
+                          {marked ? (
+                            <Badge className="bg-green-100 text-green-800">Marked Today</Badge>
+                          ) : (
+                            <Badge variant="outline">Not Marked</Badge>
+                          )}
+                        </div>
+                      </CardHeader>
+                      <CardContent className="space-y-3">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                          <div className="space-y-1">
+                            <label className="text-sm font-medium">Rating</label>
+                            <Select
+                              value={ratingsByUser[member.id] || "average"}
+                              onValueChange={(val) => setRatingsByUser(prev => ({ ...prev, [member.id]: val }))}
+                            >
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {performanceLevels.map(level => (
+                                  <SelectItem key={level.value} value={level.value}>{level.label}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="md:col-span-2 space-y-1">
+                            <label className="text-sm font-medium">Notes</label>
+                            <Textarea
+                              value={notesByUser[member.id] || ''}
+                              onChange={(e) => setNotesByUser(prev => ({ ...prev, [member.id]: e.target.value }))}
+                              placeholder="Add optional notes for today"
+                              className="min-h-[40px]"
+                            />
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <div className={`text-xs ${level.color}`}>Selected: {getPerformanceLevelDetails(ratingsByUser[member.id] || 'average').label}</div>
+                          <Button onClick={() => handleMark(member)} disabled={marked}>
+                            {marked ? 'Already Marked' : 'Mark Today'}
+                          </Button>
+                        </div>
+                        {history.length > 0 && (
+                          <div className="pt-2">
+                            <div className="text-xs text-muted-foreground mb-1">Last 7 days</div>
+                            <div className="flex flex-wrap gap-2">
+                              {history.map(h => (
+                                <Badge key={`${member.id}-${h.date}`} variant="outline">
+                                  {h.date}: {getPerformanceLevelDetails(h.rating).label}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Assigned Team Members */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Assigned Team Members</CardTitle>
+            <CardDescription>Your team members for whom you can mark performance</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {teamMembers.length === 0 ? (
+              <div className="text-sm text-muted-foreground">No team members assigned.</div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="border-b">
+                    <tr>
+                      <th className="text-left py-3 px-4">Name</th>
+                      <th className="text-left py-3 px-4">Email</th>
+                      <th className="text-left py-3 px-4">Type</th>
+                      <th className="text-left py-3 px-4">Today</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {teamMembers.map((m) => {
+                      const marked = isPerformanceMarkedToday(m.id);
+                      const rec = (teamToday || []).find(t => t.user?.id === m.id)?.performance;
+                      const label = rec ? getPerformanceLevelDetails(rec.rating).label : null;
+                      return (
+                        <tr key={m.id} className="border-b">
+                          <td className="py-3 px-4 font-medium">{m.name}</td>
+                          <td className="py-3 px-4 text-gray-600">{m.email}</td>
+                          <td className="py-3 px-4 text-gray-600">{m.workerType?.replace('-', ' ') || '—'}</td>
+                          <td className="py-3 px-4">
+                            {marked ? (
+                              <Badge className="bg-green-100 text-green-800">{label || 'Marked'}</Badge>
+                            ) : (
+                              <Badge variant="outline">Not Marked</Badge>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Filters */}
+          <Card>
           <CardHeader>
             <CardTitle>Performance Filters</CardTitle>
             <CardDescription>Customize your team performance analysis</CardDescription>
@@ -371,7 +587,7 @@ export default function ManagerPerformancePage() {
           </CardContent>
         </Card>
 
-        {/* Key Metrics */}
+        {/* Key Metrics (live today where possible) */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -380,7 +596,13 @@ export default function ManagerPerformancePage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {Math.round(teamPerformanceData.reduce((sum, m) => sum + m.performance, 0) / teamPerformanceData.length)}%
+                {teamMembers.length > 0 && teamToday.length > 0
+                  ? (() => {
+                      const ratingValues = { excellent: 95, good: 85, average: 75, bad: 60, worst: 45 };
+                      const scores = teamToday.filter(t => t.performance).map(t => ratingValues[t.performance.rating] || 75);
+                      return scores.length ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : 0;
+                    })()
+                  : Math.round(teamPerformanceData.reduce((sum, m) => sum + m.performance, 0) / teamPerformanceData.length)}%
               </div>
               <p className="text-xs text-muted-foreground flex items-center">
                 <TrendingUp className="h-3 w-3 mr-1 text-green-600" />
@@ -390,16 +612,16 @@ export default function ManagerPerformancePage() {
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Tasks Completed</CardTitle>
-              <Target className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium">Marked Today</CardTitle>
+              <CheckCircle className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {teamPerformanceData.reduce((sum, m) => sum + m.tasksCompleted, 0)}
+                {markedCount}/{teamMembers.length}
               </div>
               <p className="text-xs text-muted-foreground flex items-center">
-                <TrendingUp className="h-3 w-3 mr-1 text-green-600" />
-                +15 from last month
+                <Calendar className="h-3 w-3 mr-1 text-blue-600" />
+                Today’s marked performance
               </p>
             </CardContent>
           </Card>
@@ -410,7 +632,13 @@ export default function ManagerPerformancePage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {Math.round(teamPerformanceData.reduce((sum, m) => sum + m.qualityScore, 0) / teamPerformanceData.length)}%
+                {teamMembers.length > 0 && teamToday.length > 0
+                  ? (() => {
+                      const ratingValues = { excellent: 95, good: 88, average: 75, bad: 62, worst: 50 };
+                      const scores = teamToday.filter(t => t.performance).map(t => ratingValues[t.performance.rating] || 75);
+                      return scores.length ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : 0;
+                    })()
+                  : Math.round(teamPerformanceData.reduce((sum, m) => sum + m.qualityScore, 0) / teamPerformanceData.length)}%
               </div>
               <p className="text-xs text-muted-foreground flex items-center">
                 <TrendingUp className="h-3 w-3 mr-1 text-green-600" />
@@ -425,7 +653,13 @@ export default function ManagerPerformancePage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {Math.round(teamPerformanceData.reduce((sum, m) => sum + m.efficiency, 0) / teamPerformanceData.length)}%
+                {teamMembers.length > 0 && teamToday.length > 0
+                  ? (() => {
+                      const ratingValues = { excellent: 94, good: 86, average: 78, bad: 65, worst: 52 };
+                      const scores = teamToday.filter(t => t.performance).map(t => ratingValues[t.performance.rating] || 75);
+                      return scores.length ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : 0;
+                    })()
+                  : Math.round(teamPerformanceData.reduce((sum, m) => sum + m.efficiency, 0) / teamPerformanceData.length)}%
               </div>
               <p className="text-xs text-muted-foreground flex items-center">
                 <TrendingUp className="h-3 w-3 mr-1 text-green-600" />
@@ -538,7 +772,7 @@ export default function ManagerPerformancePage() {
           </CardContent>
         </Card>
 
-        {/* Individual Performance Table */}
+        {/* Individual Performance Table (Assigned Users) */}
         <Card>
           <CardHeader>
             <CardTitle>Individual Performance Details</CardTitle>
@@ -558,37 +792,49 @@ export default function ManagerPerformancePage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {teamPerformanceData.map((member, index) => (
-                    <tr key={index} className="border-b">
-                      <td className="py-3 px-4 font-medium">{member.name}</td>
-                      <td className="py-3 px-4">
-                        <span className={`font-medium ${getPerformanceColor(member.performance)}`}>
-                          {member.performance}%
-                        </span>
-                      </td>
-                      <td className="py-3 px-4">
-                        <span className={`font-medium ${getPerformanceColor(member.qualityScore)}`}>
-                          {member.qualityScore}%
-                        </span>
-                      </td>
-                      <td className="py-3 px-4">
-                        <span className={`font-medium ${getPerformanceColor(member.efficiency)}`}>
-                          {member.efficiency}%
-                        </span>
-                      </td>
-                      <td className="py-3 px-4">{member.tasksCompleted}</td>
-                      <td className="py-3 px-4">
-                        <Badge className={
-                          member.performance >= 90 ? "bg-green-100 text-green-800" :
-                          member.performance >= 80 ? "bg-yellow-100 text-yellow-800" :
-                          "bg-red-100 text-red-800"
-                        }>
-                          {member.performance >= 90 ? "Excellent" :
-                           member.performance >= 80 ? "Good" : "Needs Improvement"}
-                        </Badge>
-                      </td>
+                  {teamMembers.length === 0 && (
+                    <tr>
+                      <td className="py-3 px-4 text-sm text-muted-foreground" colSpan={6}>No team members assigned.</td>
                     </tr>
-                  ))}
+                  )}
+                  {teamMembers.map((m) => {
+                    // Compute 30-day stats from context ratings
+                    const stats = getWorkerPerformanceStats(m.id, 30);
+                    let perfPct = Math.round((Number(stats.averageRating || 0) / 5) * 100);
+                    let qualityPct = Math.max(0, Math.min(100, perfPct + 2));
+                    let efficiencyPct = Math.max(0, Math.min(100, perfPct - 3));
+                    let tasksCompleted = stats.totalDays; // treat marked days as completed tasks proxy
+
+                    // If no data, use dummy fallback for assigned users
+                    if (stats.totalDays === 0 && dummyPerfByUserId[m.id]) {
+                      const d = dummyPerfByUserId[m.id];
+                      perfPct = d.performance;
+                      qualityPct = d.quality;
+                      efficiencyPct = d.efficiency;
+                      tasksCompleted = d.tasksCompleted;
+                    }
+
+                    const statusLabel = perfPct >= 90 ? "Excellent" : perfPct >= 80 ? "Good" : "Needs Improvement";
+                    const statusClass = perfPct >= 90 ? "bg-green-100 text-green-800" : perfPct >= 80 ? "bg-yellow-100 text-yellow-800" : "bg-red-100 text-red-800";
+                    return (
+                      <tr key={m.id} className="border-b">
+                        <td className="py-3 px-4 font-medium">{m.name}</td>
+                        <td className="py-3 px-4">
+                          <span className={`font-medium ${getPerformanceColor(perfPct)}`}>{perfPct}%</span>
+                        </td>
+                        <td className="py-3 px-4">
+                          <span className={`font-medium ${getPerformanceColor(qualityPct)}`}>{qualityPct}%</span>
+                        </td>
+                        <td className="py-3 px-4">
+                          <span className={`font-medium ${getPerformanceColor(efficiencyPct)}`}>{efficiencyPct}%</span>
+                        </td>
+                        <td className="py-3 px-4">{tasksCompleted}</td>
+                        <td className="py-3 px-4">
+                          <Badge className={statusClass}>{statusLabel}</Badge>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

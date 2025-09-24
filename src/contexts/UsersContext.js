@@ -40,7 +40,7 @@ const initialUsers = [
     locked: "unlocked",
     links: 1,
     created: "2025-09-10 16:46:31",
-    assignedUsers: [1, 3]
+    assignedUsers: [5, 6, 7]
   },
   {
     id: 3,
@@ -72,13 +72,13 @@ const initialUsers = [
   },
   {
     id: 5,
-    name: "John Doe",
-    email: "john@joyapps.net",
+    name: "Hasan Abbas",
+    email: "hasan@joyapps.net",
     role: "worker",
-    workerType: "trainee-worker",
+    workerType: "permanent-worker",
     defaultTasker: "Tasker Worker",
     defaultTaskerSlug: "tasker-worker",
-    status: "trainee",
+    status: "permanent",
     locked: "unlocked",
     links: 0,
     created: "2025-09-09 10:15:30",
@@ -86,29 +86,29 @@ const initialUsers = [
   },
   {
     id: 6,
-    name: "Jane Smith",
-    email: "jane@joyapps.net",
+    name: "Adnan Amir",
+    email: "adnan@joyapps.net",
     role: "worker",
     workerType: "permanent-worker",
     defaultTasker: "Tasker Worker",
     defaultTaskerSlug: "tasker-worker",
     status: "permanent",
     locked: "unlocked",
-    links: 2,
+    links: 0,
     created: "2025-09-08 16:45:20",
     assignedUsers: []
   },
   {
     id: 7,
-    name: "Mike Wilson",
-    email: "mike@joyapps.net",
+    name: "Waleed Bin Shakeel",
+    email: "waleed@joyapps.net",
     role: "worker",
-    workerType: "permanent-worker",
+    workerType: "trainee-worker",
     defaultTasker: "Tasker Worker",
     defaultTaskerSlug: "tasker-worker",
-    status: "permanent",
+    status: "trainee",
     locked: "unlocked",
-    links: 1,
+    links: 0,
     created: "2025-09-08 12:30:15",
     assignedUsers: []
   },
@@ -155,7 +155,7 @@ const initialUsers = [
     assignedUsers: []
   },
   {
-    id: 11,
+    id: 8,
     name: "Sarah Manager",
     email: "manager@joyapps.com",
     role: "manager",
@@ -166,7 +166,7 @@ const initialUsers = [
     locked: "unlocked",
     links: 2,
     created: "2025-09-08 10:30:15",
-    assignedUsers: [4, 5, 6] // Sarah Johnson, John Doe, Jane Smith
+    assignedUsers: [5, 6, 7]
   }
 ];
 

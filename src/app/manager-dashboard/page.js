@@ -31,6 +31,7 @@ import {
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUsers } from "@/contexts/UsersContext";
+import { usePerformance } from "@/contexts/PerformanceContext";
 import AttendanceVerification from "@/components/AttendanceVerification";
 import PerformanceMarking from "@/components/PerformanceMarking";
 import TaskAssignment from "@/components/tasks/TaskAssignment";
@@ -76,6 +77,10 @@ const mockTeamStats = {
 function ManagerDashboardContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { user } = useAuth();
+  const { users } = useUsers();
+  const { getTeamPerformance, isPerformanceMarkedToday, getPerformanceLevelDetails } = usePerformance();
+  const today = new Date().toISOString().split('T')[0];
   const [activeTab, setActiveTab] = useState("overview");
   const [showCreateUser, setShowCreateUser] = useState(false);
   const [showEditUsers, setShowEditUsers] = useState(false);
@@ -651,6 +656,59 @@ function ManagerDashboardContent() {
         {activeTab === "performance" && (
           <div className="space-y-6">
             <PerformanceMarking />
+            {/* Assigned Team Members (for this manager) */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Assigned Team Members</CardTitle>
+                <CardDescription>Members assigned to you and today\'s status</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {(() => {
+                  const manager = users.find(u => u.id === user?.id);
+                  const teamIds = manager?.assignedUsers || [];
+                  const teamMembers = teamIds.map(id => users.find(u => u.id === id)).filter(Boolean);
+                  const teamToday = getTeamPerformance(user?.id, today);
+                  if (teamMembers.length === 0) {
+                    return <div className="text-sm text-muted-foreground">No team members assigned.</div>;
+                  }
+                  return (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead className="border-b">
+                          <tr>
+                            <th className="text-left p-3">Name</th>
+                            <th className="text-left p-3">Email</th>
+                            <th className="text-left p-3">Type</th>
+                            <th className="text-left p-3">Today</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {teamMembers.map(m => {
+                            const marked = isPerformanceMarkedToday(m.id);
+                            const rec = (teamToday || []).find(t => t.user?.id === m.id)?.performance;
+                            const label = rec ? getPerformanceLevelDetails(rec.rating).label : null;
+                            return (
+                              <tr key={m.id} className="border-b">
+                                <td className="p-3 font-medium">{m.name}</td>
+                                <td className="p-3 text-gray-600">{m.email}</td>
+                                <td className="p-3 text-gray-600">{m.workerType?.replace('-', ' ') || '—'}</td>
+                                <td className="p-3">
+                                  {marked ? (
+                                    <Badge className="bg-green-100 text-green-800">{label || 'Marked'}</Badge>
+                                  ) : (
+                                    <Badge variant="outline">Not Marked</Badge>
+                                  )}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  );
+                })()}
+              </CardContent>
+            </Card>
           </div>
         )}
 
