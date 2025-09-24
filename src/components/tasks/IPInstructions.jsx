@@ -4,12 +4,21 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { ExternalLink, Copy } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ExternalLink, Copy, Database } from "lucide-react";
 import { toast } from "sonner";
 import { useEffect, useState } from "react";
 
 // Dynamic task data based on task type
-const getTaskData = (taskType, taskIndex = 0) => {
+const getTaskData = (taskType, taskIndex = 0, isReloaded = false) => {
+  // Generate new links when reloaded
+  const generateNewLink = (baseLink) => {
+    if (!isReloaded) return baseLink;
+    const randomSuffix = Math.random().toString(36).substring(2, 15);
+    return baseLink.replace(/[A-Za-z0-9]+$/, randomSuffix);
+  };
+
   const taskData = {
     viewer1: {
       proxyAddress: "proxy.smartproxy.net:3120:start-a27mxejlofe_area-US_life-15_session-pc_82219de7a75fed",
@@ -18,7 +27,9 @@ const getTaskData = (taskType, taskIndex = 0) => {
       isp: "Charter Communications Inc",
       as: "AS11428 Charter Communications Inc",
       spamScore: "2.1",
-      oneTimeLink: "https://tasker.joyapps.net/I/Z_XEEH4c?h=VTK300V8NDIEMTA1ODALTDY2NzA_AKA_PHOLZYSSPB873X6PFL9K14DY3q",
+      oneTimeLink: generateNewLink("https://tasker.joyapps.net/I/Z_XEEH4c?h=VTK300V8NDIEMTA1ODALTDY2NzA_AKA_PHOLZYSSPB873X6PFL9K14DY3q"),
+      agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.7339.127 Safari/537.36",
+     
       expiresIn: "09:56"
     },
     viewer2: {
@@ -28,7 +39,9 @@ const getTaskData = (taskType, taskIndex = 0) => {
       isp: "Charter Communications Inc",
       as: "AS11428 Charter Communications Inc",
       spamScore: "1.8",
-      oneTimeLink: "https://tasker.joyapps.net/I/Z_XEEH4d?h=VTK300V8NDIEMTA1ODALTDY2NzA_AKA_PHOLZYSSPB873X6PFL9K14DY3r",
+      oneTimeLink: generateNewLink("https://tasker.joyapps.net/I/Z_XEEH4d?h=VTK300V8NDIEMTA1ODALTDY2NzA_AKA_PHOLZYSSPB873X6PFL9K14DY3r"),
+      agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.7339.127 Safari/537.36",
+     
       expiresIn: "08:45"
     },
     clicker: {
@@ -38,13 +51,76 @@ const getTaskData = (taskType, taskIndex = 0) => {
       isp: "Charter Communications Inc",
       as: "AS11428 Charter Communications Inc",
       spamScore: "2.5",
-      oneTimeLink: "https://tasker.joyapps.net/I/Z_XEEH4e?h=VTK300V8NDIEMTA1ODALTDY2NzA_AKA_PHOLZYSSPB873X6PFL9K14DY3s",
+      oneTimeLink: generateNewLink("https://tasker.joyapps.net/I/Z_XEEH4e?h=VTK300V8NDIEMTA1ODALTDY2NzA_AKA_PHOLZYSSPB873X6PFL9K14DY3s"),
+      
+      agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.7339.127 Safari/537.36",
+     
       expiresIn: "07:30"
     }
   };
 
   return taskData[taskType] || taskData.viewer1;
 };
+
+// Sample data queue for clicker tasks
+const sampleClickerDataQueue = [
+  {
+    state: "CA",
+    zipCode: "94941",
+    firstName: "Shayan",
+    lastName: "Mirzahosseini",
+    email: "shayanmirzahosseini306@aol.com",
+    phone: "5106009468",
+    address: "305 Seymour Ln",
+    city: "Mill Valley",
+    score: 140,
+    shade: "No Shade ",
+    date:"2/20/1964",
+    rating: "Good"
+  },
+  {
+    state: "CA",
+    zipCode: "96002",
+    firstName: "Alex",
+    lastName: "Weaver",
+    email: "journee.naegele@yahoo.com",
+    phone: "5304921538",
+    address: "1075 le Brun Lane #2",
+    city: "REDDING",
+    score: 170,
+    shade: "No Shade ",
+    date:"10/18/1993",
+    rating: ""
+  },
+  {
+    state: "CA",
+    zipCode: "91740",
+    firstName: "ALVIN",
+    lastName: "POSTON",
+    email: "alvp7@aol.com",
+    phone: "6266397224",
+    address: "1020 E Rowland",
+    city: "West Covina",
+    score: 160,
+    shade: "No Shade",
+    date:"7/4/1969",
+    rating: "Good"
+  },
+  {
+    state: "CA",
+    zipCode: "93641",
+    firstName: "Myrtle",
+    lastName: "Fulcher",
+    email: "myrtlefulcher66@aol.com",
+    phone: "5593362470",
+    address: "47426 Blue Bird Ln",
+    city: "Miramonte",
+    score: 170,
+    shade: "No Shade ",
+    date:"3/24/1966",
+    rating: ""
+  }
+];
 
 export default function IPInstructions({ 
   onLinkClosed, 
@@ -54,10 +130,9 @@ export default function IPInstructions({
   formatTime, 
   startCountdown,
   onTaskSubmit,
+  onReloadExpiredLink,
   taskNumber = 1
 }) {
-  const ipInstructions = getTaskData(taskType, taskIndex);
-  
   // Task submission state
   const [taskStatus, setTaskStatus] = useState('');
   const [selectedReason, setSelectedReason] = useState('');
@@ -65,16 +140,73 @@ export default function IPInstructions({
   const [screenshot, setScreenshot] = useState(null);
   const [isSubmitted, setIsSubmitted] = useState(false);
   
-  // Start countdown when component mounts or task type changes
+  // Dialog states for clicker data
+  const [showDataDialog, setShowDataDialog] = useState(false);
+  const [showUsageDialog, setShowUsageDialog] = useState(false);
+  const [hasUsedData, setHasUsedData] = useState(false);
+  const [hasFormInLink, setHasFormInLink] = useState(false);
+  const [currentDataIndex, setCurrentDataIndex] = useState(0);
+  const [currentData, setCurrentData] = useState(null);
+  const [formFillAvailability, setFormFillAvailability] = useState(false);
+  const [isLinkReloaded, setIsLinkReloaded] = useState(false);
+  
+  const ipInstructions = getTaskData(taskType, taskIndex, isLinkReloaded);
+  
+  // Reset all state when task type changes
   useEffect(() => {
+    // Reset all form states
+    setTaskStatus('');
+    setSelectedReason('');
+    setPageVisitCount('');
+    setScreenshot(null);
+    setIsSubmitted(false);
+    
+    // Reset clicker-specific states
+    setShowDataDialog(false);
+    setShowUsageDialog(false);
+    setHasUsedData(false);
+    setHasFormInLink(false);
+    setCurrentDataIndex(0);
+    setCurrentData(null);
+    setFormFillAvailability(false);
+    setIsLinkReloaded(false);
+    
+    // Start countdown if available
     if (startCountdown && ipInstructions.expiresIn) {
       startCountdown(ipInstructions.expiresIn);
     }
-  }, [taskType]); // Only restart when task type changes
+  }, [taskType]); // Reset when task type changes
   
   const handleCopyLink = () => {
     navigator.clipboard.writeText(ipInstructions.oneTimeLink);
     toast.success("Copied to clipboard!");
+  };
+
+  const handlePullData = () => {
+    // Get current data from queue
+    const data = sampleClickerDataQueue[currentDataIndex];
+    setCurrentData(data);
+    setShowDataDialog(true);
+  };
+
+  const handleCloseDataDialog = () => {
+    setShowDataDialog(false);
+    setShowUsageDialog(true);
+  };
+
+  const handleUsageDialogSubmit = () => {
+    if (hasUsedData) {
+      // Data is used, move to next item in queue
+      const nextIndex = (currentDataIndex + 1) % sampleClickerDataQueue.length;
+      setCurrentDataIndex(nextIndex);
+      setCurrentData(null); // Clear current data
+      toast.success("Data has been used. Next data will be shown on next pull.");
+    } else {
+      // Data not used, keep same index
+      toast.success("Data remains available for future use.");
+    }
+    setShowUsageDialog(false);
+    setHasUsedData(false);
   };
 
   const handleScreenshotUpload = (event) => {
@@ -91,7 +223,16 @@ export default function IPInstructions({
     setPageVisitCount('');
     setScreenshot(null);
     setIsSubmitted(false);
+    setFormFillAvailability(false);
     toast.success(`Viewer Task ${taskNumber} link reloaded!`);
+  };
+
+  const handleReloadExpiredLinkClick = () => {
+    setIsLinkReloaded(true);
+    if (onReloadExpiredLink) {
+      onReloadExpiredLink();
+    }
+    toast.success("Link reloaded! New one-time link generated.");
   };
 
   const isFormValid = () => {
@@ -128,7 +269,8 @@ export default function IPInstructions({
       screenshot: screenshot ? URL.createObjectURL(screenshot) : null,
       taskStatus,
       selectedReason,
-      pageVisitCount
+      pageVisitCount,
+      formFillAvailability: taskType === 'clicker' ? formFillAvailability : null
     };
 
     // If NOT COMPLETED: stay on the same task and "reload" data (simulate AJAX)
@@ -157,13 +299,24 @@ export default function IPInstructions({
            taskType === 'viewer2' ? 'Viewer Task 2/Search' : 
            taskType === 'clicker' ? 'Clicker Task' : 'Task Instructions'}
         </CardTitle>
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-2">
             <Badge 
               variant={timeRemaining && timeRemaining <= 60 ? "destructive" : "secondary"} 
               className="shrink-0"
             >
               {timeRemaining !== null ? `Expires in ${formatTime(timeRemaining)}` : `Expires in ${ipInstructions.expiresIn}`}
             </Badge>
+            {taskType === 'clicker' && (
+              <Button 
+                onClick={handlePullData}
+                variant="outline"
+                size="sm"
+                className="shrink-0"
+              >
+                <Database className="h-3 w-3 mr-1" />
+                Pull Data
+              </Button>
+            )}
           </div>
           </div>
         <CardDescription>
@@ -171,7 +324,7 @@ export default function IPInstructions({
         </CardDescription>
       
       </CardHeader>
-      <CardContent className="p-6 space-y-4">
+      <CardContent className="px-6 space-y-2">
         {/* Proxy Setup */}
         <div className="space-y-3">
           <p className="text-sm font-medium">1. Set up this proxy in AdsPower:</p>
@@ -220,10 +373,67 @@ export default function IPInstructions({
             </div>
           )}
           {timeRemaining === 0 && (
-            <div className="bg-red-100 border border-red-300 rounded p-2">
-              <p className="text-xs text-red-700 font-medium">
-                ❌ Link has expired! Please reload to get a new link.
+            <div className="bg-red-100 border border-red-300 rounded p-3">
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-red-700 font-medium">
+                  ❌ Link has expired! Click reload to get a new link.
+                </p>
+                <Button 
+                  onClick={handleReloadExpiredLinkClick}
+                  variant="outline"
+                  size="sm"
+                  className="text-red-700 border-red-300 hover:bg-red-50"
+                >
+                  Reload Link
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* User Agent Link - For All Tasks */}
+        <div className="space-y-3">
+          <p className="text-sm font-medium">3. User Agent Link:</p>
+          <div className="bg-gray-100 p-3 rounded border">
+            <div className="flex items-center justify-between gap-2">
+              <code className="text-sm font-mono truncate flex-1">{ipInstructions.agent}</code>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => {
+                  navigator.clipboard.writeText(ipInstructions.agent);
+                  toast.success("User agent copied to clipboard!");
+                }}
+                className="shrink-0"
+              >
+                <Copy className="h-3 w-3 mr-1" />
+                Copy
+              </Button>
+            </div>
+          </div>
+          
+          {timeRemaining !== null && timeRemaining <= 60 && timeRemaining > 0 && (
+            <div className="bg-red-50 border border-red-200 rounded p-2">
+              <p className="text-xs text-red-600 font-medium">
+                ⚠️ Link expires in {formatTime(timeRemaining)}! Complete your task quickly.
               </p>
+            </div>
+          )}
+          {timeRemaining === 0 && (
+            <div className="bg-red-100 border border-red-300 rounded p-3">
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-red-700 font-medium">
+                  ❌ Link has expired! Click reload to get a new link.
+                </p>
+                <Button 
+                  onClick={handleReloadExpiredLinkClick}
+                  variant="outline"
+                  size="sm"
+                  className="text-red-700 border-red-300 hover:bg-red-50"
+                >
+                  Reload Link
+                </Button>
+              </div>
             </div>
           )}
         </div>
@@ -285,13 +495,7 @@ export default function IPInstructions({
                 </div>
               </RadioGroup>
               
-              <Button 
-                onClick={handleReloadLink}
-                variant="outline"
-                className="w-full"
-              >
-                Reload Link
-              </Button>
+             
             </div>
           )}
 
@@ -313,6 +517,22 @@ export default function IPInstructions({
                   </label>
                 </div>
               </RadioGroup>
+              
+              {/* Form Fill Availability - Only for Clicker Tasks */}
+              {taskType === 'clicker' && (
+                <div className="space-y-2">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox 
+                      id={`task${taskNumber}-formFill`} 
+                      checked={formFillAvailability}
+                      onCheckedChange={setFormFillAvailability}
+                    />
+                    <label htmlFor={`task${taskNumber}-formFill`} className="text-sm font-medium text-gray-700 cursor-pointer">
+                      There is a form in this link
+                    </label>
+                  </div>
+                </div>
+              )}
               
               <div className="space-y-2">
                 <label className="block text-sm font-medium">
@@ -342,6 +562,125 @@ export default function IPInstructions({
           </Button>
         </div>
       </CardContent>
+
+      {/* Data Dialog - Only for Clicker Tasks */}
+      {taskType === 'clicker' && currentData && (
+        <Dialog open={showDataDialog} onOpenChange={setShowDataDialog}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Pulled Data</DialogTitle>
+              <DialogDescription>
+                Here is the data for your clicker task
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-4">
+              <div className="bg-gray-50 p-4 rounded-lg border">
+                <div className="grid grid-cols-3 gap-4 text-sm">
+                  <div className="space-y-2 col-span-2 flex items-start flex-col">
+                    <div className="flex justify-between ">
+                      <span className="font-medium text-gray-600">Name:</span>
+                      <span className="font-semibold">{currentData.firstName} {currentData.lastName}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-medium text-gray-600">Email:</span>
+                      <span className="break-all">{currentData.email}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-medium text-gray-600">Phone:</span>
+                      <span>{currentData.phone}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-medium text-gray-600">Address:</span>
+                      <span className="text-right">{currentData.address}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                    <span className="font-medium text-gray-600">Date:</span>
+                    <span>{currentData.date}</span>
+                  </div>
+                  </div>
+                  <div className="space-y-2 col-span-1">
+                    <div className="flex justify-between">
+                      <span className="font-medium text-gray-600">City:</span>
+                      <span>{currentData.city}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-medium text-gray-600">State:</span>
+                      <span>{currentData.state}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-medium text-gray-600">ZIP:</span>
+                      <span>{currentData.zipCode}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-medium text-gray-600">Score:</span>
+                      <span className="font-semibold text-blue-600">{currentData.score}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                    <span className="font-medium text-gray-600">Shade:</span>
+                    <span>{currentData.shade}</span>
+                  </div>
+                
+                  </div>
+                </div>
+                <div className="mt-4 pt-3 ">
+                 
+                  {currentData.rating && (
+                    <div className="flex justify-between text-sm mt-1">
+                      <span className="font-medium text-gray-600">Rating:</span>
+                      <span className="text-green-600 font-medium">{currentData.rating}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              <div className="flex justify-end gap-2 pt-4">
+                <Button onClick={handleCloseDataDialog}>
+                  Close
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Usage Dialog - Only for Clicker Tasks */}
+      {taskType === 'clicker' && (
+        <Dialog open={showUsageDialog} onOpenChange={setShowUsageDialog}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Data Usage Confirmation</DialogTitle>
+              <DialogDescription>
+                Please confirm your usage of this data
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-4">
+              <div className="space-y-3">
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="hasUsedData" 
+                    checked={hasUsedData}
+                    onCheckedChange={setHasUsedData}
+                  />
+                  <label htmlFor="hasUsedData" className="text-sm font-medium">
+                    Have you used this data before?
+                  </label>
+                </div>
+              </div>
+              
+              <div className="flex justify-end gap-2 pt-4">
+                <Button variant="outline" onClick={() => setShowUsageDialog(false)}>
+                  Cancel
+                </Button>
+                <Button onClick={handleUsageDialogSubmit}>
+                  Confirm
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </Card>
   );
 }

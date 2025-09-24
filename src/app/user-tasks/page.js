@@ -121,7 +121,7 @@ export default function UserTasksPage() {
       }, 1000);
     } else if (timeRemaining === 0) {
       setIsTimerActive(false);
-      toast.error("Time expired! Please reload the link and try again.");
+      toast.error("Time expired! Please reload the link to get a new one-time link.");
     }
     return () => clearInterval(interval);
   }, [isTimerActive, timeRemaining]);
@@ -314,16 +314,16 @@ export default function UserTasksPage() {
     }
   }, [currentTask?.id]);
 
-  const handleViewerTaskSubmit = (taskNumber) => {
-    const taskStatus = taskNumber === 1 ? viewerTask1Status : viewerTask2Status;
-    const selectedReason = taskNumber === 1 ? selectedReason1 : selectedReason2;
+  const handleViewerTaskSubmit = (taskNumber, submissionData) => {
+    const taskStatus = submissionData.taskStatus;
+    const selectedReason = submissionData.selectedReason;
     
     if (taskStatus === 'completed') {
-      if (!screenshot) {
+      if (!submissionData.screenshot) {
         toast.error("Screenshot is mandatory when task is completed!");
         return;
       }
-      if (!pageVisitCount) {
+      if (!submissionData.pageVisitCount) {
         toast.error("Please select how many pages you visited!");
         return;
       }
@@ -336,14 +336,6 @@ export default function UserTasksPage() {
       toast.error("Please select a task status!");
       return;
     }
-
-    const submissionData = {
-      additionalDetails,
-      screenshot: screenshot ? URL.createObjectURL(screenshot) : null,
-      taskStatus,
-      selectedReason,
-      pageVisitCount
-    };
 
     // If NOT COMPLETED: stay on the same task and "reload" data (simulate AJAX)
     if (taskStatus === 'notCompleted') {
@@ -429,13 +421,36 @@ export default function UserTasksPage() {
     }
   };
 
+  const handleReloadExpiredLink = () => {
+    // Reset timer and get new link
+    setTimeRemaining(null);
+    setIsTimerActive(false);
+    setCountdownStarted(false);
+    
+    // Reset form states
+    setViewerTask1Status('notCompleted');
+    setViewerTask2Status('notCompleted');
+    setClickerTaskStatus('notCompleted');
+    setSelectedReason1('');
+    setSelectedReason2('');
+    setSelectedReasonClicker('');
+    setAdditionalDetails('');
+    setScreenshot(null);
+    setPageVisitCount('');
+    setTask1Submitted(false);
+    setTask2Submitted(false);
+    setClickerSubmitted(false);
+    
+    toast.success("Link reloaded! New one-time link generated.");
+  };
+
   const handleNextTask = () => {
     // Only switch to clicker for BOTH users
     if (user?.taskRole !== 'both') {
       toast.info("Viewer-only mode: continue with viewer tasks.");
       return;
     }
-    if (viewerTask1Status !== 'completed' || viewerTask2Status !== 'completed') {
+    if (!task1Submitted || !task2Submitted) {
       toast.error("Please complete both viewer tasks first!");
       return;
     }
@@ -529,6 +544,7 @@ export default function UserTasksPage() {
                   formatTime={formatTime}
                   startCountdown={startCountdown}
                   onTaskSubmit={handleViewerTaskSubmit}
+                  onReloadExpiredLink={handleReloadExpiredLink}
                 />
 
                 {/* IP and One time Link Instructions for Task 2 with integrated submission */}
@@ -540,6 +556,7 @@ export default function UserTasksPage() {
                   formatTime={formatTime}
                   startCountdown={startCountdown}
                   onTaskSubmit={handleViewerTaskSubmit}
+                  onReloadExpiredLink={handleReloadExpiredLink}
                 />
 
             {/* Next Task Button - only for BOTH users */}
@@ -550,19 +567,29 @@ export default function UserTasksPage() {
                       <CheckCircle className="h-6 w-6 text-green-600" />
                       <h3 className="text-lg font-medium text-green-800">Ready for Clicker Task?</h3>
                     </div>
-                    <p className="text-gray-600">Complete both viewer tasks to proceed to the clicker task.</p>
+                    <p className="text-gray-600">
+                      {task1Submitted && task2Submitted 
+                        ? "Both viewer tasks completed! You can proceed to the clicker task."
+                        : "Complete both viewer tasks to proceed to the clicker task."
+                      }
+                    </p>
                     <Button 
                       onClick={handleNextTask}
-                      className="bg-blue-600 hover:bg-blue-700 h-12 px-8"
+                      disabled={!task1Submitted || !task2Submitted}
+                      className={`h-12 px-8 ${
+                        task1Submitted && task2Submitted 
+                          ? 'bg-blue-600 hover:bg-blue-700' 
+                          : 'bg-gray-400 cursor-not-allowed'
+                      }`}
                     >
                       <Play className="h-4 w-4 mr-2" />
-                      Next Task (Clicker)
+                      {task1Submitted && task2Submitted ? 'Next Task (Clicker)' : 'Complete Both Viewer Tasks First'}
                     </Button>
                   </CardContent>
                 </Card>
               )}
               </>
-            ) : currentTaskType !== 'viewer' && canSeeClicker ? (
+            ) : currentTaskType === 'clicker' && canSeeClicker ? (
               <>
                 {/* Clicker Task with integrated submission */}
                 <IPInstructions 
@@ -572,6 +599,7 @@ export default function UserTasksPage() {
                   timeRemaining={timeRemaining}
                   formatTime={formatTime}
                   startCountdown={startCountdown}
+                  onReloadExpiredLink={handleReloadExpiredLink}
                   onTaskSubmit={(taskNumber, submissionData) => {
                     // Handle clicker task submission
                     if (submissionData.taskStatus === 'notCompleted') {
