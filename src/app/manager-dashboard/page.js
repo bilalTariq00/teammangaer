@@ -28,7 +28,8 @@ import {
   CheckSquare,
   Square,
   CheckCircle2,
-  XCircle
+  XCircle,
+  UserCheck
 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
@@ -86,6 +87,7 @@ function ManagerDashboardContent() {
   const { users } = useUsers();
   const { getTeamPerformance, isPerformanceMarkedToday, getPerformanceLevelDetails } = usePerformance();
   const { getTeamAttendance, getAttendanceStats, approveAttendance, isAttendanceMarkedToday } = useAttendance();
+  const { verifiedUsers } = useManagerWorkflow();
   const today = new Date().toISOString().split('T')[0];
   
   // All hooks must be called before any early returns
@@ -174,10 +176,14 @@ function ManagerDashboardContent() {
     return () => document.removeEventListener('keydown', handleKeyPress);
   }, []);
   
+  // Helper function to check if a user is a team member (worker/user)
+  const isTeamMember = (user) => {
+    return user.role === 'worker' || user.role === 'user';
+  };
+
   // Get team members for this manager
   let teamMembers = users?.filter(u => 
-    u.role === 'worker' && 
-    user?.assignedUsers?.includes(u.id)
+    isTeamMember(u) && user?.assignedUsers?.includes(u.id)
   ) || [];
 
   // If no team members assigned, use mock team members for demonstration
@@ -673,6 +679,35 @@ function ManagerDashboardContent() {
               </div>
             </div>
             
+            {/* Verified Team Members Display */}
+            {verifiedUsers && verifiedUsers.length > 0 && (
+              <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+                <h4 className="text-sm font-medium text-green-800 mb-3 flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4" />
+                  Verified Team Members
+                </h4>
+                <div className="flex flex-wrap gap-2">
+                  {verifiedUsers.map(userId => {
+                    const user = teamMembers.find(m => m.id === userId);
+                    if (!user) return null;
+                    return (
+                      <Badge 
+                        key={userId} 
+                        variant="outline" 
+                        className="bg-green-100 text-green-800 border-green-300"
+                      >
+                        <UserCheck className="h-3 w-3 mr-1" />
+                        {user.name}
+                      </Badge>
+                    );
+                  })}
+                </div>
+                <p className="text-xs text-green-600 mt-2">
+                  {verifiedUsers.length} team member{verifiedUsers.length !== 1 ? 's' : ''} verified for attendance
+                </p>
+              </div>
+            )}
+            
             {/* Individual Attendance Status */}
             <div className="space-y-3">
               <h4 className="font-semibold text-sm text-gray-700">Individual Status</h4>
@@ -726,7 +761,7 @@ function ManagerDashboardContent() {
         </Card>
 
         {/* Attendance Verification */}
-        <Card>
+        {/* <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Clock className="h-5 w-5" />
@@ -738,7 +773,7 @@ function ManagerDashboardContent() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {/* Pending Verifications */}
+           
               {finalAttendance.filter(a => a.status === 'marked').length > 0 && (
                 <div className="space-y-3">
                   <h4 className="font-semibold text-sm text-gray-700 flex items-center gap-2">
@@ -794,7 +829,7 @@ function ManagerDashboardContent() {
                 </div>
               )}
 
-              {/* All Team Members Status */}
+
               <div className="space-y-3">
                 <h4 className="font-semibold text-sm text-gray-700 flex items-center gap-2">
                   <Users className="h-4 w-4" />
@@ -853,7 +888,7 @@ function ManagerDashboardContent() {
               </div>
             </div>
           </CardContent>
-        </Card>
+        </Card> */}
 
             {/* Quick Stats Grid */}
         {/* <div className="grid grid-cols-1 lg:grid-cols-2 gap-6"> */}
@@ -1280,8 +1315,10 @@ function ManagerDashboardContent() {
 
 export default function ManagerDashboard() {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
-      <ManagerDashboardContent />
-    </Suspense>
+    <ManagerWorkflowProvider>
+      <Suspense fallback={<div>Loading...</div>}>
+        <ManagerDashboardContent />
+      </Suspense>
+    </ManagerWorkflowProvider>
   );
 }

@@ -71,7 +71,7 @@ export function AuthProvider({ children }) {
         password: "manager123",
         role: "manager",
         avatar: null,
-        assignedUsers: [4, 5, 6], // Sarah Johnson, John Doe, Jane Smith
+        assignedUsers: [5, 6, 7], // Hasan Abbas, Adnan Amir, Waleed Bin Shakeel (matching UsersContext)
         locked: "unlocked"
       },
       // QC user

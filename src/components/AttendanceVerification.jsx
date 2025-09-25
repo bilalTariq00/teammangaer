@@ -17,6 +17,7 @@ import {
 import { useManagerWorkflow } from "@/contexts/ManagerWorkflowContext";
 import { useUsers } from "@/contexts/UsersContext";
 import { useAttendance } from "@/contexts/AttendanceContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
 export default function AttendanceVerification() {
@@ -24,10 +25,12 @@ export default function AttendanceVerification() {
     attendanceVerified, 
     verifyAttendance, 
     checkManagerAttendance,
-    navigationBlocked 
+    navigationBlocked,
+    verifiedUsers
   } = useManagerWorkflow();
   const { users } = useUsers();
   const { getAttendanceForDate } = useAttendance();
+  const { user: currentUser } = useAuth();
   
   const [selectedUsers, setSelectedUsers] = useState([]);
   const [teamMembers, setTeamMembers] = useState([]);
@@ -36,14 +39,19 @@ export default function AttendanceVerification() {
   // Get today's date
   const today = new Date().toISOString().split('T')[0];
 
+  // Helper function to check if a user is a team member (worker/user)
+  const isTeamMember = (user) => {
+    return user.role === 'worker' || user.role === 'user';
+  };
+
   // Load team members and their attendance status
   useEffect(() => {
-    if (users) {
+    if (users && currentUser && currentUser.role === 'manager') {
+      // Get team members assigned to the current logged-in manager
       const teamMembersList = users.filter(u => 
-        u.role === 'worker' && 
-        u.assignedUsers?.includes(users.find(u => u.role === 'manager')?.id)
-      ) || [];
-      
+        isTeamMember(u) && currentUser.assignedUsers?.includes(u.id)
+  ) || [];
+
       // If no assigned users, use mock data
       if (teamMembersList.length === 0) {
         const mockTeamMembers = [
@@ -56,7 +64,12 @@ export default function AttendanceVerification() {
         setTeamMembers(teamMembersList);
       }
     }
-  }, [users]);
+  }, [users, currentUser]);
+
+  // Filter team members to only show verified users
+  const verifiedTeamMembers = teamMembers.filter(member => 
+    verifiedUsers && verifiedUsers.includes(member.id)
+  );
 
   // Get attendance status for each team member
   const getAttendanceStatus = (userId) => {
@@ -107,7 +120,7 @@ export default function AttendanceVerification() {
   // Handle select all
   const handleSelectAll = (checked) => {
     if (checked) {
-      const allUserIds = teamMembers.map(member => member.id);
+      const allUserIds = verifiedTeamMembers.map(member => member.id);
       setSelectedUsers(allUserIds);
     } else {
       setSelectedUsers([]);
@@ -145,7 +158,7 @@ export default function AttendanceVerification() {
   // Manager attendance is already marked, so we don't need to check it here
 
   if (attendanceVerified) {
-    return (
+  return (
       <Card className="border-green-200 bg-green-50">
         <CardHeader>
           <div className="flex items-center gap-2">
@@ -159,8 +172,31 @@ export default function AttendanceVerification() {
         <CardContent>
           <div className="flex items-center gap-2 text-sm text-green-600">
             <UserCheck className="h-4 w-4" />
-            <span>Verified for {teamMembers.length} team member(s)</span>
+            <span>Verified for {verifiedTeamMembers.length} team member(s)</span>
           </div>
+          
+          {/* Verified Team Members Display */}
+          {verifiedUsers && verifiedUsers.length > 0 && (
+            <div className="mt-4 pt-4 border-t border-green-200">
+              <h4 className="text-sm font-medium text-green-800 mb-2">Verified Team Members:</h4>
+              <div className="flex flex-wrap gap-2">
+                {verifiedUsers.map(userId => {
+                  const user = verifiedTeamMembers.find(m => m.id === userId);
+                  if (!user) return null;
+                  return (
+                    <Badge 
+                      key={userId} 
+                      variant="outline" 
+                      className="bg-green-100 text-green-800 border-green-300"
+                    >
+                      <UserCheck className="h-3 w-3 mr-1" />
+                      {user.name}
+                    </Badge>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
     );
@@ -168,33 +204,68 @@ export default function AttendanceVerification() {
 
   return (
     <Card className={navigationBlocked ? "border-orange-200 bg-orange-50" : ""}>
-      <CardHeader>
+          <CardHeader>
         <div className="flex items-center gap-2">
-          <Users className="h-5 w-5" />
+              <Users className="h-5 w-5" />
           <CardTitle>
             Verify Team Attendance
-          </CardTitle>
+            </CardTitle>
         </div>
         <CardDescription>
           Select team members whose attendance you want to verify for today.
         </CardDescription>
-      </CardHeader>
+          </CardHeader>
       <CardContent className="space-y-4">
+        {/* Verified Team Members Display */}
+        <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+          <h4 className="text-sm font-medium text-green-800 mb-3 flex items-center gap-2">
+            <CheckCircle className="h-4 w-4" />
+            Verified Team Members
+          </h4>
+          {verifiedUsers && verifiedUsers.length > 0 ? (
+            <>
+              <div className="flex flex-wrap gap-2">
+                {verifiedUsers.map(userId => {
+                  const user = verifiedTeamMembers.find(m => m.id === userId);
+                  if (!user) return null;
+                  return (
+                    <Badge 
+                      key={userId} 
+                      variant="outline" 
+                      className="bg-green-100 text-green-800 border-green-300"
+                    >
+                      <UserCheck className="h-3 w-3 mr-1" />
+                      {user.name}
+                    </Badge>
+                  );
+                })}
+              </div>
+              <p className="text-xs text-green-600 mt-2">
+                {verifiedUsers.length} team member{verifiedUsers.length !== 1 ? 's' : ''} verified for attendance
+              </p>
+            </>
+          ) : (
+            <p className="text-sm text-green-600">
+              No team members have been verified yet. Select team members below and click "Verify Attendance" to verify them.
+            </p>
+          )}
+                  </div>
+        
         {/* Select All */}
         <div className="flex items-center space-x-2">
           <Checkbox
             id="select-all"
-            checked={selectedUsers.length === teamMembers.length && teamMembers.length > 0}
+            checked={selectedUsers.length === verifiedTeamMembers.length && verifiedTeamMembers.length > 0}
             onCheckedChange={handleSelectAll}
           />
           <Label htmlFor="select-all" className="text-sm font-medium">
-            Select All ({teamMembers.length} members)
+            Select All ({verifiedTeamMembers.length} members)
           </Label>
-        </div>
-
+                </div>
+                
         {/* Team Members List */}
         <div className="space-y-3">
-          {teamMembers.map((member) => {
+          {verifiedTeamMembers.map((member) => {
             const attendanceStatus = getAttendanceStatus(member.id);
             const isSelected = selectedUsers.includes(member.id);
             
@@ -228,11 +299,11 @@ export default function AttendanceVerification() {
               </div>
             );
           })}
-        </div>
-
+                    </div>
+                    
         {/* Verify Button */}
         <div className="flex justify-end pt-4">
-          <Button
+                        <Button
             onClick={handleVerifyAttendance}
             disabled={selectedUsers.length === 0 || isVerifying}
             className="bg-blue-600 hover:bg-blue-700"
@@ -248,9 +319,9 @@ export default function AttendanceVerification() {
                 Verify Attendance ({selectedUsers.length})
               </>
             )}
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
+                        </Button>
+                      </div>
+        </CardContent>
+      </Card>
   );
 }

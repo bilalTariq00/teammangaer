@@ -19,7 +19,8 @@ import {
   Award,
   AlertCircle,
   X,
-  Save
+  Save,
+  UserCheck
 } from "lucide-react";
 import { usePerformance } from "@/contexts/PerformanceContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -63,11 +64,16 @@ export default function PerformanceMarking() {
     day: 'numeric' 
   });
 
+  // Helper function to check if a user is a team member (worker/user)
+  const isTeamMember = (user) => {
+    return user.role === 'worker' || user.role === 'user';
+  };
+
   // Get team members assigned to this manager
   let allTeamMembers = users?.filter(u => 
-    u.role === 'worker' && 
-    currentUser?.assignedUsers?.includes(u.id)
+    isTeamMember(u) && currentUser?.assignedUsers?.includes(u.id)
   ) || [];
+
 
   // Enhance team members with additional fields
   const enhanceTeamMembersWithTargets = (members) => {
@@ -159,8 +165,20 @@ export default function PerformanceMarking() {
     });
   };
 
-  // Filter team members based on attendance status
+  // Filter team members based on attendance status and verification
   const getTeamMembersByAttendance = () => {
+    // First filter to only verified users
+    const verifiedTeamMembers = allTeamMembers.filter(member => 
+      verifiedUsers && verifiedUsers.includes(member.id)
+    );
+    
+    console.log('Verified team members:', verifiedTeamMembers);
+    
+    // If no verified users, return empty array
+    if (verifiedTeamMembers.length === 0) {
+      return [];
+    }
+    
     // Use mock data for consistency with dashboard
     const membersWithAttendance = generateMockAttendanceForMembers();
     
@@ -175,13 +193,15 @@ export default function PerformanceMarking() {
     
     console.log('Present members:', presentMembers);
     
-    // If all members are present, show all
-    if (presentMembers.length === allTeamMembers.length) {
-      return allTeamMembers;
-    }
+    // Filter present members to only include verified users
+    const verifiedPresentMembers = presentMembers.filter(member => 
+      verifiedUsers && verifiedUsers.includes(member.id)
+    );
     
-    // Otherwise, show only present members
-    return presentMembers;
+    console.log('Verified present members:', verifiedPresentMembers);
+    
+    // Return verified present members, or all verified members if none are present
+    return verifiedPresentMembers.length > 0 ? verifiedPresentMembers : verifiedTeamMembers;
   };
 
   const teamMembers = getTeamMembersByAttendance();
@@ -478,15 +498,15 @@ export default function PerformanceMarking() {
           <CardHeader>
             <div className="flex items-center gap-2">
               <AlertCircle className="h-5 w-5 text-yellow-600" />
-              <CardTitle className="text-yellow-800">No Present Team Members</CardTitle>
+              <CardTitle className="text-yellow-800">No Verified Team Members</CardTitle>
             </div>
             <CardDescription className="text-yellow-700">
-              No team members are present today to mark performance for.
+              No verified team members are available for performance marking.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <p className="text-sm text-yellow-600">
-              Team members must be present (marked attendance) to appear in performance marking.
+              Team members must be verified for attendance before they can appear in performance marking.
             </p>
           </CardContent>
         </Card>
@@ -524,6 +544,42 @@ export default function PerformanceMarking() {
           </div>
         </div>
       </div>
+
+      {/* Verified Users Display */}
+      {verifiedUsers && verifiedUsers.length > 0 && (
+        <Card className="border-green-200 bg-green-50">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <CheckCircle className="h-5 w-5 text-green-600" />
+              <CardTitle className="text-green-800">Verified Team Members</CardTitle>
+              </div>
+            <CardDescription className="text-green-700">
+              The following team members have been verified for attendance today
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-2">
+              {verifiedUsers.map(userId => {
+                const user = teamMembers.find(m => m.id === userId);
+                if (!user) return null;
+                return (
+                  <Badge 
+                    key={userId} 
+                    variant="outline" 
+                    className="bg-green-100 text-green-800 border-green-300"
+                  >
+                    <UserCheck className="h-3 w-3 mr-1" />
+                    {user.name}
+                  </Badge>
+                );
+              })}
+            </div>
+            <p className="text-sm text-green-600 mt-2">
+              {verifiedUsers.length} team member{verifiedUsers.length !== 1 ? 's' : ''} verified
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Search and Filters */}
       <Card>
