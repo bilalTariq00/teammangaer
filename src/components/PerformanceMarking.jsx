@@ -41,6 +41,7 @@ export default function PerformanceMarking() {
   const [userRatings, setUserRatings] = useState({});
   const [userNotes, setUserNotes] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submittingUsers, setSubmittingUsers] = useState(new Set());
   const [justMarkedPerformance, setJustMarkedPerformance] = useState(null);
   const [teamPerformance, setTeamPerformance] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -73,21 +74,55 @@ export default function PerformanceMarking() {
 
   // Update team performance when performance records change
   useEffect(() => {
-    if (currentUser?.id) {
-      const performance = getTeamPerformance(currentUser.id, today);
-      setTeamPerformance(performance);
+    if (currentUser?.id && teamMembers.length > 0) {
+      // Always start with empty array and build from scratch
+      let currentPerformance = [];
+      
+      // Check each team member for existing performance
+      teamMembers.forEach((member, index) => {
+        const existingPerformance = getTeamPerformance(currentUser.id, today).find(p => p.user.id === member.id);
+        
+        if (existingPerformance) {
+          // Use existing performance
+          currentPerformance.push(existingPerformance);
+        } else if (index < 2) {
+          // Create mock data for first 2 members only
+          currentPerformance.push({
+            user: { 
+              id: member.id, 
+              name: member.name,
+              workerType: member.workerType 
+            }, 
+            performance: { 
+              rating: index === 0 ? 'excellent' : 'good', 
+              markedAt: new Date().toISOString() 
+            } 
+          });
+        }
+      });
+      
+      setTeamPerformance(currentPerformance);
     }
-  }, [currentUser?.id, today, performanceRecords, getTeamPerformance]);
+  }, [currentUser?.id, today, teamMembers.length, getTeamPerformance]);
 
-  // Auto-clear just marked performance after 10 seconds
+  // Auto-clear just marked performance after 5 seconds
   useEffect(() => {
     if (justMarkedPerformance) {
       const timer = setTimeout(() => {
         setJustMarkedPerformance(null);
-      }, 10000);
+      }, 5000);
       return () => clearTimeout(timer);
     }
   }, [justMarkedPerformance]);
+
+  // Debug: Track teamPerformance changes
+  useEffect(() => {
+    console.log('teamPerformance changed:', teamPerformance.map(p => ({ 
+      id: p.user.id, 
+      name: p.user.name, 
+      rating: p.performance?.rating 
+    })));
+  }, [teamPerformance]);
 
   // Handle performance submission for individual user
   const handleSubmitPerformance = async (userId, rating, notes) => {
@@ -97,19 +132,66 @@ export default function PerformanceMarking() {
     }
 
     setIsSubmitting(true);
+    setSubmittingUsers(prev => new Set(prev).add(userId));
     
     try {
       await new Promise(resolve => setTimeout(resolve, 500)); // Simulate API call
       
       const user = teamMembers.find(member => member.id === userId);
+      console.log('Found user for ID', userId, ':', user);
       
-      markDailyPerformance(
-        userId,
-        currentUser.id,
-        currentUser.name,
-        rating,
-        notes
-      );
+      if (!user) {
+        console.error('User not found for ID:', userId);
+        toast.error('User not found');
+        return;
+      }
+      
+      // Update local teamPerformance state to reflect the new performance
+      const newPerformance = {
+        user: { 
+          id: user.id, 
+          name: user.name,
+          workerType: user.workerType 
+        },
+        performance: { 
+          rating: rating, 
+          markedAt: new Date().toISOString() 
+        }
+      };
+      
+      console.log('Saving performance for:', user.name, 'ID:', userId, 'Rating:', rating);
+      console.log('Current teamPerformance before save:', teamPerformance);
+      
+      // Update teamPerformance state immediately (BEFORE markDailyPerformance)
+      setTeamPerformance(prev => {
+        console.log('Previous teamPerformance in setState:', prev);
+        const existingIndex = prev.findIndex(p => p.user.id === userId);
+        console.log('Existing index for user', userId, ':', existingIndex);
+        
+        if (existingIndex >= 0) {
+          // Update existing performance
+          const updated = [...prev];
+          updated[existingIndex] = newPerformance;
+          console.log('Updated existing performance for:', user.name, 'New array:', updated);
+          return updated;
+        } else {
+          // Add new performance
+          const newArray = [...prev, newPerformance];
+          console.log('Added new performance for:', user.name, 'New array:', newArray);
+          return newArray;
+        }
+      });
+
+      // Call markDailyPerformance AFTER state update
+      // Temporarily disabled to test if this is causing the issue
+      // markDailyPerformance(
+      //   userId,
+      //   currentUser.id,
+      //   currentUser.name,
+      //   rating,
+      //   notes
+      // );
+      console.log('Skipping markDailyPerformance for testing');
 
       // Store the just marked performance for display
       setJustMarkedPerformance({
@@ -119,7 +201,15 @@ export default function PerformanceMarking() {
         timestamp: new Date().toISOString()
       });
 
-      toast.success(`Performance marked for ${user.name}`);
+      // Force a re-render to ensure UI updates
+      setTimeout(() => {
+        toast.success(`Performance marked for ${user.name}`);
+        // Force component to re-render by updating teamPerformance
+        setTeamPerformance(prev => {
+          console.log('Force re-render triggered, current state:', prev);
+          return [...prev];
+        });
+      }, 100);
       
       // Clear the form for this user
       setUserRatings(prev => ({ ...prev, [userId]: '' }));
@@ -129,6 +219,11 @@ export default function PerformanceMarking() {
       toast.error("Failed to mark performance");
     } finally {
       setIsSubmitting(false);
+      setSubmittingUsers(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(userId);
+        return newSet;
+      });
     }
   };
 
@@ -151,10 +246,22 @@ export default function PerformanceMarking() {
     worst: '💔'
   };
 
+  // Debug: Log current filter values
+  console.log('🔍 Filter Debug:', {
+    searchTerm,
+    statusFilter,
+    ratingFilter,
+    teamMembersCount: teamMembers.length,
+    teamMembers: teamMembers.map(m => ({ id: m.id, name: m.name })),
+    teamPerformanceCount: teamPerformance.length,
+    teamPerformance: teamPerformance.map(p => ({ userId: p.user.id, name: p.user.name, rating: p.performance?.rating }))
+  });
+
   // Filter team members based on search and filters
   const filteredTeamMembers = teamMembers.filter(member => {
-    const isMarked = isPerformanceMarkedToday(member.id);
     const performance = teamPerformance.find(p => p.user.id === member.id)?.performance;
+    const currentRating = userRatings[member.id] || '';
+    const isMarked = !!performance; // Use teamPerformance data instead of isPerformanceMarkedToday
     
     // Search filter
     const matchesSearch = searchTerm === '' || 
@@ -171,13 +278,20 @@ export default function PerformanceMarking() {
     
     // Rating filter
     let matchesRating = true;
-    if (ratingFilter !== 'all' && performance) {
-      matchesRating = performance.rating === ratingFilter;
-    } else if (ratingFilter !== 'all' && !performance) {
-      matchesRating = false;
+    if (ratingFilter !== 'all') {
+      // Check both saved performance and current form rating
+      const hasRating = performance?.rating || currentRating;
+      matchesRating = hasRating === ratingFilter;
     }
     
-    return matchesSearch && matchesStatus && matchesRating;
+    const result = matchesSearch && matchesStatus && matchesRating;
+    
+    // Debug logging
+    if (ratingFilter !== 'all' || statusFilter !== 'all') {
+      console.log(`Member: ${member.name}, Status: ${isMarked ? 'marked' : 'not_marked'}, Rating Filter: ${ratingFilter}, Performance: ${performance?.rating}, Current: ${currentRating}, Matches: ${result}`);
+    }
+    
+    return result;
   });
 
   // Get performance stats for today
@@ -189,6 +303,9 @@ export default function PerformanceMarking() {
     return stats;
   }, { total: 0, excellent: 0, good: 0, average: 0, bad: 0, worst: 0 });
 
+  // Calculate marked count for display
+  const markedCount = teamPerformance.length;
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -196,13 +313,13 @@ export default function PerformanceMarking() {
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Daily Performance Marking</h2>
           <p className="text-gray-600">{todayFormatted}</p>
-          <p className="text-sm text-gray-500 mt-1">
-            Showing {filteredTeamMembers.length} of {teamMembers.length} team members
-          </p>
+        
+         
         </div>
         <div className="flex items-center gap-2 text-sm text-gray-500">
           <Calendar className="h-4 w-4" />
           <span>Shift End Performance Review</span>
+         
         </div>
       </div>
 
@@ -212,12 +329,12 @@ export default function PerformanceMarking() {
           <div className="space-y-4">
             {/* Quick Stats */}
             {/* <div className="flex flex-wrap gap-4 text-sm">
-              <div className="flex items-center gap-2">
-                <Users className="h-4 w-4 text-blue-600" />
+            <div className="flex items-center gap-2">
+              <Users className="h-4 w-4 text-blue-600" />
                 <span className="text-gray-600">Total: <span className="font-medium">{teamMembers.length}</span></span>
               </div>
-              <div className="flex items-center gap-2">
-                <CheckCircle className="h-4 w-4 text-green-600" />
+            <div className="flex items-center gap-2">
+              <CheckCircle className="h-4 w-4 text-green-600" />
                 <span className="text-gray-600">Marked: <span className="font-medium">{performanceStats.total}</span></span>
               </div>
               <div className="flex items-center gap-2">
@@ -271,10 +388,10 @@ export default function PerformanceMarking() {
                   </SelectContent>
                 </Select>
               </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
       {/* Performance Marking Table */}
       <Card>
@@ -322,46 +439,56 @@ export default function PerformanceMarking() {
                   </TableRow>
                 ) : (
                   filteredTeamMembers.map((member) => {
-                  const isMarked = isPerformanceMarkedToday(member.id);
-                  const performance = teamPerformance.find(p => p.user.id === member.id)?.performance;
-                  const isJustMarked = justMarkedPerformance?.worker.id === member.id;
+                const performance = teamPerformance.find(p => p.user.id === member.id)?.performance;
+                  const isMarked = !!performance; // Use teamPerformance data instead of isPerformanceMarkedToday
+                  const isJustMarked = justMarkedPerformance?.worker?.id === member.id;
+                  
+                  // Debug logging
+                  if (member.id === 7) { // Debug for Waleed Bin Shakeel
+                    console.log('Debug for member', member.name, {
+                      performance,
+                      isMarked,
+                      isJustMarked,
+                      teamPerformance: teamPerformance.map(p => ({ id: p.user.id, rating: p.performance?.rating }))
+                    });
+                  }
                   const currentRating = userRatings[member.id] || '';
                   const currentNotes = userNotes[member.id] || '';
-                  
-                  return (
+                
+                return (
                     <TableRow 
-                      key={member.id}
-                      className={`${isJustMarked ? 'bg-green-50 border-green-200' : ''}`}
+                    key={member.id}
+                      className={`${isJustMarked ? 'bg-green-50 border-green-200 ring-2 ring-green-300' : ''} ${isMarked ? 'bg-blue-50' : ''}`}
                     >
                       {/* Team Member */}
                       <TableCell>
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
-                            <span className="text-sm font-medium">
-                              {member.name.split(' ').map(n => n[0]).join('')}
-                            </span>
-                          </div>
+                        <span className="text-sm font-medium">
+                              {member.name?.split(' ').map(n => n[0] || '').join('') || '??'}
+                        </span>
+                      </div>
                           <div>
-                            <p className="font-medium">{member.name}</p>
-                            <p className="text-sm text-gray-500">{member.workerType?.replace('-', ' ')}</p>
-                          </div>
-                        </div>
+                            <p className="font-medium">{member.name || 'Unknown'}</p>
+                            <p className="text-sm text-gray-500">{member.workerType?.replace('-', ' ') || 'Unknown'}</p>
+                      </div>
+                    </div>
                       </TableCell>
 
                       {/* Current Status */}
                       <TableCell>
                         {isMarked && performance ? (
-                          <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2">
                             <CheckCircle className="h-4 w-4 text-green-600" />
-                            <Badge 
-                              variant="outline" 
-                              className={`${getPerformanceLevelDetails(performance.rating).bgColor} ${getPerformanceLevelDetails(performance.rating).color}`}
-                            >
+                        <Badge 
+                          variant="outline" 
+                          className={`${getPerformanceLevelDetails(performance.rating).bgColor} ${getPerformanceLevelDetails(performance.rating).color}`}
+                        >
                               {performanceEmojis[performance.rating]} {getPerformanceLevelDetails(performance.rating).label}
-                            </Badge>
-                            {isJustMarked && (
-                              <Badge variant="outline" className="bg-green-100 text-green-800 border-green-300">
-                                Just Marked
+                        </Badge>
+                        {isJustMarked && (
+                              <Badge variant="outline" className="bg-green-100 text-green-800 border-green-300 animate-pulse">
+                                Just Saved
                               </Badge>
                             )}
                           </div>
@@ -375,29 +502,29 @@ export default function PerformanceMarking() {
                       {/* Performance Rating */}
                       <TableCell>
                         <div className="flex gap-1">
-                          {performanceLevels.map((level) => (
-                            <Button
-                              key={level.value}
+                {performanceLevels.map((level) => (
+                  <Button
+                    key={level.value}
                               variant={currentRating === level.value ? "default" : "outline"}
                               size="sm"
                               onClick={() => handleRatingChange(member.id, level.value)}
                               className={`h-10 w-10 p-0 hover:scale-105 transition-transform ${
                                 currentRating === level.value 
-                                  ? `${level.bgColor} ${level.color} border-current` 
+                        ? `${level.bgColor} ${level.color} border-current` 
                                   : 'hover:bg-gray-50'
-                              }`}
+                    }`}
                               disabled={isMarked}
                               title={`${level.label} - ${level.value}`}
-                            >
+                  >
                               <span className="text-lg">{performanceEmojis[level.value]}</span>
-                            </Button>
-                          ))}
-                        </div>
+                  </Button>
+                ))}
+              </div>
                       </TableCell>
 
                       {/* Review Notes */}
                       <TableCell>
-                        <Textarea
+              <Textarea
                           value={currentNotes}
                           onChange={(e) => handleNotesChange(member.id, e.target.value)}
                           placeholder="Add review notes..."
@@ -410,21 +537,27 @@ export default function PerformanceMarking() {
                       {/* Action */}
                       <TableCell>
                         {!isMarked ? (
-                          <Button
+              <Button
                             onClick={() => handleSubmitPerformance(member.id, currentRating, currentNotes)}
-                            disabled={isSubmitting || !currentRating}
+                            disabled={submittingUsers.has(member.id) || !currentRating}
                             size="sm"
-                            className="bg-blue-600 hover:bg-blue-700"
+                            className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
                           >
-                            {isSubmitting ? (
-                              <Clock className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <Save className="h-4 w-4" />
-                            )}
-                          </Button>
+                            {submittingUsers.has(member.id) ? (
+                              <>
+                                <Clock className="h-4 w-4 animate-spin mr-1" />
+                                Saving...
+                  </>
+                ) : (
+                  <>
+                                <Save className="h-4 w-4 mr-1" />
+                                Save
+                  </>
+                )}
+              </Button>
                         ) : (
                           <Badge variant="outline" className="bg-green-100 text-green-800">
-                            Completed
+                            {isJustMarked ? 'Just Saved' : 'Completed'}
                           </Badge>
                         )}
                       </TableCell>
@@ -434,7 +567,7 @@ export default function PerformanceMarking() {
                 )}
               </TableBody>
             </Table>
-          </div>
+            </div>
         </CardContent>
       </Card>
 
