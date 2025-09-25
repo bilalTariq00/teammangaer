@@ -54,11 +54,11 @@ const navigation = [
     href: "/manager-performance",
     icon: BarChart3,
   },
-  {
-    name: "Attendance",
-    href: "/manager-dashboard?tab=attendance",
-    icon: Clock,
-  },
+  // {
+  //   name: "Attendance",
+  //   href: "/manager-dashboard?tab=attendance",
+  //   icon: Clock,
+  // },
   
 ];
 

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import ManagerMainLayout from "@/components/layout/ManagerMainLayout";
+import QCMainLayout from "@/components/layout/QCMainLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -44,7 +44,7 @@ const generateMockPreviousMonthData = () => {
   return mockData.reverse() // Show most recent first
 }
 
-export default function ManagerAttendancePage() {
+export default function QCAttendancePage() {
   const { user } = useAuth();
   const { markAttendance, isAttendanceMarkedToday } = useAttendance();
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -93,14 +93,14 @@ export default function ManagerAttendancePage() {
 
   if (!user) {
     return (
-      <ManagerMainLayout>
+      <QCMainLayout>
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="text-center">
             <h2 className="text-2xl font-bold text-foreground mb-2">Please Log In</h2>
             <p className="text-muted-foreground">You need to be logged in to mark attendance.</p>
           </div>
         </div>
-      </ManagerMainLayout>
+      </QCMainLayout>
     );
   }
 
@@ -111,7 +111,7 @@ export default function ManagerAttendancePage() {
     const attendancePercentage = Math.round((presentDays / totalWorkingDays) * 100);
 
     return (
-      <ManagerMainLayout>
+      <QCMainLayout>
         <div className="space-y-6">
           {/* Success Message */}
           <Card className="border-green-200 bg-green-50">
@@ -215,12 +215,12 @@ export default function ManagerAttendancePage() {
             </CardContent>
           </Card>
         </div>
-      </ManagerMainLayout>
+      </QCMainLayout>
     );
   }
 
   return (
-    <ManagerMainLayout>
+    <QCMainLayout>
       <div className="max-w-2xl mx-auto space-y-6">
         {/* Header */}
         <div className="text-center">
@@ -236,7 +236,7 @@ export default function ManagerAttendancePage() {
               {user.name}
             </CardTitle>
             <CardDescription className="text-lg">
-              {user.role} • Manager
+              {user.role} • QC Manager
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -278,6 +278,6 @@ export default function ManagerAttendancePage() {
           </CardContent>
         </Card>
       </div>
-    </ManagerMainLayout>
+    </QCMainLayout>
   );
 }

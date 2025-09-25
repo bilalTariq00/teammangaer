@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import QCMainLayout from "@/components/layout/QCMainLayout";
 import { Card, CardContent,CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,6 +10,8 @@ import {
   CheckCircle, 
   Clock
 } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useAttendance } from "@/contexts/AttendanceContext";
 
 const quickDateRanges = [
   "Today",
@@ -57,8 +60,23 @@ const getQCStats = (selectedRange) => {
 };
 
 export default function QCDashboard() {
+  const { user } = useAuth();
+  const { isAttendanceMarkedToday } = useAttendance();
+  const router = useRouter();
   const [selectedRange, setSelectedRange] = useState("Today");
   const [isLoading, setIsLoading] = useState(false);
+  const [showAttendanceModal, setShowAttendanceModal] = useState(false);
+
+  // Check if attendance is marked for today
+  useEffect(() => {
+    if (user && (user.role === 'qc' || user.role === 'manager')) {
+      const attendanceMarked = isAttendanceMarkedToday(user.id);
+      
+      if (!attendanceMarked) {
+        setShowAttendanceModal(true);
+      }
+    }
+  }, [user, isAttendanceMarkedToday]);
 
   // Get QC stats based on selected range
   const qcStats = getQCStats(selectedRange);
@@ -78,6 +96,49 @@ export default function QCDashboard() {
   const handleReset = () => {
     setSelectedRange("Today");
   };
+
+  // Show attendance modal if attendance is not marked for today
+  if (showAttendanceModal) {
+    return (
+      <QCMainLayout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <Card className="w-full max-w-md">
+            <CardHeader className="text-center">
+              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-orange-100">
+                <Clock className="h-6 w-6 text-orange-600" />
+              </div>
+              <CardTitle className="text-2xl font-bold text-gray-900">Mark Your Attendance</CardTitle>
+              <CardDescription className="text-gray-600">
+                You must mark your attendance before accessing the QC dashboard.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="text-center">
+                <p className="text-sm text-gray-500 mb-4">
+                  Please mark your attendance for today to continue.
+                </p>
+                <div className="flex gap-3 justify-center">
+                  <Button 
+                    onClick={() => router.push('/qc-attendance')}
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
+                    <Clock className="h-4 w-4 mr-2" />
+                    Mark Attendance
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setShowAttendanceModal(false)}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </QCMainLayout>
+    );
+  }
 
   return (
     <QCMainLayout>

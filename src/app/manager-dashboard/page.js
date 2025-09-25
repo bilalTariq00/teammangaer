@@ -84,31 +84,150 @@ function ManagerDashboardContent() {
   const { user } = useAuth();
   const { users } = useUsers();
   const { getTeamPerformance, isPerformanceMarkedToday, getPerformanceLevelDetails } = usePerformance();
-  const { getTeamAttendance, getAttendanceStats, approveAttendance } = useAttendance();
+  const { getTeamAttendance, getAttendanceStats, approveAttendance, isAttendanceMarkedToday } = useAttendance();
   const today = new Date().toISOString().split('T')[0];
   
   // Get team members for this manager
-  const teamMembers = users?.filter(u => 
+  let teamMembers = users?.filter(u => 
     u.role === 'worker' && 
     user?.assignedUsers?.includes(u.id)
   ) || [];
+
+  // If no team members assigned, use mock team members for demonstration
+  if (teamMembers.length === 0) {
+    teamMembers = [
+      { id: 5, name: "Hasan Abbas", email: "hasan.abbas@joyapps.net", role: "worker", workerType: "Permanent Clicker" },
+      { id: 6, name: "Adnan Amir", email: "adnan.amir@joyapps.net", role: "worker", workerType: "Permanent Viewer" },
+      { id: 7, name: "Waleed Bin Shakeel", email: "waleed.shakeel@joyapps.net", role: "worker", workerType: "Trainee Clicker" }
+    ];
+  }
+
+
+  // If no user is logged in, show login message
+  if (!user) {
+    return (
+      <ManagerMainLayout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Please Log In</h2>
+            <p className="text-gray-600">You need to be logged in to access the manager dashboard.</p>
+          </div>
+        </div>
+      </ManagerMainLayout>
+    );
+  }
+
+
   
   // Get attendance data for today
   const teamAttendance = getTeamAttendance(teamMembers.map(m => m.id), today);
   
-  // Add mock attendance data if no real data exists
-  const mockAttendanceData = teamMembers.map((member, index) => ({
-    userId: member.id,
-    name: member.name,
-    role: member.role,
-    workerType: member.workerType,
-    status: ['present', 'present', 'marked', 'present', 'absent', 'present', 'present', 'present'][index] || 'present',
-    markedBy: 'self',
-    markedAt: new Date().toISOString(),
-    checkIn: '09:00',
-    checkOut: '17:00',
-    hours: 8
-  }));
+  // Generate consistent mock attendance data
+  const generateMockAttendanceData = () => {
+    // Use a simple hash of user ID to ensure consistent results
+    const getConsistentRandom = (userId) => {
+      let hash = 0;
+      for (let i = 0; i < userId.toString().length; i++) {
+        const char = userId.toString().charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash; // Convert to 32-bit integer
+      }
+      return Math.abs(hash) / 2147483647; // Normalize to 0-1
+    };
+
+    return teamMembers.map((member) => {
+      const randomValue = getConsistentRandom(member.id);
+      let status, markedBy, markedAt, checkIn, checkOut, hours, notes;
+      
+      if (randomValue < 0.4) {
+        // 40% chance of being present (approved)
+        status = 'present';
+        markedBy = 'self';
+        markedAt = new Date().toISOString();
+        checkIn = '09:00';
+        checkOut = '17:00';
+        hours = 8;
+        notes = 'Present for work';
+      } else if (randomValue < 0.7) {
+        // 30% chance of being marked (pending approval)
+        status = 'marked';
+        markedBy = 'self';
+        markedAt = new Date().toISOString();
+        checkIn = '09:00';
+        checkOut = null;
+        hours = 0;
+        notes = 'Attendance marked, waiting for manager approval';
+      } else {
+        // 30% chance of being absent
+        status = 'absent';
+        markedBy = 'system';
+        markedAt = null;
+        checkIn = null;
+        checkOut = null;
+        hours = 0;
+        notes = 'Automatically marked absent - no attendance marked';
+      }
+      
+      return {
+        userId: member.id,
+        name: member.name,
+        role: member.role,
+        workerType: member.workerType,
+        status: status,
+        markedBy: markedBy,
+        markedAt: markedAt,
+        checkIn: checkIn,
+        checkOut: checkOut,
+        hours: hours,
+        notes: notes
+      };
+    });
+  };
+
+  // Get or generate mock attendance data
+  const getMockAttendanceData = () => {
+    // Check if we're in the browser environment
+    if (typeof window === 'undefined') {
+      return generateMockAttendanceData();
+    }
+    
+    const storageKey = `mockAttendance_${today}`;
+    const stored = localStorage.getItem(storageKey);
+    
+    if (stored) {
+      try {
+        return JSON.parse(stored);
+      } catch (e) {
+        console.error('Error parsing stored attendance data:', e);
+      }
+    }
+    
+    const mockData = generateMockAttendanceData();
+    localStorage.setItem(storageKey, JSON.stringify(mockData));
+    return mockData;
+  };
+
+  const mockAttendanceData = getMockAttendanceData();
+
+  // Function to automatically mark absent users (for future real-time implementation)
+  const markAbsentUsers = () => {
+    const currentTime = new Date();
+    const cutoffTime = new Date();
+    cutoffTime.setHours(10, 0, 0, 0); // 10:00 AM cutoff
+    
+    // In a real implementation, this would check actual attendance records
+    // and mark users as absent if they haven't marked attendance by cutoff time
+    console.log('Checking for absent users...', { currentTime, cutoffTime });
+  };
+
+  // Function to reset mock data
+  const resetMockData = () => {
+    if (typeof window !== 'undefined') {
+      const storageKey = `mockAttendance_${today}`;
+      localStorage.removeItem(storageKey);
+      window.location.reload();
+    }
+  };
   
   // Use real data if available, otherwise use mock data
   const finalAttendance = teamAttendance.length > 0 ? teamAttendance : mockAttendanceData;
@@ -119,7 +238,8 @@ function ManagerDashboardContent() {
     absent: finalAttendance.filter(r => r.status === 'absent' || r.status === 'rejected').length,
     pending: finalAttendance.filter(r => r.status === 'marked').length,
     approved: finalAttendance.filter(r => r.status === 'approved').length,
-    rejected: finalAttendance.filter(r => r.status === 'rejected').length
+    rejected: finalAttendance.filter(r => r.status === 'rejected').length,
+    notMarked: finalAttendance.filter(r => r.status === 'not_marked').length
   };
   
   const [activeTab, setActiveTab] = useState("overview");
@@ -138,6 +258,7 @@ function ManagerDashboardContent() {
   const [taskFilter, setTaskFilter] = useState("all");
   const [taskSearch, setTaskSearch] = useState("");
   const [showAddTaskModal, setShowAddTaskModal] = useState(false);
+  const [showAttendanceModal, setShowAttendanceModal] = useState(false);
   const [newTask, setNewTask] = useState({
     title: "",
     campaign: "",
@@ -165,6 +286,26 @@ function ManagerDashboardContent() {
       setActiveTab("users");
     }
   }, [searchParams]);
+
+  // Check if attendance is marked for today
+  useEffect(() => {
+    if (user && user.role === 'manager') {
+      const attendanceMarked = isAttendanceMarkedToday(user.id);
+      
+      if (!attendanceMarked) {
+        setShowAttendanceModal(true);
+      }
+    }
+  }, [user, isAttendanceMarkedToday]);
+
+  // Auto-mark absent users (for demonstration - in real app this would be a scheduled job)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      markAbsentUsers();
+    }, 60000); // Check every minute
+
+    return () => clearInterval(interval);
+  }, []);
 
   // Task management functions
   const updateTaskStatus = (taskId, newStatus) => {
@@ -330,13 +471,81 @@ function ManagerDashboardContent() {
     try {
       if (approveAttendance) {
         await approveAttendance(memberId, today, action);
+        
+        // Update the mock data in localStorage
+        if (typeof window !== 'undefined') {
+          const storageKey = `mockAttendance_${today}`;
+          const stored = localStorage.getItem(storageKey);
+          if (stored) {
+            try {
+              const mockData = JSON.parse(stored);
+              const updatedData = mockData.map(record => 
+                record.userId === memberId 
+                  ? { ...record, status: action === 'approved' ? 'present' : 'rejected' }
+                  : record
+              );
+              localStorage.setItem(storageKey, JSON.stringify(updatedData));
+            } catch (e) {
+              console.error('Error updating mock data:', e);
+            }
+          }
+        }
+        
         toast.success(`Attendance ${action} for ${teamMembers.find(m => m.id === memberId)?.name}`);
+        
+        // Force a re-render by updating a state variable
+        if (typeof window !== 'undefined') {
+          window.location.reload();
+        }
       }
     } catch (error) {
       toast.error(`Failed to ${action} attendance`);
       console.error('Error verifying attendance:', error);
     }
   };
+
+  // Show attendance modal if attendance is not marked for today
+  if (showAttendanceModal) {
+    return (
+      <ManagerMainLayout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <Card className="w-full max-w-md">
+            <CardHeader className="text-center">
+              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-orange-100">
+                <Clock className="h-6 w-6 text-orange-600" />
+              </div>
+              <CardTitle className="text-2xl font-bold text-gray-900">Mark Your Attendance</CardTitle>
+              <CardDescription className="text-gray-600">
+                You must mark your attendance before accessing the manager dashboard.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="text-center">
+                <p className="text-sm text-gray-500 mb-4">
+                  Please mark your attendance for today to continue.
+                </p>
+                <div className="flex gap-3 justify-center">
+                  <Button 
+                    onClick={() => router.push('/manager-attendance')}
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
+                    <Clock className="h-4 w-4 mr-2" />
+                    Mark Attendance
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setShowAttendanceModal(false)}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </ManagerMainLayout>
+    );
+  }
 
   return (
     <ManagerMainLayout>
@@ -430,7 +639,7 @@ function ManagerDashboardContent() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
               <div className="text-center p-4 bg-green-50 rounded-lg">
                 <div className="text-2xl font-bold text-green-600">{attendanceStats.present}</div>
                 <div className="text-sm text-green-700">Present</div>
@@ -442,6 +651,10 @@ function ManagerDashboardContent() {
               <div className="text-center p-4 bg-yellow-50 rounded-lg">
                 <div className="text-2xl font-bold text-yellow-600">{attendanceStats.pending}</div>
                 <div className="text-sm text-yellow-700">Pending</div>
+              </div>
+              <div className="text-center p-4 bg-gray-50 rounded-lg">
+                <div className="text-2xl font-bold text-gray-600">{attendanceStats.notMarked}</div>
+                <div className="text-sm text-gray-700">Not Marked</div>
               </div>
               <div className="text-center p-4 bg-blue-50 rounded-lg">
                 <div className="text-2xl font-bold text-blue-600">{attendanceStats.total}</div>
@@ -509,7 +722,7 @@ function ManagerDashboardContent() {
               Attendance Verification
             </CardTitle>
             <CardDescription>
-              Verify team member attendance for today - {new Date(today).toLocaleDateString()}
+              Verify team member attendance for today - {new Date(today).toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' })}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -539,7 +752,7 @@ function ManagerDashboardContent() {
                               <div>
                                 <p className="font-medium text-sm">{member.name}</p>
                                 <p className="text-xs text-gray-500">
-                                  Marked: {new Date(attendance.markedAt).toLocaleTimeString()}
+                                  Marked: {new Date(attendance.markedAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
                                 </p>
                               </div>
                             </div>
@@ -632,9 +845,9 @@ function ManagerDashboardContent() {
         </Card>
 
             {/* Quick Stats Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* <div className="grid grid-cols-1 lg:grid-cols-2 gap-6"> */}
           {/* Top Performers */}
-          <Card>
+          {/* <Card>
             <CardHeader>
               <CardTitle>Top Performers</CardTitle>
               <CardDescription>Your best performing team members this week</CardDescription>
@@ -663,10 +876,10 @@ function ManagerDashboardContent() {
                   ))}
               </div>
             </CardContent>
-          </Card>
+          </Card> */}
 
           {/* Team Activity */}
-          <Card>
+          {/* <Card>
             <CardHeader>
               <CardTitle>Team Activity</CardTitle>
               <CardDescription>Recent team activities and updates</CardDescription>
@@ -711,8 +924,8 @@ function ManagerDashboardContent() {
                 </div>
               </div>
             </CardContent>
-          </Card>
-            </div>
+          </Card> */}
+            {/* </div> */}
           </div>
         )}
 
@@ -955,7 +1168,7 @@ function ManagerDashboardContent() {
                         </div>
                         <div>
                           <p className="text-gray-500">Deadline</p>
-                          <p className="font-medium">{new Date(campaign.deadline).toLocaleDateString()}</p>
+                          <p className="font-medium">{new Date(campaign.deadline).toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' })}</p>
                         </div>
                       </div>
                     </div>
@@ -1034,10 +1247,18 @@ function ManagerDashboardContent() {
         {/* Attendance Tab */}
         {activeTab === "attendance" && (
           <div className="space-y-6">
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">Attendance Management</h2>
-              <AttendanceVerification />
+            <div className="flex justify-between items-center">
+              <h2 className="text-2xl font-bold text-gray-900">Attendance Management</h2>
+              <Button 
+                onClick={resetMockData}
+                variant="outline"
+                size="sm"
+                className="text-xs"
+              >
+                Reset Mock Data
+              </Button>
             </div>
+            <AttendanceVerification />
           </div>
         )}
       </div>
