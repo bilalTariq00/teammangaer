@@ -87,6 +87,92 @@ function ManagerDashboardContent() {
   const { getTeamAttendance, getAttendanceStats, approveAttendance, isAttendanceMarkedToday } = useAttendance();
   const today = new Date().toISOString().split('T')[0];
   
+  // All hooks must be called before any early returns
+  const [activeTab, setActiveTab] = useState("overview");
+  const [showCreateUser, setShowCreateUser] = useState(false);
+  const [showEditUsers, setShowEditUsers] = useState(false);
+  const [editingUser, setEditingUser] = useState(null);
+  const [newUser, setNewUser] = useState({
+    name: "",
+    email: "",
+    type: "",
+    password: ""
+  });
+  
+  // Dynamic task management
+  const [tasks, setTasks] = useState(mockTasks);
+  const [taskFilter, setTaskFilter] = useState("all");
+  const [taskSearch, setTaskSearch] = useState("");
+  const [showAddTaskModal, setShowAddTaskModal] = useState(false);
+  const [showAttendanceModal, setShowAttendanceModal] = useState(false);
+  const [newTask, setNewTask] = useState({
+    title: "",
+    campaign: "",
+    assignedTo: "",
+    priority: "Medium",
+    dueDate: "",
+    taskType: "General"
+  });
+
+  // Attendance management state
+  const [attendanceDate, setAttendanceDate] = useState(today);
+  const [attendanceFilter, setAttendanceFilter] = useState("all");
+  const [attendanceSearch, setAttendanceSearch] = useState("");
+  const [editingAttendance, setEditingAttendance] = useState(null);
+  const [attendanceNotes, setAttendanceNotes] = useState("");
+  const [isProcessingAttendance, setIsProcessingAttendance] = useState(false);
+
+  // All useEffect hooks must be called before any early returns
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    const action = searchParams.get('action');
+    
+    if (tab) {
+      setActiveTab(tab);
+    } else {
+      setActiveTab("overview");
+    }
+    
+    if (action === 'create-user') {
+      setShowCreateUser(true);
+      setActiveTab("users");
+    } else if (action === 'edit-users') {
+      setShowEditUsers(true);
+      setActiveTab("users");
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (user && (user.role === 'manager' || user.role === 'admin')) {
+      const attendanceMarked = isAttendanceMarkedToday(user.id);
+      if (!attendanceMarked) {
+        setShowAttendanceModal(true);
+      }
+    }
+  }, [user, isAttendanceMarkedToday]);
+
+  useEffect(() => {
+    if (user && user.role === 'manager') {
+      markAbsentUsers();
+    }
+  }, [user]);
+
+  useEffect(() => {
+    const handleKeyPress = (e) => {
+      if (e.key === 'Escape') {
+        setShowCreateUser(false);
+        setShowEditUsers(false);
+        setShowAddTaskModal(false);
+        setShowAttendanceModal(false);
+        setEditingUser(null);
+        setEditingAttendance(null);
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyPress);
+    return () => document.removeEventListener('keydown', handleKeyPress);
+  }, []);
+  
   // Get team members for this manager
   let teamMembers = users?.filter(u => 
     u.role === 'worker' && 
@@ -101,7 +187,6 @@ function ManagerDashboardContent() {
       { id: 7, name: "Waleed Bin Shakeel", email: "waleed.shakeel@joyapps.net", role: "worker", workerType: "Trainee Clicker" }
     ];
   }
-
 
   // If no user is logged in, show login message
   if (!user) {
@@ -241,71 +326,7 @@ function ManagerDashboardContent() {
     rejected: finalAttendance.filter(r => r.status === 'rejected').length,
     notMarked: finalAttendance.filter(r => r.status === 'not_marked').length
   };
-  
-  const [activeTab, setActiveTab] = useState("overview");
-  const [showCreateUser, setShowCreateUser] = useState(false);
-  const [showEditUsers, setShowEditUsers] = useState(false);
-  const [editingUser, setEditingUser] = useState(null);
-  const [newUser, setNewUser] = useState({
-    name: "",
-    email: "",
-    type: "",
-    password: ""
-  });
-  
-  // Dynamic task management
-  const [tasks, setTasks] = useState(mockTasks);
-  const [taskFilter, setTaskFilter] = useState("all");
-  const [taskSearch, setTaskSearch] = useState("");
-  const [showAddTaskModal, setShowAddTaskModal] = useState(false);
-  const [showAttendanceModal, setShowAttendanceModal] = useState(false);
-  const [newTask, setNewTask] = useState({
-    title: "",
-    campaign: "",
-    assignedTo: "",
-    priority: "Medium",
-    dueDate: "",
-    taskType: "General"
-  });
 
-  useEffect(() => {
-    const tab = searchParams.get('tab');
-    const action = searchParams.get('action');
-    
-    if (tab) {
-      setActiveTab(tab);
-    } else {
-      setActiveTab("overview");
-    }
-    
-    if (action === 'create-user') {
-      setShowCreateUser(true);
-      setActiveTab("users");
-    } else if (action === 'edit-users') {
-      setShowEditUsers(true);
-      setActiveTab("users");
-    }
-  }, [searchParams]);
-
-  // Check if attendance is marked for today
-  useEffect(() => {
-    if (user && user.role === 'manager') {
-      const attendanceMarked = isAttendanceMarkedToday(user.id);
-      
-      if (!attendanceMarked) {
-        setShowAttendanceModal(true);
-      }
-    }
-  }, [user, isAttendanceMarkedToday]);
-
-  // Auto-mark absent users (for demonstration - in real app this would be a scheduled job)
-  useEffect(() => {
-    const interval = setInterval(() => {
-      markAbsentUsers();
-    }, 60000); // Check every minute
-
-    return () => clearInterval(interval);
-  }, []);
 
   // Task management functions
   const updateTaskStatus = (taskId, newStatus) => {
@@ -360,20 +381,6 @@ function ManagerDashboardContent() {
     return matchesFilter && matchesSearch;
   });
 
-  // Simulate real-time task updates (in a real app, this would come from WebSocket or polling)
-  useEffect(() => {
-    const interval = setInterval(() => {
-      // Simulate random task status updates
-      const randomTask = tasks[Math.floor(Math.random() * tasks.length)];
-      if (randomTask && randomTask.status === "Pending" && Math.random() < 0.1) {
-        updateTaskStatus(randomTask.id, "In Progress");
-      } else if (randomTask && randomTask.status === "In Progress" && Math.random() < 0.15) {
-        updateTaskStatus(randomTask.id, "Completed");
-      }
-    }, 10000); // Check every 10 seconds
-
-    return () => clearInterval(interval);
-  }, [tasks]);
 
   const handleCreateUser = () => {
     // In a real app, this would make an API call

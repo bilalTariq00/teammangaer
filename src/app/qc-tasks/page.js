@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import QCMainLayout from "@/components/layout/QCMainLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -408,7 +408,7 @@ export default function QCTasks() {
     }
   };
 
-  const startNextTask = () => {
+  const startNextTask = useCallback(() => {
     console.log('startNextTask called');
     console.log('All filtered tasks:', filteredTasks.map(t => ({ id: t.id, status: t.status, workerName: t.workerName })));
     const nextPendingTask = filteredTasks.find(t => t.status === 'pending_review');
@@ -422,7 +422,7 @@ export default function QCTasks() {
       // No more pending tasks
       stopTaskTimer();
     }
-  };
+  }, [filteredTasks, startTaskTimer, stopTaskTimer]);
 
   // Work Session Timer effect
   useEffect(() => {
@@ -499,7 +499,7 @@ export default function QCTasks() {
         setShouldMoveToNext(false);
       }, 1000);
     }
-  }, [shouldMoveToNext, filteredTasks]);
+  }, [shouldMoveToNext, filteredTasks, startNextTask]);
 
   // Format time display
   const formatTime = (seconds) => {
@@ -698,7 +698,7 @@ export default function QCTasks() {
                 <h3 className="font-semibold text-red-800">Task Time Limit Exceeded</h3>
                 <p className="text-sm text-red-700">
                   The 10-minute time limit for this task has been exceeded. 
-                  Click "Next Task" to move to the next pending task.
+                  Click &quot;Next Task&quot; to move to the next pending task.
                 </p>
               </div>
             </div>

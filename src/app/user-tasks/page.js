@@ -155,7 +155,7 @@ export default function UserTasksPage() {
         // Don't auto-advance, let user click the button to proceed to clicker
       }
     }
-  }, [task1Submitted, task2Submitted, user, currentTask]);
+  }, [task1Submitted, task2Submitted, user, currentTask, completeFinalSubmission, getCurrentTask, getNextTask]);
 
   // Auto-advance clicker tasks when completed
   useEffect(() => {
@@ -222,7 +222,7 @@ export default function UserTasksPage() {
         }, 100);
       }
     }
-  }, [clickerSubmitted, user, currentTask]);
+  }, [clickerSubmitted, user, currentTask, completeFinalSubmission, getCurrentTask, getNextTask]);
 
   // Check if attendance is marked for today
   useEffect(() => {
