@@ -29,15 +29,23 @@ import {
   Award,
   Target,
   Lock,
-  Unlock
+  Unlock,
+  Wifi,
+  WifiOff,
+  Activity,
+  RefreshCw,
+  CheckCircle2,
+  XCircle
 } from "lucide-react";
 import { useUsers } from "@/contexts/UsersContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAttendance } from "@/contexts/AttendanceContext";
 import { toast } from "sonner";
 
 export default function ManagerTeamPage() {
   const { users, updateUser } = useUsers() || {};
   const { user: currentUser, checkUserLockStatus } = useAuth() || {};
+  const { getTeamAttendance, approveAttendance, getAttendanceForDate } = useAttendance() || {};
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [isLoading, setIsLoading] = useState(true);
@@ -48,6 +56,7 @@ export default function ManagerTeamPage() {
   const [showStatusConfirm, setShowStatusConfirm] = useState(false);
   const [showLockConfirm, setShowLockConfirm] = useState(false);
   const [confirmAction, setConfirmAction] = useState(null);
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
 
   // Get team members assigned to this manager
   useEffect(() => {
@@ -140,6 +149,68 @@ export default function ManagerTeamPage() {
     setShowMemberModal(true);
   };
 
+  // Get attendance data for today
+  const teamAttendance = getTeamAttendance ? getTeamAttendance(teamMembers.map(m => m.id), selectedDate) : [];
+  
+  // Get attendance status for a member
+  const getAttendanceStatus = (memberId) => {
+    const attendance = teamAttendance.find(a => a.userId === memberId);
+    if (!attendance) {
+      return { 
+        status: 'not_marked', 
+        label: 'Not Marked', 
+        color: 'bg-gray-100 text-gray-800', 
+        icon: Clock 
+      };
+    }
+    
+    switch (attendance.status) {
+      case 'present':
+      case 'approved':
+        return {
+          status: 'present',
+          label: 'Present',
+          color: 'bg-green-100 text-green-800',
+          icon: CheckCircle
+        };
+      case 'marked':
+        return {
+          status: 'marked',
+          label: 'Pending Verification',
+          color: 'bg-yellow-100 text-yellow-800',
+          icon: AlertCircle
+        };
+      case 'absent':
+      case 'rejected':
+        return {
+          status: 'absent',
+          label: 'Absent',
+          color: 'bg-red-100 text-red-800',
+          icon: XCircle
+        };
+      default:
+        return {
+          status: 'unknown',
+          label: 'Unknown',
+          color: 'bg-gray-100 text-gray-800',
+          icon: Clock
+        };
+    }
+  };
+
+  // Verify attendance (approve or reject)
+  const handleVerifyAttendance = async (memberId, action) => {
+    try {
+      if (approveAttendance) {
+        await approveAttendance(memberId, selectedDate, action);
+        toast.success(`Attendance ${action} for ${teamMembers.find(m => m.id === memberId)?.name}`);
+      }
+    } catch (error) {
+      toast.error(`Failed to ${action} attendance`);
+      console.error('Error verifying attendance:', error);
+    }
+  };
+
   // Close member modal
   const closeMemberModal = () => {
     setSelectedMember(null);
@@ -230,19 +301,31 @@ export default function ManagerTeamPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold">Team Status Management</h1>
-            <p className="text-muted-foreground">Update any team member&apos;s employment status</p>
+            <p className="text-muted-foreground">Update team member status and verify attendance</p>
           </div>
-          {Object.keys(pendingChanges).length > 0 && (
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={cancelChanges}>
-                Cancel Changes
-              </Button>
-              <Button onClick={saveStatusChanges}>
-                <Save className="h-4 w-4 mr-2" />
-                Save Changes ({Object.keys(pendingChanges).length})
-          </Button>
+          <div className="flex gap-2 items-center">
+            <div className="flex items-center gap-2">
+              <Label htmlFor="date-select" className="text-sm">Date:</Label>
+              <Input
+                id="date-select"
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="w-40"
+              />
             </div>
-          )}
+            {Object.keys(pendingChanges).length > 0 && (
+              <>
+                <Button variant="outline" onClick={cancelChanges}>
+                  Cancel Changes
+                </Button>
+                <Button onClick={saveStatusChanges}>
+                  <Save className="h-4 w-4 mr-2" />
+                  Save Changes ({Object.keys(pendingChanges).length})
+                </Button>
+              </>
+            )}
+          </div>
         </div>
 
         {/* Team Stats */}
@@ -289,13 +372,20 @@ export default function ManagerTeamPage() {
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Pending Changes</CardTitle>
-              <AlertCircle className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium">Attendance Today</CardTitle>
+              <Clock className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{Object.keys(pendingChanges).length}</div>
+              <div className="text-2xl font-bold text-green-600">
+                {teamAttendance.filter(a => a.status === 'present' || a.status === 'approved').length}/{teamMembers.length}
+              </div>
               <p className="text-xs text-muted-foreground">
-                Unsaved status updates
+                <span className="text-green-600 font-medium">
+                  {teamAttendance.filter(a => a.status === 'present' || a.status === 'approved').length}
+                </span> present • 
+                <span className="text-yellow-600 font-medium ml-1">
+                  {teamAttendance.filter(a => a.status === 'marked').length}
+                </span> pending
               </p>
             </CardContent>
           </Card>
@@ -373,6 +463,7 @@ export default function ManagerTeamPage() {
                       <TableHead>Current Status</TableHead>
                     <TableHead>Performance</TableHead>
                     <TableHead>Join Date</TableHead>
+                    <TableHead>Attendance</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Actions</TableHead>
                   </TableRow>
@@ -445,6 +536,50 @@ export default function ManagerTeamPage() {
                       <TableCell>
                         <div className="text-sm text-muted-foreground">
                               {member.created ? new Date(member.created).toLocaleDateString() : 'N/A'}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="space-y-2">
+                          {(() => {
+                            const attendance = getAttendanceStatus(member.id);
+                            const IconComponent = attendance.icon;
+                            return (
+                              <div className="flex items-center gap-2">
+                                <IconComponent className="h-4 w-4" />
+                                <Badge className={attendance.color}>
+                                  {attendance.label}
+                                </Badge>
+                              </div>
+                            );
+                          })()}
+                          {(() => {
+                            const attendance = teamAttendance.find(a => a.userId === member.id);
+                            if (attendance && attendance.status === 'marked') {
+                              return (
+                                <div className="flex gap-1">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleVerifyAttendance(member.id, 'approved')}
+                                    className="text-xs px-2 py-1 h-6"
+                                  >
+                                    <CheckCircle2 className="h-3 w-3 mr-1" />
+                                    Approve
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleVerifyAttendance(member.id, 'rejected')}
+                                    className="text-xs px-2 py-1 h-6 text-red-600 hover:text-red-700"
+                                  >
+                                    <XCircle className="h-3 w-3 mr-1" />
+                                    Reject
+                                  </Button>
+                                </div>
+                              );
+                            }
+                            return null;
+                          })()}
                         </div>
                       </TableCell>
                       <TableCell>
@@ -590,10 +725,6 @@ export default function ManagerTeamPage() {
                         <Phone className="h-4 w-4 text-gray-400" />
                         <span>+1 (555) 123-4567</span>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <MapPin className="h-4 w-4 text-gray-400" />
-                        <span>New York, NY</span>
-                      </div>
                     </div>
                   </div>
 
@@ -616,6 +747,60 @@ export default function ManagerTeamPage() {
                         <span>Performance: {selectedMember.performance}%</span>
                       </div>
                     </div>
+                  </div>
+                </div>
+
+                {/* Attendance Status */}
+                <div className="space-y-3">
+                  <h4 className="font-semibold text-sm text-gray-700 flex items-center gap-2">
+                    <Clock className="h-4 w-4" />
+                    Attendance Status - {new Date(selectedDate).toLocaleDateString()}
+                  </h4>
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    {(() => {
+                      const attendance = getAttendanceStatus(selectedMember.id);
+                      const IconComponent = attendance.icon;
+                      const attendanceRecord = teamAttendance.find(a => a.userId === selectedMember.id);
+                      
+                      return (
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-3">
+                            <IconComponent className="h-6 w-6" />
+                            <div>
+                              <p className="font-medium">{attendance.label}</p>
+                              {attendanceRecord && (
+                                <p className="text-sm text-gray-500">
+                                  Marked at: {new Date(attendanceRecord.markedAt).toLocaleString()}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                          
+                          {attendanceRecord && attendanceRecord.status === 'marked' && (
+                            <div className="flex gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleVerifyAttendance(selectedMember.id, 'approved')}
+                                className="text-green-600 hover:text-green-700"
+                              >
+                                <CheckCircle2 className="h-4 w-4 mr-2" />
+                                Approve Attendance
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleVerifyAttendance(selectedMember.id, 'rejected')}
+                                className="text-red-600 hover:text-red-700"
+                              >
+                                <XCircle className="h-4 w-4 mr-2" />
+                                Reject Attendance
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </div>
                 </div>
 

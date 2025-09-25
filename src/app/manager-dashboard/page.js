@@ -26,15 +26,19 @@ import {
   Eye,
   EyeOff,
   CheckSquare,
-  Square
+  Square,
+  CheckCircle2,
+  XCircle
 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUsers } from "@/contexts/UsersContext";
 import { usePerformance } from "@/contexts/PerformanceContext";
+import { useAttendance } from "@/contexts/AttendanceContext";
 import AttendanceVerification from "@/components/AttendanceVerification";
 import PerformanceMarking from "@/components/PerformanceMarking";
 import TaskAssignment from "@/components/tasks/TaskAssignment";
+import { toast } from "sonner";
 
 // Mock data for manager's team
 const mockTeamMembers = [
@@ -80,7 +84,44 @@ function ManagerDashboardContent() {
   const { user } = useAuth();
   const { users } = useUsers();
   const { getTeamPerformance, isPerformanceMarkedToday, getPerformanceLevelDetails } = usePerformance();
+  const { getTeamAttendance, getAttendanceStats, approveAttendance } = useAttendance();
   const today = new Date().toISOString().split('T')[0];
+  
+  // Get team members for this manager
+  const teamMembers = users?.filter(u => 
+    u.role === 'worker' && 
+    user?.assignedUsers?.includes(u.id)
+  ) || [];
+  
+  // Get attendance data for today
+  const teamAttendance = getTeamAttendance(teamMembers.map(m => m.id), today);
+  
+  // Add mock attendance data if no real data exists
+  const mockAttendanceData = teamMembers.map((member, index) => ({
+    userId: member.id,
+    name: member.name,
+    role: member.role,
+    workerType: member.workerType,
+    status: ['present', 'present', 'marked', 'present', 'absent', 'present', 'present', 'present'][index] || 'present',
+    markedBy: 'self',
+    markedAt: new Date().toISOString(),
+    checkIn: '09:00',
+    checkOut: '17:00',
+    hours: 8
+  }));
+  
+  // Use real data if available, otherwise use mock data
+  const finalAttendance = teamAttendance.length > 0 ? teamAttendance : mockAttendanceData;
+  
+  const attendanceStats = {
+    total: teamMembers.length,
+    present: finalAttendance.filter(r => r.status === 'present' || r.status === 'marked' || r.status === 'approved').length,
+    absent: finalAttendance.filter(r => r.status === 'absent' || r.status === 'rejected').length,
+    pending: finalAttendance.filter(r => r.status === 'marked').length,
+    approved: finalAttendance.filter(r => r.status === 'approved').length,
+    rejected: finalAttendance.filter(r => r.status === 'rejected').length
+  };
+  
   const [activeTab, setActiveTab] = useState("overview");
   const [showCreateUser, setShowCreateUser] = useState(false);
   const [showEditUsers, setShowEditUsers] = useState(false);
@@ -238,6 +279,65 @@ function ManagerDashboardContent() {
     }
   };
 
+  // Get attendance status for a member
+  const getAttendanceStatus = (memberId) => {
+    const attendance = finalAttendance.find(a => a.userId === memberId);
+    if (!attendance) {
+      return { 
+        status: 'not_marked', 
+        label: 'Not Marked', 
+        color: 'bg-gray-100 text-gray-800', 
+        icon: Clock 
+      };
+    }
+    
+    switch (attendance.status) {
+      case 'present':
+      case 'approved':
+        return {
+          status: 'present',
+          label: 'Present',
+          color: 'bg-green-100 text-green-800',
+          icon: CheckCircle
+        };
+      case 'marked':
+        return {
+          status: 'marked',
+          label: 'Pending Verification',
+          color: 'bg-yellow-100 text-yellow-800',
+          icon: AlertTriangle
+        };
+      case 'absent':
+      case 'rejected':
+        return {
+          status: 'absent',
+          label: 'Absent',
+          color: 'bg-red-100 text-red-800',
+          icon: XCircle
+        };
+      default:
+        return {
+          status: 'unknown',
+          label: 'Unknown',
+          color: 'bg-gray-100 text-gray-800',
+          icon: Clock
+        };
+    }
+  };
+
+  // Verify attendance (approve or reject)
+  const handleVerifyAttendance = async (memberId, action) => {
+    try {
+      if (approveAttendance) {
+        await approveAttendance(memberId, today, action);
+        toast.success(`Attendance ${action} for ${teamMembers.find(m => m.id === memberId)?.name}`);
+      }
+    } catch (error) {
+      toast.error(`Failed to ${action} attendance`);
+      console.error('Error verifying attendance:', error);
+    }
+  };
+
   return (
     <ManagerMainLayout>
       <div className="space-y-6">
@@ -297,20 +397,239 @@ function ManagerDashboardContent() {
             </CardContent>
           </Card>
 
-          {/* Recent Activity */}
+          {/* Team Attendance */}
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Recent Activity</CardTitle>
-              <Activity className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium">Team Attendance</CardTitle>
+              <Clock className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{mockTeamStats.recentActivity}</div>
+              <div className="text-2xl font-bold text-green-600">
+                {attendanceStats.present}/{attendanceStats.total}
+              </div>
               <p className="text-xs text-muted-foreground">
-                Tasks completed today
+                <span className="text-green-600 font-medium">{attendanceStats.present} present</span> • 
+                <span className="text-red-600 font-medium ml-1">{attendanceStats.absent} absent</span>
+                {attendanceStats.pending > 0 && (
+                  <span className="text-yellow-600 font-medium ml-1"> • {attendanceStats.pending} pending</span>
+                )}
               </p>
             </CardContent>
           </Card>
         </div>
+
+        {/* Team Attendance Details */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Clock className="h-5 w-5" />
+              Today&apos;s Attendance Overview
+            </CardTitle>
+            <CardDescription>
+              Current attendance status for all team members
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+              <div className="text-center p-4 bg-green-50 rounded-lg">
+                <div className="text-2xl font-bold text-green-600">{attendanceStats.present}</div>
+                <div className="text-sm text-green-700">Present</div>
+              </div>
+              <div className="text-center p-4 bg-red-50 rounded-lg">
+                <div className="text-2xl font-bold text-red-600">{attendanceStats.absent}</div>
+                <div className="text-sm text-red-700">Absent</div>
+              </div>
+              <div className="text-center p-4 bg-yellow-50 rounded-lg">
+                <div className="text-2xl font-bold text-yellow-600">{attendanceStats.pending}</div>
+                <div className="text-sm text-yellow-700">Pending</div>
+              </div>
+              <div className="text-center p-4 bg-blue-50 rounded-lg">
+                <div className="text-2xl font-bold text-blue-600">{attendanceStats.total}</div>
+                <div className="text-sm text-blue-700">Total Team</div>
+              </div>
+            </div>
+            
+            {/* Individual Attendance Status */}
+            <div className="space-y-3">
+              <h4 className="font-semibold text-sm text-gray-700">Individual Status</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {teamMembers.map((member) => {
+                  const attendance = finalAttendance.find(a => a.userId === member.id);
+                  const status = attendance?.status || 'not_marked';
+                  
+                  const getStatusInfo = (status) => {
+                    switch (status) {
+                      case 'present':
+                      case 'approved':
+                        return { color: 'bg-green-100 text-green-800', icon: '✓', label: 'Present' };
+                      case 'marked':
+                        return { color: 'bg-yellow-100 text-yellow-800', icon: '⏳', label: 'Pending' };
+                      case 'absent':
+                      case 'rejected':
+                        return { color: 'bg-red-100 text-red-800', icon: '✗', label: 'Absent' };
+                      default:
+                        return { color: 'bg-gray-100 text-gray-800', icon: '○', label: 'Not Marked' };
+                    }
+                  };
+                  
+                  const statusInfo = getStatusInfo(status);
+                  
+                  return (
+                    <div key={member.id} className="flex items-center justify-between p-3 border rounded-lg">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
+                          <span className="text-gray-600 font-bold text-sm">
+                            {member.name.split(' ').map(n => n[0]).join('')}
+                          </span>
+                        </div>
+                        <div>
+                          <p className="font-medium text-sm">{member.name}</p>
+                          <p className="text-xs text-gray-500">{member.workerType?.replace('-', ' ') || 'Worker'}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <span className="text-lg">{statusInfo.icon}</span>
+                        <Badge className={statusInfo.color}>
+                          {statusInfo.label}
+                        </Badge>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Attendance Verification */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Clock className="h-5 w-5" />
+              Attendance Verification
+            </CardTitle>
+            <CardDescription>
+              Verify team member attendance for today - {new Date(today).toLocaleDateString()}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {/* Pending Verifications */}
+              {finalAttendance.filter(a => a.status === 'marked').length > 0 && (
+                <div className="space-y-3">
+                  <h4 className="font-semibold text-sm text-gray-700 flex items-center gap-2">
+                    <AlertTriangle className="h-4 w-4 text-yellow-600" />
+                    Pending Verification ({finalAttendance.filter(a => a.status === 'marked').length})
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {finalAttendance
+                      .filter(a => a.status === 'marked')
+                      .map((attendance) => {
+                        const member = teamMembers.find(m => m.id === attendance.userId);
+                        if (!member) return null;
+                        
+                        return (
+                          <div key={attendance.userId} className="flex items-center justify-between p-3 border rounded-lg bg-yellow-50">
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
+                                <span className="text-gray-600 font-bold text-sm">
+                                  {member.name.split(' ').map(n => n[0]).join('')}
+                                </span>
+                              </div>
+                              <div>
+                                <p className="font-medium text-sm">{member.name}</p>
+                                <p className="text-xs text-gray-500">
+                                  Marked: {new Date(attendance.markedAt).toLocaleTimeString()}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex gap-1">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleVerifyAttendance(attendance.userId, 'approved')}
+                                className="text-xs px-2 py-1 h-6 text-green-600 hover:text-green-700"
+                              >
+                                <CheckCircle2 className="h-3 w-3 mr-1" />
+                                Approve
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleVerifyAttendance(attendance.userId, 'rejected')}
+                                className="text-xs px-2 py-1 h-6 text-red-600 hover:text-red-700"
+                              >
+                                <XCircle className="h-3 w-3 mr-1" />
+                                Reject
+                              </Button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                  </div>
+                </div>
+              )}
+
+              {/* All Team Members Status */}
+              <div className="space-y-3">
+                <h4 className="font-semibold text-sm text-gray-700 flex items-center gap-2">
+                  <Users className="h-4 w-4" />
+                  All Team Members Status
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {teamMembers.map((member) => {
+                    const attendance = finalAttendance.find(a => a.userId === member.id);
+                    const status = getAttendanceStatus(member.id);
+                    const IconComponent = status.icon;
+                    
+                    return (
+                      <div key={member.id} className="flex items-center justify-between p-3 border rounded-lg">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
+                            <span className="text-gray-600 font-bold text-sm">
+                              {member.name.split(' ').map(n => n[0]).join('')}
+                            </span>
+                          </div>
+                          <div>
+                            <p className="font-medium text-sm">{member.name}</p>
+                            <div className="flex items-center gap-2">
+                              <IconComponent className="h-3 w-3" />
+                              <Badge className={status.color}>
+                                {status.label}
+                              </Badge>
+                            </div>
+                          </div>
+                        </div>
+                        {attendance && attendance.status === 'marked' && (
+                          <div className="flex gap-1">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleVerifyAttendance(member.id, 'approved')}
+                              className="text-xs px-2 py-1 h-6"
+                            >
+                              <CheckCircle2 className="h-3 w-3 mr-1" />
+                              Approve
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleVerifyAttendance(member.id, 'rejected')}
+                              className="text-xs px-2 py-1 h-6 text-red-600 hover:text-red-700"
+                            >
+                              <XCircle className="h-3 w-3 mr-1" />
+                              Reject
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
             {/* Quick Stats Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

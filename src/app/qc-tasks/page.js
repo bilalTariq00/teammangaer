@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import QCMainLayout from "@/components/layout/QCMainLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -18,7 +18,12 @@ import {
   X, 
   ThumbsUp,
   ThumbsDown,
-  ExternalLink
+  ExternalLink,
+  Play,
+  Pause,
+  Lock,
+  Unlock,
+  Target
 } from "lucide-react";
 
 // Mock data for QC tasks with IP tracking
@@ -249,6 +254,24 @@ export default function QCTasks() {
   const [showUserAgentModal, setShowUserAgentModal] = useState(false);
   const [selectedUserAgent, setSelectedUserAgent] = useState("");
   const [tasks, setTasks] = useState(mockQCTasks);
+  
+  // Timer functionality
+  const [isWorkSessionActive, setIsWorkSessionActive] = useState(false);
+  const [isWorkSessionPaused, setIsWorkSessionPaused] = useState(false);
+  const [workSessionTime, setWorkSessionTime] = useState(0);
+  const [workSessionLimit] = useState(8 * 60 * 60); // 8 hours in seconds
+  
+  const [isTaskTimerActive, setIsTaskTimerActive] = useState(false);
+  const [taskTimeElapsed, setTaskTimeElapsed] = useState(0);
+  const [taskTimeLimit] = useState(10 * 60); // 10 minutes in seconds
+  const [isTaskLocked, setIsTaskLocked] = useState(false);
+  const [currentTaskId, setCurrentTaskId] = useState(null);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const [lastCompletedTask, setLastCompletedTask] = useState(null);
+  const [shouldMoveToNext, setShouldMoveToNext] = useState(false);
+  
+  const workSessionIntervalRef = useRef(null);
+  const taskIntervalRef = useRef(null);
 
   const filteredTasks = tasks.filter(task => {
     const matchesSearch = task.workerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -268,6 +291,8 @@ export default function QCTasks() {
   };
 
   const handleQcAction = (task, rating) => {
+    console.log('handleQcAction called:', { taskId: task.id, rating, currentTaskId });
+    
     setTasks(prevTasks => 
       prevTasks.map(t => 
         t.id === task.id 
@@ -280,6 +305,221 @@ export default function QCTasks() {
           : t
       )
     );
+    
+    // Stop current task timer when task is completed
+    if (currentTaskId === task.id) {
+      console.log('Current task matches, proceeding with next task logic');
+      stopTaskTimer();
+      
+      // Show completion notification
+      setLastCompletedTask({
+        workerName: task.workerName,
+        rating: rating,
+        timestamp: new Date()
+      });
+      
+      // Trigger automatic progression to next task
+      setShouldMoveToNext(true);
+    } else {
+      console.log('Current task does not match, not proceeding with next task logic');
+    }
+  };
+
+  // Work Session functions
+  const startWorkSession = () => {
+    setIsWorkSessionActive(true);
+    setIsWorkSessionPaused(false);
+    setWorkSessionTime(0);
+    startNextTask();
+  };
+
+  const pauseWorkSession = () => {
+    if (!isWorkSessionActive || isWorkSessionPaused) return;
+    setIsWorkSessionPaused(true);
+    pauseTaskTimer();
+    if (workSessionIntervalRef.current) {
+      clearInterval(workSessionIntervalRef.current);
+    }
+  };
+
+  const resumeWorkSession = () => {
+    if (!isWorkSessionActive || !isWorkSessionPaused) return;
+    setIsWorkSessionPaused(false);
+    resumeTaskTimer();
+  };
+
+  const stopWorkSession = () => {
+    setIsWorkSessionActive(false);
+    setIsWorkSessionPaused(false);
+    setWorkSessionTime(0);
+    stopTaskTimer();
+    if (workSessionIntervalRef.current) {
+      clearInterval(workSessionIntervalRef.current);
+    }
+  };
+
+  // Task Timer functions
+  const startTaskTimer = (taskId) => {
+    if (isTaskLocked) return;
+    
+    setCurrentTaskId(taskId);
+    setIsTaskTimerActive(true);
+    setTaskTimeElapsed(0);
+    setIsTaskLocked(false);
+    
+    // Find the task to show notification
+    const task = filteredTasks.find(t => t.id === taskId);
+    if (task) {
+      console.log(`Starting task: ${task.workerName} - ${task.taskName}`);
+    }
+  };
+
+  const pauseTaskTimer = () => {
+    if (!isTaskTimerActive) return;
+    setIsTaskTimerActive(false);
+    if (taskIntervalRef.current) {
+      clearInterval(taskIntervalRef.current);
+    }
+  };
+
+  const resumeTaskTimer = () => {
+    if (!isTaskTimerActive) return;
+    setIsTaskTimerActive(true);
+  };
+
+  const stopTaskTimer = () => {
+    setIsTaskTimerActive(false);
+    setTaskTimeElapsed(0);
+    setCurrentTaskId(null);
+    if (taskIntervalRef.current) {
+      clearInterval(taskIntervalRef.current);
+    }
+  };
+
+  const startNextTask = () => {
+    console.log('startNextTask called');
+    console.log('All filtered tasks:', filteredTasks.map(t => ({ id: t.id, status: t.status, workerName: t.workerName })));
+    const nextPendingTask = filteredTasks.find(t => t.status === 'pending_review');
+    console.log('Looking for next task:', nextPendingTask);
+    
+    if (nextPendingTask) {
+      console.log('Starting next task:', nextPendingTask.id, nextPendingTask.workerName);
+      startTaskTimer(nextPendingTask.id);
+    } else {
+      console.log('No more pending tasks available');
+      // No more pending tasks
+      stopTaskTimer();
+    }
+  };
+
+  // Work Session Timer effect
+  useEffect(() => {
+    if (isWorkSessionActive && !isWorkSessionPaused) {
+      workSessionIntervalRef.current = setInterval(() => {
+        setWorkSessionTime(time => time + 1);
+      }, 1000);
+    } else {
+      if (workSessionIntervalRef.current) {
+        clearInterval(workSessionIntervalRef.current);
+      }
+    }
+
+    return () => {
+      if (workSessionIntervalRef.current) {
+        clearInterval(workSessionIntervalRef.current);
+      }
+    };
+  }, [isWorkSessionActive, isWorkSessionPaused]);
+
+  // Task Timer effect
+  useEffect(() => {
+    if (isTaskTimerActive) {
+      taskIntervalRef.current = setInterval(() => {
+        setTaskTimeElapsed(time => {
+          const newTime = time + 1;
+          
+          // Check if task time limit exceeded
+          if (newTime >= taskTimeLimit) {
+            setIsTaskLocked(true);
+            setIsTaskTimerActive(false);
+            if (taskIntervalRef.current) {
+              clearInterval(taskIntervalRef.current);
+            }
+            return taskTimeLimit;
+          }
+          
+          return newTime;
+        });
+      }, 1000);
+    } else {
+      if (taskIntervalRef.current) {
+        clearInterval(taskIntervalRef.current);
+      }
+    }
+
+    return () => {
+      if (taskIntervalRef.current) {
+        clearInterval(taskIntervalRef.current);
+      }
+    };
+  }, [isTaskTimerActive, taskTimeLimit]);
+
+  // Clear completion notification after 3 seconds
+  useEffect(() => {
+    if (lastCompletedTask) {
+      const timer = setTimeout(() => {
+        setLastCompletedTask(null);
+      }, 3000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [lastCompletedTask]);
+
+  // Handle automatic progression to next task
+  useEffect(() => {
+    if (shouldMoveToNext) {
+      console.log('shouldMoveToNext is true, executing startNextTask');
+      setIsTransitioning(true);
+      
+      setTimeout(() => {
+        startNextTask();
+        setIsTransitioning(false);
+        setShouldMoveToNext(false);
+      }, 1000);
+    }
+  }, [shouldMoveToNext, filteredTasks]);
+
+  // Format time display
+  const formatTime = (seconds) => {
+    const hours = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    
+    if (hours > 0) {
+      return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    } else {
+      return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
+  };
+
+  // Get remaining work session time
+  const getRemainingWorkSessionTime = () => {
+    return workSessionLimit - workSessionTime;
+  };
+
+  // Get work session progress percentage
+  const getWorkSessionProgress = () => {
+    return (workSessionTime / workSessionLimit) * 100;
+  };
+
+  // Get remaining task time
+  const getRemainingTaskTime = () => {
+    return taskTimeLimit - taskTimeElapsed;
+  };
+
+  // Get task progress percentage
+  const getTaskProgress = () => {
+    return (taskTimeElapsed / taskTimeLimit) * 100;
   };
 
   const getStatusBadge = (status) => {
@@ -306,7 +546,204 @@ export default function QCTasks() {
             <h1 className="text-3xl font-bold">QC Tasks</h1>
             <p className="text-muted-foreground">Review worker tasks with IP tracking and quality control</p>
           </div>
+          
+          {/* Timer Controls */}
+          <div className="flex items-center gap-6">
+            {/* Work Session Timer */}
+            <div className="flex items-center gap-2">
+              <Clock className="h-5 w-5 text-gray-600" />
+              <div className="text-right">
+                <div className="text-lg font-bold">
+                  <span className={isWorkSessionActive ? "text-green-600" : "text-gray-600"}>
+                    {formatTime(isWorkSessionActive ? workSessionTime : getRemainingWorkSessionTime())}
+                  </span>
+                </div>
+                <div className="text-xs text-gray-500">
+                  {isWorkSessionActive ? "Work Session" : "8 Hours Available"}
+                </div>
+              </div>
+            </div>
+            
+            {/* Task Timer */}
+            <div className="flex items-center gap-2">
+              <Target className="h-5 w-5 text-gray-600" />
+              <div className="text-right">
+                <div className="text-lg font-bold">
+                  {isTaskLocked ? (
+                    <span className="text-red-600">LOCKED</span>
+                  ) : (
+                    <span className={isTaskTimerActive ? "text-blue-600" : "text-gray-600"}>
+                      {formatTime(isTaskTimerActive ? taskTimeElapsed : getRemainingTaskTime())}
+                    </span>
+                  )}
+                </div>
+                <div className="text-xs text-gray-500">
+                  {isTaskLocked ? "Task Time Exceeded" : isTaskTimerActive ? "Current Task" : "10 Min Per Task"}
+                </div>
+              </div>
+            </div>
+            
+            {/* Task Progress Bar */}
+            {isTaskTimerActive && !isTaskLocked && (
+              <div className="w-24">
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div 
+                    className={`h-2 rounded-full transition-all duration-1000 ${
+                      getTaskProgress() > 80 ? 'bg-red-500' : 
+                      getTaskProgress() > 60 ? 'bg-yellow-500' : 'bg-blue-500'
+                    }`}
+                    style={{ width: `${getTaskProgress()}%` }}
+                  ></div>
+                </div>
+                <div className="text-xs text-gray-500 mt-1 text-center">
+                  {Math.round(getTaskProgress())}%
+                </div>
+              </div>
+            )}
+            
+            {/* Control Buttons */}
+            <div className="flex gap-2">
+              {!isWorkSessionActive && (
+                <Button
+                  onClick={startWorkSession}
+                  className="bg-green-600 hover:bg-green-700"
+                >
+                  <Play className="h-4 w-4 mr-2" />
+                  Start Working
+                </Button>
+              )}
+              
+              {isWorkSessionActive && !isWorkSessionPaused && (
+                <Button
+                  onClick={pauseWorkSession}
+                  variant="outline"
+                  className="text-yellow-600 hover:text-yellow-700"
+                >
+                  <Pause className="h-4 w-4 mr-2" />
+                  Pause Session
+                </Button>
+              )}
+              
+              {isWorkSessionActive && isWorkSessionPaused && (
+                <Button
+                  onClick={resumeWorkSession}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  <Play className="h-4 w-4 mr-2" />
+                  Resume Session
+                </Button>
+              )}
+              
+              {isWorkSessionActive && (
+                <Button
+                  onClick={stopWorkSession}
+                  variant="outline"
+                  className="text-red-600 hover:text-red-700"
+                >
+                  <X className="h-4 w-4 mr-2" />
+                  End Session
+                </Button>
+              )}
+              
+              {isTaskLocked && (
+                <Button
+                  onClick={() => {
+                    setIsTaskLocked(false);
+                    startNextTask();
+                  }}
+                  className="bg-orange-600 hover:bg-orange-700"
+                >
+                  <Unlock className="h-4 w-4 mr-2" />
+                  Next Task
+                </Button>
+              )}
+            </div>
+          </div>
         </div>
+
+        {/* Task Timer Warning */}
+        {isTaskTimerActive && !isTaskLocked && getTaskProgress() > 80 && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-red-600" />
+              <div>
+                <h3 className="font-semibold text-red-800">Task Time Warning</h3>
+                <p className="text-sm text-red-700">
+                  You have {formatTime(getRemainingTaskTime())} remaining to complete the current task. 
+                  The task will be locked if time expires.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Task Locked Warning */}
+        {isTaskLocked && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <div className="flex items-center gap-2">
+              <Lock className="h-5 w-5 text-red-600" />
+              <div>
+                <h3 className="font-semibold text-red-800">Task Time Limit Exceeded</h3>
+                <p className="text-sm text-red-700">
+                  The 10-minute time limit for this task has been exceeded. 
+                  Click "Next Task" to move to the next pending task.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Work Session Progress */}
+        {isWorkSessionActive && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div className="flex items-center gap-2">
+              <Clock className="h-5 w-5 text-blue-600" />
+              <div className="flex-1">
+                <h3 className="font-semibold text-blue-800">Work Session Active</h3>
+                <p className="text-sm text-blue-700">
+                  Session Time: {formatTime(workSessionTime)} / {formatTime(workSessionLimit)} 
+                  ({Math.round(getWorkSessionProgress())}% complete)
+                </p>
+                <div className="w-full bg-blue-200 rounded-full h-2 mt-2">
+                  <div 
+                    className="h-2 bg-blue-500 rounded-full transition-all duration-1000"
+                    style={{ width: `${getWorkSessionProgress()}%` }}
+                  ></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Task Completion Notification */}
+        {lastCompletedTask && (
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+            <div className="flex items-center gap-2">
+              <CheckCircle className="h-5 w-5 text-green-600" />
+              <div>
+                <h3 className="font-semibold text-green-800">Task Completed</h3>
+                <p className="text-sm text-green-700">
+                  {lastCompletedTask.workerName} - Marked as <span className="font-semibold">{lastCompletedTask.rating.toUpperCase()}</span>
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Task Transition Indicator */}
+        {isTransitioning && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+            <div className="flex items-center gap-2">
+              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-yellow-600"></div>
+              <div>
+                <h3 className="font-semibold text-yellow-800">Task Completed</h3>
+                <p className="text-sm text-yellow-700">
+                  Moving to next task...
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Stats Cards */}
       
@@ -392,8 +829,15 @@ export default function QCTasks() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredTasks.map((task) => (
-                    <TableRow key={task.id}>
+                  {filteredTasks.map((task) => {
+                    const isCurrentTask = currentTaskId === task.id;
+                    const isDisabled = isTaskLocked || (isTaskTimerActive && !isCurrentTask);
+                    
+                    return (
+                    <TableRow 
+                      key={task.id} 
+                      className={`${isCurrentTask ? 'bg-blue-50 border-blue-200 ring-2 ring-blue-300' : ''} ${isDisabled ? 'opacity-50' : ''} transition-all duration-300`}
+                    >
                       <TableCell className="font-mono text-xs">{task.ip}</TableCell>
                       <TableCell>
                         <button 
@@ -456,7 +900,21 @@ export default function QCTasks() {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <div className="flex gap-1">
+                        <div className="flex gap-1 items-center">
+                          {isCurrentTask && isTaskTimerActive && (
+                            <div className="flex items-center gap-1 mr-2">
+                              <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                              <span className="text-xs text-blue-600 font-medium">Working</span>
+                            </div>
+                          )}
+                          
+                          {isTaskLocked && task.status === "pending_review" && isCurrentTask && (
+                            <div className="flex items-center gap-1 mr-2">
+                              <Lock className="h-3 w-3 text-red-500" />
+                              <span className="text-xs text-red-600 font-medium">Time Exceeded</span>
+                            </div>
+                          )}
+                          
                           {task.status === "pending_review" ? (
                             <>
                               <Button
@@ -464,6 +922,7 @@ export default function QCTasks() {
                                 variant="outline"
                                 onClick={() => handleQcAction(task, "good")}
                                 className="text-green-600 hover:text-green-800"
+                                disabled={isDisabled}
                               >
                                 <ThumbsUp className="h-3 w-3 mr-1" />
                                 Good
@@ -473,6 +932,7 @@ export default function QCTasks() {
                                 variant="outline"
                                 onClick={() => handleQcAction(task, "bad")}
                                 className="text-red-600 hover:text-red-800"
+                                disabled={isDisabled}
                             >
                                 <ThumbsDown className="h-3 w-3 mr-1" />
                                 Bad
@@ -486,7 +946,8 @@ export default function QCTasks() {
                         </div>
                       </TableCell>
                     </TableRow>
-                  ))}
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>
