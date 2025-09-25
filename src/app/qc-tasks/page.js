@@ -23,8 +23,11 @@ import {
   Pause,
   Lock,
   Unlock,
-  Target
+  Target,
+  Database,
+  Eye
 } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 // Mock data for QC tasks with IP tracking
 const mockQCTasks = [
@@ -269,6 +272,8 @@ export default function QCTasks() {
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [lastCompletedTask, setLastCompletedTask] = useState(null);
   const [shouldMoveToNext, setShouldMoveToNext] = useState(false);
+  const [showDataDialog, setShowDataDialog] = useState(false);
+  const [selectedTaskData, setSelectedTaskData] = useState(null);
   
   const workSessionIntervalRef = useRef(null);
   const taskIntervalRef = useRef(null);
@@ -288,6 +293,13 @@ export default function QCTasks() {
   const handleShowUserAgent = (userAgent) => {
     setSelectedUserAgent(userAgent);
     setShowUserAgentModal(true);
+  };
+
+  const handleShowData = (task) => {
+    if (task.formFilled === "yes") {
+      setSelectedTaskData(task);
+      setShowDataDialog(true);
+    }
   };
 
   const handleQcAction = (task, rating) => {
@@ -815,10 +827,12 @@ export default function QCTasks() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead>S.No</TableHead>
                     <TableHead>IP</TableHead>
                     <TableHead>Device</TableHead>
                     <TableHead>Region</TableHead>
                     <TableHead>Form Filled</TableHead>
+                    <TableHead>Data</TableHead>
                     <TableHead>Image 1</TableHead>
                     <TableHead>Image 2</TableHead>
                     <TableHead>Δ Time</TableHead>
@@ -829,7 +843,7 @@ export default function QCTasks() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredTasks.map((task) => {
+                  {filteredTasks.map((task, index) => {
                     const isCurrentTask = currentTaskId === task.id;
                     const isDisabled = isTaskLocked || (isTaskTimerActive && !isCurrentTask);
                     
@@ -838,6 +852,7 @@ export default function QCTasks() {
                       key={task.id} 
                       className={`${isCurrentTask ? 'bg-blue-50 border-blue-200 ring-2 ring-blue-300' : ''} ${isDisabled ? 'opacity-50' : ''} transition-all duration-300`}
                     >
+                      <TableCell className="text-center font-medium">{index + 1}</TableCell>
                       <TableCell className="font-mono text-xs">{task.ip}</TableCell>
                       <TableCell>
                         <button 
@@ -857,6 +872,21 @@ export default function QCTasks() {
                         <Badge className={task.formFilled === "yes" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}>
                           {task.formFilled || "N/A"}
                         </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {task.formFilled === "yes" ? (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleShowData(task)}
+                            className="text-blue-600 hover:text-blue-800"
+                          >
+                            <Database className="h-3 w-3 mr-1" />
+                            View Data
+                          </Button>
+                        ) : (
+                          <span className="text-gray-400">-</span>
+                        )}
                       </TableCell>
                       <TableCell>
                         {task.screenshots && task.screenshots[0] ? (
@@ -977,6 +1007,107 @@ export default function QCTasks() {
             </div>
           </div>
         )}
+
+        {/* Data Dialog */}
+        <Dialog open={showDataDialog} onOpenChange={setShowDataDialog}>
+          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Task Data</DialogTitle>
+              <DialogDescription>
+                Form data submitted by {selectedTaskData?.workerName}
+              </DialogDescription>
+            </DialogHeader>
+            
+            {selectedTaskData && (
+              <div className="space-y-4">
+                <div className="bg-gray-50 p-4 rounded-lg border">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                    <div className="space-y-3">
+                      <div className="flex flex-col space-y-1">
+                        <span className="font-medium text-gray-600">Worker Name:</span>
+                        <span className="font-semibold break-words">{selectedTaskData.workerName}</span>
+                      </div>
+                      <div className="flex flex-col space-y-1">
+                        <span className="font-medium text-gray-600">Email:</span>
+                        <span className="break-all text-xs">{selectedTaskData.workerEmail}</span>
+                      </div>
+                      <div className="flex flex-col space-y-1">
+                        <span className="font-medium text-gray-600">Task Type:</span>
+                        <span className="capitalize">{selectedTaskData.taskType}</span>
+                      </div>
+                      <div className="flex flex-col space-y-1">
+                        <span className="font-medium text-gray-600">Campaign:</span>
+                        <span className="break-words">{selectedTaskData.campaign}</span>
+                      </div>
+                    </div>
+                    <div className="space-y-3">
+                      <div className="flex flex-col space-y-1">
+                        <span className="font-medium text-gray-600">IP Address:</span>
+                        <span className="font-mono text-xs break-all">{selectedTaskData.ip}</span>
+                      </div>
+                      <div className="flex flex-col space-y-1">
+                        <span className="font-medium text-gray-600">Device:</span>
+                        <span className="break-words">{selectedTaskData.device}</span>
+                      </div>
+                      <div className="flex flex-col space-y-1">
+                        <span className="font-medium text-gray-600">Region:</span>
+                        <span className="break-words">{selectedTaskData.regionDetails}</span>
+                      </div>
+                      <div className="flex flex-col space-y-1">
+                        <span className="font-medium text-gray-600">Form Status:</span>
+                        <Badge className={selectedTaskData.formFilled === "yes" ? "bg-green-100 text-green-800 w-fit" : "bg-red-100 text-red-800 w-fit"}>
+                          {selectedTaskData.formFilled}
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {selectedTaskData.additionalDetails && (
+                    <div className="mt-4 pt-3 border-t">
+                      <div className="flex flex-col space-y-1">
+                        <span className="font-medium text-gray-600">Additional Details:</span>
+                        <span className="break-words text-sm">{selectedTaskData.additionalDetails}</span>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {selectedTaskData.pageVisitCount && (
+                    <div className="mt-3">
+                      <div className="flex flex-col space-y-1">
+                        <span className="font-medium text-gray-600">Page Visits:</span>
+                        <span>{selectedTaskData.pageVisitCount}</span>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {selectedTaskData.selectedReason && (
+                    <div className="mt-3">
+                      <div className="flex flex-col space-y-1">
+                        <span className="font-medium text-gray-600">Reason:</span>
+                        <span className="break-words text-sm">{selectedTaskData.selectedReason}</span>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {selectedTaskData.userAgent && (
+                    <div className="mt-3">
+                      <div className="flex flex-col space-y-1">
+                        <span className="font-medium text-gray-600">User Agent:</span>
+                        <span className="break-all text-xs font-mono bg-white p-2 rounded border">{selectedTaskData.userAgent}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                
+                <div className="flex justify-end gap-2 pt-4">
+                  <Button onClick={() => setShowDataDialog(false)}>
+                    Close
+                  </Button>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
 
       </div>
     </QCMainLayout>
