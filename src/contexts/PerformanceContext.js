@@ -77,13 +77,19 @@ export function PerformanceProvider({ children }) {
       markedAt: new Date().toISOString()
     };
 
-    setPerformanceRecords(prev => ({
-      ...prev,
-      [today]: {
-        ...prev[today],
-        [workerId]: newRecord
-      }
-    }));
+    console.log('markDailyPerformance called:', { workerId, managerId, managerName, rating, notes });
+
+    setPerformanceRecords(prev => {
+      const newRecords = {
+        ...prev,
+        [today]: {
+          ...prev[today],
+          [workerId]: newRecord
+        }
+      };
+      console.log('Performance records updated:', newRecords);
+      return newRecords;
+    });
 
     // Save to localStorage immediately
     const savedData = JSON.parse(localStorage.getItem('performanceRecords') || '{}');
@@ -107,17 +113,35 @@ export function PerformanceProvider({ children }) {
   // Get performance records for a manager's team
   const getTeamPerformance = (managerId, date) => {
     const manager = users.find(u => u.id === managerId);
-    if (!manager || !manager.assignedUsers) return [];
+    if (!manager || !manager.assignedUsers) {
+      console.log('getTeamPerformance - No manager or assignedUsers:', { managerId, manager: !!manager, assignedUsers: manager?.assignedUsers });
+      return [];
+    }
 
     const teamMembers = manager.assignedUsers.map(assignedId =>
       users.find(u => u.id === assignedId)
     ).filter(Boolean);
 
     const dayRecords = performanceRecords[date] || {};
-    return teamMembers.map(member => ({
-      user: member,
-      performance: dayRecords[member.id] || null
-    }));
+    console.log('getTeamPerformance - Day records:', dayRecords);
+    console.log('getTeamPerformance - Team members:', teamMembers.map(m => ({ id: m.id, name: m.name })));
+
+    const result = teamMembers.map(member => {
+      // Find performance record by workerId
+      const performanceRecord = Object.values(dayRecords).find(record => 
+        record.workerId === member.id
+      );
+      
+      console.log(`getTeamPerformance - Member ${member.name} (${member.id}):`, { performanceRecord });
+      
+      return {
+        user: member,
+        performance: performanceRecord || null
+      };
+    });
+
+    console.log('getTeamPerformance - Result:', result);
+    return result;
   };
 
   // Get performance statistics for a worker over a period

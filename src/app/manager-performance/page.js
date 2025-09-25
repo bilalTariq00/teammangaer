@@ -43,6 +43,7 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { useUsers } from "@/contexts/UsersContext";
 import { usePerformance } from "@/contexts/PerformanceContext";
+import { ManagerWorkflowProvider } from "@/contexts/ManagerWorkflowContext";
 import { Textarea } from "@/components/ui/textarea";
 
 // Mock data for team performance
@@ -104,7 +105,7 @@ const recentAchievements = [
   }
 ];
 
-export default function ManagerPerformancePage() {
+function ManagerPerformancePageContent() {
   const [timeRange, setTimeRange] = useState("6months");
   const [viewType, setViewType] = useState("overview");
   const { user } = useAuth();
@@ -955,4 +956,8 @@ export default function ManagerPerformancePage() {
       </div>
     </ManagerMainLayout>
   );
+}
+
+export default function ManagerPerformancePage() {
+  return <ManagerPerformancePageContent />;
 }

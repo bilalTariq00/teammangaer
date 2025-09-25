@@ -35,6 +35,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useUsers } from "@/contexts/UsersContext";
 import { usePerformance } from "@/contexts/PerformanceContext";
 import { useAttendance } from "@/contexts/AttendanceContext";
+import { ManagerWorkflowProvider, useManagerWorkflow } from "@/contexts/ManagerWorkflowContext";
 import AttendanceVerification from "@/components/AttendanceVerification";
 import PerformanceMarking from "@/components/PerformanceMarking";
 import TaskAssignment from "@/components/tasks/TaskAssignment";
@@ -633,6 +634,9 @@ function ManagerDashboardContent() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Attendance Verification - Only show if navigation is blocked */}
+        <AttendanceVerification />
 
         {/* Team Attendance Details */}
         <Card>

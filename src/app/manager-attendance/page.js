@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Clock, CheckCircle, User, Calendar, TrendingUp } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAttendance } from "@/contexts/AttendanceContext";
+import { ManagerWorkflowProvider } from "@/contexts/ManagerWorkflowContext";
 import { toast } from "sonner";
 
 // Mock data for previous month attendance
@@ -44,7 +45,8 @@ const generateMockPreviousMonthData = () => {
   return mockData.reverse() // Show most recent first
 }
 
-export default function ManagerAttendancePage() {
+function ManagerAttendancePageContent() {
+  const router = useRouter();
   const { user } = useAuth();
   const { markAttendance, isAttendanceMarkedToday } = useAttendance();
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -82,7 +84,11 @@ export default function ManagerAttendancePage() {
       });
 
       toast.success("Attendance marked successfully!");
-      setShowDashboard(true);
+      
+      // Redirect to manager dashboard after a short delay
+      setTimeout(() => {
+        router.push('/manager-dashboard');
+      }, 1500);
     } catch (error) {
       toast.error("Failed to mark attendance");
       console.error("Error marking attendance:", error);
@@ -110,9 +116,9 @@ export default function ManagerAttendancePage() {
     const totalWorkingDays = previousMonthData.length;
     const attendancePercentage = Math.round((presentDays / totalWorkingDays) * 100);
 
-    return (
-      <ManagerMainLayout>
-        <div className="space-y-6">
+  return (
+    <ManagerMainLayout>
+      <div className="space-y-6">
           {/* Success Message */}
           <Card className="border-green-200 bg-green-50">
             <CardHeader>
@@ -125,58 +131,58 @@ export default function ManagerAttendancePage() {
           </Card>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Today&apos;s Status</CardTitle>
                 <CheckCircle className="h-4 w-4 text-green-500" />
-              </CardHeader>
-              <CardContent>
+            </CardHeader>
+            <CardContent>
                 <div className="text-2xl font-bold text-green-600">Present</div>
                 <p className="text-xs text-muted-foreground">Marked at {currentTime.toLocaleTimeString()}</p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">This Month</CardTitle>
-                <TrendingUp className="h-4 w-4 text-blue-500" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-blue-600">{attendancePercentage}%</div>
-                <p className="text-xs text-muted-foreground">
-                  {presentDays} of {totalWorkingDays} days present
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Streak</CardTitle>
-                <Calendar className="h-4 w-4 text-purple-500" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-purple-600">5 Days</div>
-                <p className="text-xs text-muted-foreground">Current attendance streak</p>
-              </CardContent>
-            </Card>
-          </div>
+            </CardContent>
+          </Card>
 
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">This Month</CardTitle>
+                <TrendingUp className="h-4 w-4 text-blue-500" />
+            </CardHeader>
+            <CardContent>
+                <div className="text-2xl font-bold text-blue-600">{attendancePercentage}%</div>
+              <p className="text-xs text-muted-foreground">
+                  {presentDays} of {totalWorkingDays} days present
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Streak</CardTitle>
+                <Calendar className="h-4 w-4 text-purple-500" />
+            </CardHeader>
+            <CardContent>
+                <div className="text-2xl font-bold text-purple-600">5 Days</div>
+                <p className="text-xs text-muted-foreground">Current attendance streak</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
                 <Calendar className="h-5 w-5" />
                 Previous Month Summary
-              </CardTitle>
-              <CardDescription>
+            </CardTitle>
+            <CardDescription>
                 {previousMonthData[0] &&
                   new Date(previousMonthData[0].date).toLocaleDateString("en-US", {
                     month: "long",
                     year: "numeric",
                   })}{" "}
                 attendance record
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
               <div className="space-y-4">
                 <div className="grid grid-cols-3 gap-4 p-4 bg-muted rounded-lg">
                   <div className="text-center">
@@ -186,13 +192,13 @@ export default function ManagerAttendancePage() {
                   <div className="text-center">
                     <div className="text-2xl font-bold text-red-600">{absentDays}</div>
                     <div className="text-xs text-muted-foreground">Absent</div>
-                  </div>
+                          </div>
                   <div className="text-center">
                     <div className="text-2xl font-bold text-blue-600">{attendancePercentage}%</div>
                     <div className="text-xs text-muted-foreground">Attendance</div>
-                  </div>
-                </div>
-
+                        </div>
+                      </div>
+                      
                 <div className="space-y-2 max-h-64 overflow-y-auto">
                   {previousMonthData.map((day, index) => (
                     <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
@@ -210,10 +216,10 @@ export default function ManagerAttendancePage() {
                       <div className="text-sm text-muted-foreground">{day.checkIn || "--:--"}</div>
                     </div>
                   ))}
-                </div>
+                  </div>
               </div>
-            </CardContent>
-          </Card>
+          </CardContent>
+        </Card>
         </div>
       </ManagerMainLayout>
     );
@@ -280,4 +286,8 @@ export default function ManagerAttendancePage() {
       </div>
     </ManagerMainLayout>
   );
+}
+
+export default function ManagerAttendancePage() {
+  return <ManagerAttendancePageContent />;
 }

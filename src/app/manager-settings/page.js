@@ -24,8 +24,9 @@ import {
   Plus,
   Trash2
 } from "lucide-react";
+import { ManagerWorkflowProvider } from "@/contexts/ManagerWorkflowContext";
 
-export default function ManagerSettingsPage() {
+function ManagerSettingsPageContent() {
   const [settings, setSettings] = useState({
     // Profile Settings
     name: "Sarah Manager",
@@ -644,4 +645,8 @@ export default function ManagerSettingsPage() {
       </div>
     </ManagerMainLayout>
   );
+}
+
+export default function ManagerSettingsPage() {
+  return <ManagerSettingsPageContent />;
 }

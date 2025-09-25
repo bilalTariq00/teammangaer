@@ -6,6 +6,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Menu, LogOut, User, PanelLeft } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSettings } from "@/contexts/SettingsContext";
+import { ManagerWorkflowProvider } from "@/contexts/ManagerWorkflowContext";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -15,6 +16,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import ManagerSidebar from "./ManagerSidebar";
 import LogoutConfirmation from "@/components/ui/logout-confirmation";
+import LogoutProtection from "@/components/LogoutProtection";
 
 export default function ManagerHeader({ sidebarCollapsed, onSidebarToggle }) {
   const { user, logout } = useAuth();
@@ -130,7 +132,7 @@ export default function ManagerHeader({ sidebarCollapsed, onSidebarToggle }) {
         </div>
       </div>
       
-      <LogoutConfirmation
+      <LogoutProtection
         isOpen={showLogoutConfirmation}
         onClose={() => setShowLogoutConfirmation(false)}
         onConfirm={handleLogoutConfirm}

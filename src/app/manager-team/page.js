@@ -40,9 +40,10 @@ import {
 import { useUsers } from "@/contexts/UsersContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAttendance } from "@/contexts/AttendanceContext";
+import { ManagerWorkflowProvider } from "@/contexts/ManagerWorkflowContext";
 import { toast } from "sonner";
 
-export default function ManagerTeamPage() {
+function ManagerTeamPageContent() {
   const { users, updateUser } = useUsers() || {};
   const { user: currentUser, checkUserLockStatus } = useAuth() || {};
   const { getTeamAttendance, approveAttendance, getAttendanceForDate } = useAttendance() || {};
@@ -931,4 +932,8 @@ export default function ManagerTeamPage() {
       </div>
     </ManagerMainLayout>
   );
+}
+
+export default function ManagerTeamPage() {
+  return <ManagerTeamPageContent />;
 }
