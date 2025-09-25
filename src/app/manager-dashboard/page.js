@@ -1196,7 +1196,7 @@ function ManagerDashboardContent() {
           <div className="space-y-6">
             <PerformanceMarking />
             {/* Assigned Team Members (for this manager) */}
-            <Card>
+            {/* <Card>
               <CardHeader>
                 <CardTitle>Assigned Team Members</CardTitle>
                 <CardDescription>Members assigned to you and today\s status</CardDescription>
@@ -1247,7 +1247,7 @@ function ManagerDashboardContent() {
                   );
                 })()}
               </CardContent>
-            </Card>
+            </Card> */}
           </div>
         )}
 

@@ -14,6 +14,7 @@ import {
   Settings,
   Target,
   Plus,
+  Calendar,
 } from "lucide-react";
 
 const navigation = [
@@ -42,6 +43,11 @@ const navigation = [
     name: "Tasks",
     href: "/tasks",
     icon: CheckSquare,
+  },
+  {
+    name: "Attendance",
+    href: "/admin-attendance",
+    icon: Calendar,
   },
   {
     name: "Settings",

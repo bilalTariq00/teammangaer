@@ -13,7 +13,9 @@ import {
   Settings,
   FileCheck,
   Target,
-  AlertCircle
+  AlertCircle,
+  Clock,
+  Calendar
 } from "lucide-react";
 
 const navigation = [
@@ -26,6 +28,16 @@ const navigation = [
     name: "My Tasks",
     href: "/qc-tasks",
     icon: CheckSquare,
+  },
+  {
+    name: "My Attendance",
+    href: "/qc-attendance",
+    icon: Clock,
+  },
+  {
+    name: "All Attendance",
+    href: "/admin-attendance",
+    icon: Calendar,
   },
   // {
   //   name: "Quality Reports",

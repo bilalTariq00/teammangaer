@@ -57,9 +57,14 @@ const navigation = [
     icon: Calendar,
   },
   {
-    name: "Attendance",
+    name: "My Attendance",
     href: "/hr-attendance",
     icon: Clock,
+  },
+  {
+    name: "All Attendance",
+    href: "/admin-attendance",
+    icon: Calendar,
   },
 //   {
 //     name: "Settings",

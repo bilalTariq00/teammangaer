@@ -383,15 +383,94 @@ export default function ManagerPerformancePage() {
             <CardContent className="p-6">
               <div className="flex items-start gap-3">
                 <Calendar className="h-5 w-5 text-red-600 mt-0.5" />
-                <div>
+                <div className="flex-1">
                   <CardTitle className="text-lg">
                     {markedCount === 0 ? 'No Performance Marked Today' : 'Today\'s Performance Progress'}
                   </CardTitle>
                   <CardDescription>
                     {markedCount === 0
-                      ? 'Start marking performance for your team members to track their daily progress.'
+                      ? 'Start marking performance for your team members to track their daily progress and help them improve.'
                       : `${markedCount} of ${teamMembers.length} team members marked today.`}
                   </CardDescription>
+                  
+                  {markedCount === 0 && (
+                    <div className="mt-4 space-y-3">
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <h4 className="font-medium text-blue-900 mb-2 flex items-center gap-2">
+                          <Award className="h-4 w-4" />
+                          Quick Start Guide
+                        </h4>
+                        <ul className="text-sm text-blue-800 space-y-1">
+                          <li>• Use the table below to mark performance for each team member</li>
+                          <li>• Click the emoji buttons (🌟👍😐👎💔) to rate performance</li>
+                          <li>• Add review notes for specific feedback</li>
+                          <li>• Click the save button to record each rating</li>
+                        </ul>
+                      </div>
+                      
+                      <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                        <h4 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
+                          <Target className="h-4 w-4" />
+                          Performance Rating Criteria
+                        </h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2">
+                              <span className="text-lg">🌟</span>
+                              <span className="font-medium text-gray-700">Excellent</span>
+                            </div>
+                            <p className="text-gray-600 text-xs">Exceeds expectations, outstanding work quality</p>
+                          </div>
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2">
+                              <span className="text-lg">👍</span>
+                              <span className="font-medium text-gray-700">Good</span>
+                            </div>
+                            <p className="text-gray-600 text-xs">Meets expectations, consistent performance</p>
+                          </div>
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2">
+                              <span className="text-lg">😐</span>
+                              <span className="font-medium text-gray-700">Average</span>
+                            </div>
+                            <p className="text-gray-600 text-xs">Adequate performance, room for improvement</p>
+                          </div>
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2">
+                              <span className="text-lg">👎</span>
+                              <span className="font-medium text-gray-700">Bad</span>
+                            </div>
+                            <p className="text-gray-600 text-xs">Below expectations, needs improvement</p>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                        <div className="flex items-start gap-2">
+                          <Clock className="h-4 w-4 text-yellow-600 mt-0.5" />
+                          <div>
+                            <p className="text-sm font-medium text-yellow-800">Best Practice</p>
+                            <p className="text-xs text-yellow-700">Mark performance at the end of each shift to ensure accurate and timely feedback for your team members.</p>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+                        <div className="flex items-center gap-2 text-gray-600">
+                          <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                          <span>Marked: {markedCount}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-gray-600">
+                          <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                          <span>Remaining: {teamMembers.length - markedCount}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-gray-600">
+                          <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                          <span>Total: {teamMembers.length}</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
               {markedCount > 0 && (

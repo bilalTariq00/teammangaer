@@ -6,6 +6,9 @@ export function middleware(request) {
   // Admin-only routes
   const adminRoutes = ['/dashboard', '/links', '/settings', '/campaigns', '/create-campaign'];
   
+  // Admin, HR, and QC shared routes (attendance management)
+  const attendanceManagementRoutes = ['/admin-attendance'];
+  
   // Admin and HR shared routes (user management)
   const userManagementRoutes = ['/users'];
   
@@ -29,6 +32,7 @@ export function middleware(request) {
   
   // Check if the current path matches any role-specific route
   const isAdminRoute = adminRoutes.some(route => pathname.startsWith(route));
+  const isAttendanceManagementRoute = attendanceManagementRoutes.some(route => pathname.startsWith(route));
   const isUserManagementRoute = userManagementRoutes.some(route => pathname.startsWith(route));
   const isManagerRoute = managerRoutes.some(route => pathname.startsWith(route));
   const isQCRoute = qcRoutes.some(route => pathname.startsWith(route));
@@ -46,6 +50,7 @@ export function middleware(request) {
     userRole,
     isSharedRoute,
     isAdminRoute,
+    isAttendanceManagementRoute,
     isManagerRoute,
     isQCRoute,
     isHRRoute,
@@ -58,6 +63,12 @@ export function middleware(request) {
     return NextResponse.next();
   }
   
+  // Allow access to attendance management routes for admin, HR, and QC
+  if (isAttendanceManagementRoute && (userRole === 'admin' || userRole === 'hr' || userRole === 'qc')) {
+    console.log('Allowing access to attendance management route:', pathname);
+    return NextResponse.next();
+  }
+  
   // Allow access to shared routes for all users (even if not logged in)
   if (isSharedRoute) {
     console.log('Allowing access to shared route:', pathname);
@@ -65,7 +76,7 @@ export function middleware(request) {
   }
   
   // If no user role and trying to access protected routes, redirect to login
-  if (!userRole && (isAdminRoute || isManagerRoute || isQCRoute || isHRRoute || isUserRoute)) {
+  if (!userRole && (isAdminRoute || isAttendanceManagementRoute || isManagerRoute || isQCRoute || isHRRoute || isUserRoute)) {
     console.log('No user role, redirecting to login');
     return NextResponse.redirect(new URL('/login', request.url));
   }
@@ -78,6 +89,15 @@ export function middleware(request) {
       return NextResponse.redirect(new URL('/qc-dashboard', request.url));
     } else if (userRole === 'hr') {
       return NextResponse.redirect(new URL('/hr-dashboard', request.url));
+    } else if (userRole === 'user') {
+      return NextResponse.redirect(new URL('/user-dashboard', request.url));
+    }
+  }
+  
+  // Redirect for attendance management routes (admin, HR, QC only)
+  if (isAttendanceManagementRoute && !['admin', 'hr', 'qc'].includes(userRole)) {
+    if (userRole === 'manager') {
+      return NextResponse.redirect(new URL('/manager-dashboard', request.url));
     } else if (userRole === 'user') {
       return NextResponse.redirect(new URL('/user-dashboard', request.url));
     }
@@ -167,6 +187,7 @@ export const config = {
     '/qc-attendance/:path*',
     '/hr-attendance/:path*',
     '/manager-attendance/:path*',
+    '/admin-attendance/:path*',
     '/user-personal-info/:path*'
   ]
 };

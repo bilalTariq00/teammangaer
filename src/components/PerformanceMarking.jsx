@@ -6,6 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
   Star, 
   CheckCircle, 
@@ -15,7 +18,8 @@ import {
   Calendar,
   Award,
   AlertCircle,
-  X
+  X,
+  Save
 } from "lucide-react";
 import { usePerformance } from "@/contexts/PerformanceContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -34,12 +38,14 @@ export default function PerformanceMarking() {
   const { user: currentUser } = useAuth();
   const { users } = useUsers();
   
-  const [selectedWorker, setSelectedWorker] = useState(null);
-  const [selectedRating, setSelectedRating] = useState('');
-  const [notes, setNotes] = useState('');
+  const [userRatings, setUserRatings] = useState({});
+  const [userNotes, setUserNotes] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [justMarkedPerformance, setJustMarkedPerformance] = useState(null);
   const [teamPerformance, setTeamPerformance] = useState([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [ratingFilter, setRatingFilter] = useState('all');
 
   // Get today's date
   const today = new Date().toISOString().split('T')[0];
@@ -51,10 +57,19 @@ export default function PerformanceMarking() {
   });
 
   // Get team members assigned to this manager
-  const teamMembers = currentUser?.assignedUsers ? 
-    currentUser.assignedUsers.map(assignedId => 
-      users.find(u => u.id === assignedId)
-    ).filter(Boolean) : [];
+  let teamMembers = users?.filter(u => 
+    u.role === 'worker' && 
+    currentUser?.assignedUsers?.includes(u.id)
+  ) || [];
+
+  // If no team members assigned, use mock team members for demonstration
+  if (teamMembers.length === 0) {
+    teamMembers = [
+      { id: 5, name: "Hasan Abbas", email: "hasan.abbas@joyapps.net", role: "worker", workerType: "Permanent Clicker" },
+      { id: 6, name: "Adnan Amir", email: "adnan.amir@joyapps.net", role: "worker", workerType: "Permanent Viewer" },
+      { id: 7, name: "Waleed Bin Shakeel", email: "waleed.shakeel@joyapps.net", role: "worker", workerType: "Trainee Clicker" }
+    ];
+  }
 
   // Update team performance when performance records change
   useEffect(() => {
@@ -74,10 +89,10 @@ export default function PerformanceMarking() {
     }
   }, [justMarkedPerformance]);
 
-  // Handle performance submission
-  const handleSubmitPerformance = async () => {
-    if (!selectedWorker || !selectedRating) {
-      toast.error("Please select a worker and rating");
+  // Handle performance submission for individual user
+  const handleSubmitPerformance = async (userId, rating, notes) => {
+    if (!rating) {
+      toast.error("Please select a rating");
       return;
     }
 
@@ -86,28 +101,29 @@ export default function PerformanceMarking() {
     try {
       await new Promise(resolve => setTimeout(resolve, 500)); // Simulate API call
       
+      const user = teamMembers.find(member => member.id === userId);
+      
       markDailyPerformance(
-        selectedWorker.id,
+        userId,
         currentUser.id,
         currentUser.name,
-        selectedRating,
+        rating,
         notes
       );
 
       // Store the just marked performance for display
       setJustMarkedPerformance({
-        worker: selectedWorker,
-        rating: selectedRating,
+        worker: user,
+        rating: rating,
         notes: notes,
         timestamp: new Date().toISOString()
       });
 
-      toast.success(`Performance marked for ${selectedWorker.name}`);
+      toast.success(`Performance marked for ${user.name}`);
       
-      // Reset form
-      setSelectedWorker(null);
-      setSelectedRating('');
-      setNotes('');
+      // Clear the form for this user
+      setUserRatings(prev => ({ ...prev, [userId]: '' }));
+      setUserNotes(prev => ({ ...prev, [userId]: '' }));
     } catch (error) {
       console.error("Error marking performance:", error);
       toast.error("Failed to mark performance");
@@ -115,6 +131,54 @@ export default function PerformanceMarking() {
       setIsSubmitting(false);
     }
   };
+
+  // Handle rating change
+  const handleRatingChange = (userId, rating) => {
+    setUserRatings(prev => ({ ...prev, [userId]: rating }));
+  };
+
+  // Handle notes change
+  const handleNotesChange = (userId, notes) => {
+    setUserNotes(prev => ({ ...prev, [userId]: notes }));
+  };
+
+  // Emoji mapping for performance levels
+  const performanceEmojis = {
+    excellent: '🌟',
+    good: '👍',
+    average: '😐',
+    bad: '👎',
+    worst: '💔'
+  };
+
+  // Filter team members based on search and filters
+  const filteredTeamMembers = teamMembers.filter(member => {
+    const isMarked = isPerformanceMarkedToday(member.id);
+    const performance = teamPerformance.find(p => p.user.id === member.id)?.performance;
+    
+    // Search filter
+    const matchesSearch = searchTerm === '' || 
+      member.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      member.workerType?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    // Status filter
+    let matchesStatus = true;
+    if (statusFilter === 'marked') {
+      matchesStatus = isMarked;
+    } else if (statusFilter === 'not_marked') {
+      matchesStatus = !isMarked;
+    }
+    
+    // Rating filter
+    let matchesRating = true;
+    if (ratingFilter !== 'all' && performance) {
+      matchesRating = performance.rating === ratingFilter;
+    } else if (ratingFilter !== 'all' && !performance) {
+      matchesRating = false;
+    }
+    
+    return matchesSearch && matchesStatus && matchesRating;
+  });
 
   // Get performance stats for today
   const performanceStats = teamPerformance.reduce((stats, member) => {
@@ -132,6 +196,9 @@ export default function PerformanceMarking() {
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Daily Performance Marking</h2>
           <p className="text-gray-600">{todayFormatted}</p>
+          <p className="text-sm text-gray-500 mt-1">
+            Showing {filteredTeamMembers.length} of {teamMembers.length} team members
+          </p>
         </div>
         <div className="flex items-center gap-2 text-sm text-gray-500">
           <Calendar className="h-4 w-4" />
@@ -139,173 +206,235 @@ export default function PerformanceMarking() {
         </div>
       </div>
 
-      {/* Performance Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
-        <Card className="bg-blue-50 border-blue-200">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <Users className="h-4 w-4 text-blue-600" />
-              <div>
-                <p className="text-sm text-blue-700">Team Members</p>
-                <p className="text-2xl font-bold text-blue-900">{teamMembers.length}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-green-50 border-green-200">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <CheckCircle className="h-4 w-4 text-green-600" />
-              <div>
-                <p className="text-sm text-green-700">Marked Today</p>
-                <p className="text-2xl font-bold text-green-900">{performanceStats.total}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {performanceLevels.map((level) => (
-          <Card key={level.value} className={`${level.bgColor} border-current`}>
-            <CardContent className="p-4">
+      {/* Search and Filters */}
+      <Card>
+        <CardContent className="p-6">
+          <div className="space-y-4">
+            {/* Quick Stats */}
+            {/* <div className="flex flex-wrap gap-4 text-sm">
               <div className="flex items-center gap-2">
-                <Star className={`h-4 w-4 ${level.color}`} />
-                <div>
-                  <p className={`text-sm ${level.color}`}>{level.label}</p>
-                  <p className="text-2xl font-bold">{performanceStats[level.value] || 0}</p>
-                </div>
+                <Users className="h-4 w-4 text-blue-600" />
+                <span className="text-gray-600">Total: <span className="font-medium">{teamMembers.length}</span></span>
               </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+              <div className="flex items-center gap-2">
+                <CheckCircle className="h-4 w-4 text-green-600" />
+                <span className="text-gray-600">Marked: <span className="font-medium">{performanceStats.total}</span></span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Clock className="h-4 w-4 text-orange-600" />
+                <span className="text-gray-600">Remaining: <span className="font-medium">{teamMembers.length - performanceStats.total}</span></span>
+              </div>
+            </div> */}
 
-      {/* Performance Marking Form */}
+            <div className="flex flex-col sm:flex-row gap-4">
+              {/* Search Bar */}
+              <div className="flex-1">
+                <Label htmlFor="search">Search Team Members</Label>
+                <Input
+                  id="search"
+                  placeholder="Search by name or worker type..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="mt-1"
+                />
+              </div>
+
+              {/* Status Filter */}
+              <div className="sm:w-48">
+                <Label htmlFor="status-filter">Status</Label>
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="All Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Status</SelectItem>
+                    <SelectItem value="marked">Marked</SelectItem>
+                    <SelectItem value="not_marked">Not Marked</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Rating Filter */}
+              <div className="sm:w-48">
+                <Label htmlFor="rating-filter">Rating</Label>
+                <Select value={ratingFilter} onValueChange={setRatingFilter}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="All Ratings" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Ratings</SelectItem>
+                    {performanceLevels.map((level) => (
+                      <SelectItem key={level.value} value={level.value}>
+                        {performanceEmojis[level.value]} {level.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Performance Marking Table */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Award className="h-5 w-5" />
-            Mark Performance
+            Daily Performance Marking
           </CardTitle>
           <CardDescription>
-            Select a team member and rate their performance for today's shift
+            Rate each team member's performance for today's shift
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Worker Selection */}
-          <div className="space-y-2">
-            <Label htmlFor="worker">Select Team Member</Label>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-              {teamMembers.map((member) => {
-                const isMarked = isPerformanceMarkedToday(member.id);
-                const performance = teamPerformance.find(p => p.user.id === member.id)?.performance;
-                const isJustMarked = justMarkedPerformance?.worker.id === member.id;
-                
-                return (
-                  <Button
-                    key={member.id}
-                    variant={selectedWorker?.id === member.id ? "default" : "outline"}
-                    onClick={() => setSelectedWorker(member)}
-                    className={`h-auto p-4 flex flex-col items-start gap-2 ${
-                      isJustMarked ? 'bg-green-100 border-green-300 ring-2 ring-green-200' : 
-                      isMarked ? 'bg-green-50 border-green-200' : ''
-                    }`}
-                  >
-                    <div className="flex items-center gap-2 w-full">
-                      <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
-                        <span className="text-sm font-medium">
-                          {member.name.split(' ').map(n => n[0]).join('')}
-                        </span>
-                      </div>
-                      <div className="flex-1 text-left">
-                        <p className="font-medium text-sm">{member.name}</p>
-                        <p className="text-xs text-gray-500">{member.workerType?.replace('-', ' ')}</p>
-                      </div>
-                      {isMarked && (
-                        <CheckCircle className="h-4 w-4 text-green-600" />
-                      )}
-                    </div>
-                    {performance && (
-                      <div className="flex items-center gap-2">
-                        <Badge 
+        <CardContent>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Team Member</TableHead>
+                  <TableHead>Current Status</TableHead>
+                  <TableHead>Performance Rating</TableHead>
+                  <TableHead>Review Notes</TableHead>
+                  <TableHead>Action</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredTeamMembers.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center py-8">
+                      <div className="flex flex-col items-center gap-2">
+                        <Users className="h-8 w-8 text-gray-400" />
+                        <p className="text-gray-500">No team members found matching your criteria</p>
+                        <Button 
                           variant="outline" 
-                          className={`${getPerformanceLevelDetails(performance.rating).bgColor} ${getPerformanceLevelDetails(performance.rating).color}`}
+                          size="sm" 
+                          onClick={() => {
+                            setSearchTerm('');
+                            setStatusFilter('all');
+                            setRatingFilter('all');
+                          }}
                         >
-                          {getPerformanceLevelDetails(performance.rating).label}
-                        </Badge>
-                        {isJustMarked && (
-                          <Badge variant="outline" className="bg-green-100 text-green-800 border-green-300">
-                            Just Marked
+                          Clear Filters
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredTeamMembers.map((member) => {
+                  const isMarked = isPerformanceMarkedToday(member.id);
+                  const performance = teamPerformance.find(p => p.user.id === member.id)?.performance;
+                  const isJustMarked = justMarkedPerformance?.worker.id === member.id;
+                  const currentRating = userRatings[member.id] || '';
+                  const currentNotes = userNotes[member.id] || '';
+                  
+                  return (
+                    <TableRow 
+                      key={member.id}
+                      className={`${isJustMarked ? 'bg-green-50 border-green-200' : ''}`}
+                    >
+                      {/* Team Member */}
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
+                            <span className="text-sm font-medium">
+                              {member.name.split(' ').map(n => n[0]).join('')}
+                            </span>
+                          </div>
+                          <div>
+                            <p className="font-medium">{member.name}</p>
+                            <p className="text-sm text-gray-500">{member.workerType?.replace('-', ' ')}</p>
+                          </div>
+                        </div>
+                      </TableCell>
+
+                      {/* Current Status */}
+                      <TableCell>
+                        {isMarked && performance ? (
+                          <div className="flex items-center gap-2">
+                            <CheckCircle className="h-4 w-4 text-green-600" />
+                            <Badge 
+                              variant="outline" 
+                              className={`${getPerformanceLevelDetails(performance.rating).bgColor} ${getPerformanceLevelDetails(performance.rating).color}`}
+                            >
+                              {performanceEmojis[performance.rating]} {getPerformanceLevelDetails(performance.rating).label}
+                            </Badge>
+                            {isJustMarked && (
+                              <Badge variant="outline" className="bg-green-100 text-green-800 border-green-300">
+                                Just Marked
+                              </Badge>
+                            )}
+                          </div>
+                        ) : (
+                          <Badge variant="outline" className="bg-gray-100 text-gray-600">
+                            Not Marked
                           </Badge>
                         )}
-                      </div>
-                    )}
-                  </Button>
-                );
-              })}
-            </div>
-          </div>
+                      </TableCell>
 
-          {/* Rating Selection */}
-          {selectedWorker && (
-            <div className="space-y-3">
-              <Label>Performance Rating</Label>
-              <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
-                {performanceLevels.map((level) => (
-                  <Button
-                    key={level.value}
-                    variant={selectedRating === level.value ? "default" : "outline"}
-                    onClick={() => setSelectedRating(level.value)}
-                    className={`h-auto p-4 flex flex-col items-center gap-2 ${
-                      selectedRating === level.value 
-                        ? `${level.bgColor} ${level.color} border-current` 
-                        : ''
-                    }`}
-                  >
-                    <Star className={`h-5 w-5 ${level.color}`} />
-                    <span className="font-medium">{level.label}</span>
-                  </Button>
-                ))}
-              </div>
-            </div>
-          )}
+                      {/* Performance Rating */}
+                      <TableCell>
+                        <div className="flex gap-1">
+                          {performanceLevels.map((level) => (
+                            <Button
+                              key={level.value}
+                              variant={currentRating === level.value ? "default" : "outline"}
+                              size="sm"
+                              onClick={() => handleRatingChange(member.id, level.value)}
+                              className={`h-10 w-10 p-0 hover:scale-105 transition-transform ${
+                                currentRating === level.value 
+                                  ? `${level.bgColor} ${level.color} border-current` 
+                                  : 'hover:bg-gray-50'
+                              }`}
+                              disabled={isMarked}
+                              title={`${level.label} - ${level.value}`}
+                            >
+                              <span className="text-lg">{performanceEmojis[level.value]}</span>
+                            </Button>
+                          ))}
+                        </div>
+                      </TableCell>
 
-          {/* Notes */}
-          {selectedWorker && selectedRating && (
-            <div className="space-y-2">
-              <Label htmlFor="notes">Additional Notes (Optional)</Label>
-              <Textarea
-                id="notes"
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="Add any specific feedback or observations..."
-                rows={3}
-              />
-            </div>
-          )}
+                      {/* Review Notes */}
+                      <TableCell>
+                        <Textarea
+                          value={currentNotes}
+                          onChange={(e) => handleNotesChange(member.id, e.target.value)}
+                          placeholder="Add review notes..."
+                          rows={2}
+                          className="w-full min-w-[200px]"
+                          disabled={isMarked}
+                        />
+                      </TableCell>
 
-          {/* Submit Button */}
-          {selectedWorker && selectedRating && (
-            <div className="flex justify-end">
-              <Button
-                onClick={handleSubmitPerformance}
-                disabled={isSubmitting}
-                className="bg-blue-600 hover:bg-blue-700"
-              >
-                {isSubmitting ? (
-                  <>
-                    <Clock className="h-4 w-4 mr-2 animate-spin" />
-                    Marking Performance...
-                  </>
-                ) : (
-                  <>
-                    <Award className="h-4 w-4 mr-2" />
-                    Mark Performance
-                  </>
+                      {/* Action */}
+                      <TableCell>
+                        {!isMarked ? (
+                          <Button
+                            onClick={() => handleSubmitPerformance(member.id, currentRating, currentNotes)}
+                            disabled={isSubmitting || !currentRating}
+                            size="sm"
+                            className="bg-blue-600 hover:bg-blue-700"
+                          >
+                            {isSubmitting ? (
+                              <Clock className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Save className="h-4 w-4" />
+                            )}
+                          </Button>
+                        ) : (
+                          <Badge variant="outline" className="bg-green-100 text-green-800">
+                            Completed
+                          </Badge>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  );
+                  })
                 )}
-              </Button>
-            </div>
-          )}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
 
@@ -353,7 +482,7 @@ export default function PerformanceMarking() {
                   variant="outline" 
                   className={`${getPerformanceLevelDetails(justMarkedPerformance.rating).bgColor} ${getPerformanceLevelDetails(justMarkedPerformance.rating).color} text-lg px-4 py-2`}
                 >
-                  {getPerformanceLevelDetails(justMarkedPerformance.rating).label}
+                  {performanceEmojis[justMarkedPerformance.rating]} {getPerformanceLevelDetails(justMarkedPerformance.rating).label}
                 </Badge>
                 <div className="text-right">
                   <p className="text-sm text-gray-500">
@@ -411,7 +540,7 @@ export default function PerformanceMarking() {
                         variant="outline" 
                         className={`${levelDetails.bgColor} ${levelDetails.color}`}
                       >
-                        {levelDetails.label}
+                        {performanceEmojis[member.performance.rating]} {levelDetails.label}
                       </Badge>
                       <span className="text-sm text-gray-500">
                         {new Date(member.performance.markedAt).toLocaleTimeString()}
@@ -426,17 +555,7 @@ export default function PerformanceMarking() {
       )}
 
       {/* No Performance Marked Message */}
-      {teamPerformance.length === 0 && (
-        <Card>
-          <CardContent className="p-8 text-center">
-            <AlertCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No Performance Marked Today</h3>
-            <p className="text-gray-500">
-              Start marking performance for your team members to track their daily progress.
-            </p>
-          </CardContent>
-        </Card>
-      )}
+    
     </div>
   );
 }
