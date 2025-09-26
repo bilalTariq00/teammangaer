@@ -100,7 +100,23 @@ export default function HREmployeesPage() {
       console.warn('Duplicate employee IDs found:', duplicateIds.map(emp => ({ id: emp.id, name: emp.name })));
     }
     
-    setEmployees(enhancedEmployees);
+    // Debug: Check employee data
+    console.log('Enhanced employees data:', enhancedEmployees.map(emp => ({
+      id: emp.id,
+      name: emp.name,
+      workerType: emp.workerType,
+      status: emp.status,
+      created: emp.created
+    })));
+    
+    // Sort employees by creation date (newest first)
+    const sortedEmployees = enhancedEmployees.sort((a, b) => {
+      const dateA = new Date(a.created || a.joinDate || 0);
+      const dateB = new Date(b.created || b.joinDate || 0);
+      return dateB - dateA; // Newest first
+    });
+    
+    setEmployees(sortedEmployees);
     setIsLoading(false);
   }, [users]);
 

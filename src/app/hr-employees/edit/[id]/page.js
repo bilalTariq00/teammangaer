@@ -79,6 +79,7 @@ export default function EditEmployeePage() {
             employeeId: foundUser.employeeId || `EMP${foundUser.id.toString().padStart(4, '0')}`,
             department: foundUser.department || "Operations",
             position: foundUser.position || foundUser.workerType?.replace('-', ' ') || "Worker",
+            workerType: foundUser.workerType?.includes('-') ? foundUser.workerType.split('-')[0] : foundUser.workerType,
             salary: foundUser.salary || 0,
             joinDate: foundUser.joinDate || foundUser.created || new Date().toISOString().split('T')[0],
             target: foundUser.target || 0,
@@ -119,10 +120,19 @@ export default function EditEmployeePage() {
 
   // Handle employee data changes
   const handleEmployeeChange = (field, value) => {
-    setEmployee(prev => ({
-      ...prev,
-      [field]: value
-    }));
+    setEmployee(prev => {
+      const newEmployee = {
+        ...prev,
+        [field]: value
+      };
+      
+      // If workerType changes, update status accordingly
+      if (field === 'workerType') {
+        newEmployee.status = value; // permanent or trainee
+      }
+      
+      return newEmployee;
+    });
   };
 
   // Handle form submission
@@ -151,8 +161,17 @@ export default function EditEmployeePage() {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1000));
       
+      // Set final worker type based on role and employment type
+      let finalWorkerType = employee.workerType;
+      if (employee.role === "worker") {
+        finalWorkerType = `${employee.workerType}-worker`;
+      }
+      
       // Update employee in the context
-      updateUser(employeeId, employee);
+      updateUser(employeeId, {
+        ...employee,
+        workerType: finalWorkerType
+      });
       
       console.log("Employee updated:", employee);
       
@@ -272,7 +291,7 @@ export default function EditEmployeePage() {
                     </div>
                   </div>
                   
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="role" className="text-sm font-medium text-gray-700">
                         Role <span className="text-red-500">*</span>
@@ -296,22 +315,24 @@ export default function EditEmployeePage() {
                     
                     <div className="space-y-2">
                       <Label htmlFor="workerType" className="text-sm font-medium text-gray-700">
-                        Worker Type
+                        Employment Type <span className="text-red-500">*</span>
                       </Label>
                       <Select 
                         value={employee.workerType} 
                         onValueChange={(value) => handleEmployeeChange("workerType", value)}
                       >
                         <SelectTrigger className="h-10">
-                          <SelectValue placeholder="Select worker type" />
+                          <SelectValue placeholder="Select employment type" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="permanent-worker">Permanent Worker</SelectItem>
-                          <SelectItem value="trainee-worker">Trainee Worker</SelectItem>
+                          <SelectItem value="permanent">Permanent</SelectItem>
+                          <SelectItem value="trainee">Trainee</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
-                    
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="status" className="text-sm font-medium text-gray-700">
                         Status <span className="text-red-500">*</span>

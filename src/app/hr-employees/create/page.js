@@ -63,10 +63,19 @@ export default function CreateEmployeePage() {
 
   // Handle employee data changes
   const handleEmployeeChange = (field, value) => {
-    setEmployee(prev => ({
-      ...prev,
-      [field]: value
-    }));
+    setEmployee(prev => {
+      const newEmployee = {
+        ...prev,
+        [field]: value
+      };
+      
+      // If workerType changes, update status accordingly
+      if (field === 'workerType') {
+        newEmployee.status = value; // permanent or trainee
+      }
+      
+      return newEmployee;
+    });
   };
 
   // Handle form submission
@@ -88,12 +97,7 @@ export default function CreateEmployeePage() {
     }
 
     if (!employee.workerType) {
-      toast.error("Please select a worker type (Permanent or Trainee)");
-      return;
-    }
-
-    if (employee.role === "worker" && !employee.workCategory) {
-      toast.error("Please select a work category (Worker)");
+      toast.error("Please select an employment type (Permanent or Trainee)");
       return;
     }
 
@@ -118,10 +122,10 @@ export default function CreateEmployeePage() {
       // Generate employee ID if not provided
       const employeeId = employee.employeeId || `EMP${Date.now().toString().slice(-4)}`;
       
-      // Combine workerType and workCategory for the system
+      // Set final worker type based on role and employment type
       let finalWorkerType = employee.workerType;
-      if (employee.role === "worker" && employee.workCategory) {
-        finalWorkerType = `${employee.workerType}-${employee.workCategory}`;
+      if (employee.role === "worker") {
+        finalWorkerType = `${employee.workerType}-worker`;
       }
       
       // Add employee to the context
@@ -220,7 +224,7 @@ export default function CreateEmployeePage() {
                     </div>
                   </div>
                   
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="role" className="text-sm font-medium text-gray-700">
                         Role <span className="text-red-500">*</span>
@@ -241,35 +245,18 @@ export default function CreateEmployeePage() {
                     
                     <div className="space-y-2">
                       <Label htmlFor="workerType" className="text-sm font-medium text-gray-700">
-                        Worker Type <span className="text-red-500">*</span>
+                        Employment Type <span className="text-red-500">*</span>
                       </Label>
                       <Select 
                         value={employee.workerType} 
                         onValueChange={(value) => handleEmployeeChange("workerType", value)}
                       >
                         <SelectTrigger className="h-10">
-                          <SelectValue placeholder="Select worker type" />
+                          <SelectValue placeholder="Select employment type" />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="permanent">Permanent</SelectItem>
                           <SelectItem value="trainee">Trainee</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="workCategory" className="text-sm font-medium text-gray-700">
-                        Work Category <span className="text-red-500">*</span>
-                      </Label>
-                      <Select 
-                        value={employee.workCategory || ""} 
-                        onValueChange={(value) => handleEmployeeChange("workCategory", value)}
-                      >
-                        <SelectTrigger className="h-10">
-                          <SelectValue placeholder="Select work category" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="worker">Worker</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -647,8 +634,7 @@ export default function CreateEmployeePage() {
                   <div className="space-y-2 text-sm text-gray-600">
                     <p>• <strong>Required fields</strong> are marked with *</p>
                     <p>• <strong>HR can only create:</strong> Workers and QC</p>
-                    <p>• <strong>Worker Type:</strong> Permanent or Trainee only</p>
-                    <p>• <strong>Work Category:</strong> Worker (for Workers)</p>
+                    <p>• <strong>Employment Type:</strong> Permanent or Trainee only</p>
                     <p>• <strong>Salary:</strong> Required field - enter monthly salary in USD</p>
                     <p>• <strong>Employee ID</strong> will be auto-generated if empty</p>
                     <p>• <strong>Daily target</strong> should be a positive number (tasks/goals per day)</p>
