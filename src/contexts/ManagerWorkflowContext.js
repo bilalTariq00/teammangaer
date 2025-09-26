@@ -151,27 +151,32 @@ export function ManagerWorkflowProvider({ children }) {
   const verifyAttendance = (userIds) => {
     if (!user || user.role !== 'manager') return;
     
+    // Filter out the manager's own ID to ensure only team members are verified
+    const teamMemberIds = userIds.filter(id => id !== user.id);
+    
     const verificationKey = `attendance_verified_${user.id}_${today}`;
     const usersKey = `verified_users_${user.id}_${today}`;
     
     console.log('verifyAttendance called with userIds:', userIds);
+    console.log('Filtered team member IDs (excluding manager):', teamMemberIds);
     console.log('Storing verification data:', {
       verificationKey,
       usersKey,
-      userIds,
-      userIdsLength: userIds.length
+      originalUserIds: userIds,
+      filteredUserIds: teamMemberIds,
+      userIdsLength: teamMemberIds.length
     });
     
     localStorage.setItem(verificationKey, 'true');
-    localStorage.setItem(usersKey, JSON.stringify(userIds));
+    localStorage.setItem(usersKey, JSON.stringify(teamMemberIds));
     
     // Force state updates
     setAttendanceVerified(true);
-    setVerifiedUsers([...userIds]); // Create new array to trigger re-render
+    setVerifiedUsers([...teamMemberIds]); // Create new array to trigger re-render
     setUpdateTrigger(prev => prev + 1); // Trigger update
     
     console.log('Verification data stored successfully');
-    console.log('State updated - attendanceVerified: true, verifiedUsers:', userIds);
+    console.log('State updated - attendanceVerified: true, verifiedUsers:', teamMemberIds);
     
     // Force a re-check after a short delay to ensure state is updated
     setTimeout(() => {

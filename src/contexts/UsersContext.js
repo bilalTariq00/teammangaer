@@ -60,16 +60,16 @@ const initialUsers = [
     id: 4,
     name: "Sarah Johnson",
     email: "sarah@joyapps.net",
-    role: "worker",
-    workerType: "trainee-worker",
-    taskRole: "viewer",
+    role: "manager",
+    workerType: "manager",
     defaultTasker: "Tasker Worker",
     defaultTaskerSlug: "tasker-worker",
-    status: "trainee",
+    status: "permanent",
     locked: "unlocked",
     links: 0,
+    phone: "+92 307 1000052",
     created: "2025-09-09 14:22:10",
-    assignedUsers: []
+    assignedUsers: [5, 6, 7]
   },
   {
     id: 5,
@@ -83,6 +83,7 @@ const initialUsers = [
     status: "permanent",
     locked: "unlocked",
     links: 0,
+    phone: "+92 300 1234567",
     created: "2025-09-09 10:15:30",
     assignedUsers: []
   },
@@ -98,6 +99,7 @@ const initialUsers = [
     status: "permanent",
     locked: "unlocked",
     links: 0,
+    phone: "+92 301 2345678",
     created: "2025-09-08 16:45:20",
     assignedUsers: []
   },
@@ -113,6 +115,7 @@ const initialUsers = [
     status: "trainee",
     locked: "unlocked",
     links: 0,
+    phone: "+92 302 3456789",
     created: "2025-09-08 12:30:15",
     assignedUsers: []
   },

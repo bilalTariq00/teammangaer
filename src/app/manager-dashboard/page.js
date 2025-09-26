@@ -191,9 +191,9 @@ function ManagerDashboardContent() {
     return () => document.removeEventListener('keydown', handleKeyPress);
   }, []);
   
-  // Helper function to check if a user is a team member (worker/user)
+  // Helper function to check if a user is a team member (worker/user, but not manager)
   const isTeamMember = (user) => {
-    return user.role === 'worker' || user.role === 'user';
+    return (user.role === 'worker' || user.role === 'user') && user.role !== 'manager';
   };
 
   // Get team members for this manager
