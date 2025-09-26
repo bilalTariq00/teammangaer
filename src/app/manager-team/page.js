@@ -66,16 +66,40 @@ function ManagerTeamPageContent() {
       const assignedUserIds = currentUser.assignedUsers || [];
       const teamMembersData = users.filter(user => 
         assignedUserIds.includes(user.id) && user.role === "worker"
-      ).map(user => ({
-        ...user,
-        // Add performance and task data (mock for now)
-        performance: user.performance || Math.floor(Math.random() * 30) + 70,
-        tasksCompleted: Math.floor(Math.random() * 20) + 10,
-        totalTasks: Math.floor(Math.random() * 10) + 25,
-        lastActive: user.lastActive || new Date().toISOString().split('T')[0],
-        skills: user.skills || ["Click Quality", "Form Analysis", "Bot Detection"],
-        currentCampaign: user.currentCampaign || "Active Campaign"
-      }));
+      ).map(user => {
+        // Generate consistent mock data based on user ID
+        const seed = user.id;
+        const phoneNumbers = [
+          "+1-555-0123",
+          "+1-555-0456", 
+          "+1-555-0789",
+          "+1-555-0321",
+          "+1-555-0654",
+          "+1-555-0987",
+          "+1-555-0135"
+        ];
+        
+        return {
+          ...user,
+          // Add phone number
+          phone: phoneNumbers[seed % phoneNumbers.length] || "+1-555-0000",
+          // Add performance and task data (mock for now)
+          performance: user.performance || Math.floor(Math.random() * 30) + 70,
+          tasksCompleted: Math.floor(Math.random() * 20) + 10,
+          totalTasks: Math.floor(Math.random() * 10) + 25,
+          lastActive: user.lastActive || new Date().toISOString().split('T')[0],
+          skills: user.skills || ["Click Quality", "Form Analysis", "Bot Detection"],
+          currentCampaign: user.currentCampaign || "Active Campaign",
+          // Add performance targets and actuals
+          dailyTarget: Math.floor(Math.random() * 20) + 80, // 80-100
+          actualDone: Math.floor(Math.random() * 30) + 60, // 60-90
+          goodClicks: Math.floor(Math.random() * 50) + 20, // 20-70
+          badClicks: Math.floor(Math.random() * 10) + 1, // 1-11
+          // Add activity status
+          isActive: Math.random() > 0.3, // 70% chance of being active
+          lastInteraction: new Date(Date.now() - Math.random() * 600000).toISOString() // Random time within last 10 minutes
+        };
+      });
       
       setTeamMembers(teamMembersData);
       setIsLoading(false);
@@ -460,10 +484,10 @@ function ManagerTeamPageContent() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Member</TableHead>
-                      <TableHead>Current Status</TableHead>
+                    <TableHead>Phone</TableHead>
+                    <TableHead>Target / Actual</TableHead>
                     <TableHead>Performance</TableHead>
-                    <TableHead>Join Date</TableHead>
+                    <TableHead>Active Status</TableHead>
                     <TableHead>Attendance</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Actions</TableHead>
@@ -486,40 +510,38 @@ function ManagerTeamPageContent() {
                           </Avatar>
                           <div>
                             <div className="font-medium">{member.name || 'Unknown'}</div>
-                            <div className="text-sm text-muted-foreground">{member.email || 'No email'}</div>
-                                <div className="text-xs text-muted-foreground">
-                                  {member.workerType?.replace('-', ' ') || 'Worker'}
+                            <div className="text-sm text-muted-foreground flex items-center gap-1">
+                              <Phone className="h-3 w-3" />
+                              {member.phone || 'No phone'}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {member.email || 'No email'}
                             </div>
                           </div>
                         </div>
                       </TableCell>
                       <TableCell>
-                            <div className="space-y-2">
-                              <div className="flex items-center gap-2">
-                                <Badge variant={getStatusBadgeVariant(currentStatus)}>
-                                  {currentStatus.charAt(0).toUpperCase() + currentStatus.slice(1)}
-                        </Badge>
-                                {hasChanges && (
-                                  <Badge variant="outline" className="text-xs">
-                                    Pending
-                        </Badge>
-                                )}
-                              </div>
-                              <Select
-                                value={currentStatus}
-                                onValueChange={(value) => handleStatusChange(member.id, value)}
-                              >
-                                <SelectTrigger className="w-32 h-8 text-xs">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="trainee">Trainee</SelectItem>
-                                  <SelectItem value="permanent">Permanent</SelectItem>
-                                  <SelectItem value="terminated">Terminated</SelectItem>
-                                  <SelectItem value="blocked">Blocked</SelectItem>
-                                </SelectContent>
-                              </Select>
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <Target className="h-4 w-4 text-blue-600" />
+                            <span className="font-medium text-sm">
+                              {member.dailyTarget || 0} / {member.actualDone || 0}
+                            </span>
+                          </div>
+                          {/* <div className="text-xs text-muted-foreground">
+                            Target / Actual Done
+                          </div> */}
+                          <div className="flex items-center gap-3 text-xs">
+                            <div className="flex items-center gap-1 text-green-600">
+                              <CheckCircle className="h-3 w-3" />
+                              {member.goodClicks || 0} good
                             </div>
+                            <div className="flex items-center gap-1 text-red-600">
+                              <XCircle className="h-3 w-3" />
+                              {member.badClicks || 0} bad
+                            </div>
+                          </div>
+                        </div>
                       </TableCell>
                       <TableCell>
                             <div className="flex items-center gap-2">
@@ -535,8 +557,35 @@ function ManagerTeamPageContent() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="text-sm text-muted-foreground">
-                              {member.created ? new Date(member.created).toLocaleDateString() : 'N/A'}
+                        <div className="flex items-center gap-2">
+                          {(() => {
+                            const isActive = member.isActive;
+                            const lastInteraction = new Date(member.lastInteraction);
+                            const now = new Date();
+                            const minutesSinceLastInteraction = Math.floor((now - lastInteraction) / (1000 * 60));
+                            
+                            // If more than 10 minutes since last interaction, mark as inactive
+                            const actuallyActive = minutesSinceLastInteraction <= 10;
+                            
+                            return (
+                              <div className="flex items-center gap-2">
+                                {actuallyActive ? (
+                                  <Wifi className="h-4 w-4 text-green-600" />
+                                ) : (
+                                  <WifiOff className="h-4 w-4 text-red-600" />
+                                )}
+                                <Badge 
+                                  variant={actuallyActive ? "default" : "secondary"}
+                                  className={actuallyActive ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}
+                                >
+                                  {actuallyActive ? "Active" : "Inactive"}
+                                </Badge>
+                              </div>
+                            );
+                          })()}
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-1">
+                          Last seen: {new Date(member.lastInteraction).toLocaleTimeString()}
                         </div>
                       </TableCell>
                       <TableCell>
@@ -584,35 +633,55 @@ function ManagerTeamPageContent() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Badge 
-                            variant={member.locked === "locked" ? "destructive" : "secondary"}
-                            className="text-xs"
-                          >
-                            {member.locked === "locked" ? (
-                              <>
-                                <Lock className="h-3 w-3 mr-1" />
-                                Locked
-                              </>
-                            ) : (
-                              <>
-                                <Unlock className="h-3 w-3 mr-1" />
-                                Unlocked
-                              </>
-                            )}
-                          </Badge>
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <Badge 
+                              variant={member.locked === "locked" ? "destructive" : "secondary"}
+                              className="text-xs"
+                            >
+                              {member.locked === "locked" ? (
+                                <>
+                                  <Lock className="h-3 w-3 mr-1" />
+                                  Locked
+                                </>
+                              ) : (
+                                <>
+                                  <Unlock className="h-3 w-3 mr-1" />
+                                  Unlocked
+                                </>
+                              )}
+                            </Badge>
+                          </div>
+                          {/* <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              <Badge variant={getStatusBadgeVariant(currentStatus)} className="text-xs">
+                                {currentStatus.charAt(0).toUpperCase() + currentStatus.slice(1)}
+                              </Badge>
+                              {hasChanges && (
+                                <Badge variant="outline" className="text-xs">
+                                  Pending
+                                </Badge>
+                              )}
+                            </div>
+                            <Select
+                              value={currentStatus}
+                              onValueChange={(value) => handleStatusChange(member.id, value)}
+                            >
+                              <SelectTrigger className="w-24 h-6 text-xs">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="trainee">Trainee</SelectItem>
+                                <SelectItem value="permanent">Permanent</SelectItem>
+                                <SelectItem value="terminated">Terminated</SelectItem>
+                                <SelectItem value="blocked">Blocked</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div> */}
                         </div>
                       </TableCell>
                       <TableCell>
                         <div className="flex gap-2">
-                              <Button 
-                                variant="outline" 
-                                size="sm"
-                                onClick={() => handleViewMember(member)}
-                              >
-                            <Eye className="h-4 w-4 mr-1" />
-                            View
-                          </Button>
                               <Button 
                                 variant={member.locked === "locked" ? "default" : "outline"}
                                 size="sm"
@@ -644,42 +713,7 @@ function ManagerTeamPageContent() {
         </Card>
 
         {/* Status Change Guidelines */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Status Change Guidelines</CardTitle>
-            <CardDescription>Important information about changing team member status</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <h4 className="font-medium text-sm">Trainee → Permanent</h4>
-                  <p className="text-xs text-muted-foreground">
-                    Promote team members who have completed their training period and are performing well.
-                  </p>
-                </div>
-                <div className="space-y-2">
-                  <h4 className="font-medium text-sm">Permanent → Terminated</h4>
-                  <p className="text-xs text-muted-foreground">
-                    Use only for employees who are leaving the company or have been dismissed.
-                  </p>
-              </div>
-                <div className="space-y-2">
-                  <h4 className="font-medium text-sm">Any Status → Blocked</h4>
-                  <p className="text-xs text-muted-foreground">
-                    Temporarily block access for employees under investigation or on leave.
-                  </p>
-                </div>
-                <div className="space-y-2">
-                  <h4 className="font-medium text-sm">Important Notes</h4>
-                  <p className="text-xs text-muted-foreground">
-                    All status changes are logged and require manager approval. Changes take effect immediately.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+    
 
         {/* Team Member Detail Modal */}
         {showMemberModal && selectedMember && (

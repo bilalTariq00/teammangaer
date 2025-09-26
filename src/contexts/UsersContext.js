@@ -40,7 +40,7 @@ const initialUsers = [
     locked: "unlocked",
     links: 1,
     created: "2025-09-10 16:46:31",
-    assignedUsers: [5, 6, 7]
+    assignedUsers: [5, 6] // Only permanent workers: Hasan Abbas (5) and Adnan Amir (6)
   },
   {
     id: 3,
