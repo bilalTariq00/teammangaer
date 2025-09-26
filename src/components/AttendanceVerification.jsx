@@ -175,10 +175,15 @@ export default function AttendanceVerification({ onVerificationComplete }) {
 
   // Handle edit verification
   const handleEditVerification = () => {
-    // Set current verified users as selected
-    setSelectedUsers(verifiedUsers || []);
-    setIsEditing(true);
-    setJustVerified(false);
+    try {
+      // Set current verified users as selected
+      setSelectedUsers(verifiedUsers || []);
+      setIsEditing(true);
+      setJustVerified(false);
+    } catch (error) {
+      console.error('Error handling edit verification:', error);
+      toast.error('Failed to enter edit mode');
+    }
   };
 
   // Handle cancel edit

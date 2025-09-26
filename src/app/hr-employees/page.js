@@ -39,12 +39,35 @@ export default function HREmployeesPage() {
   const [roleFilter, setRoleFilter] = useState("all");
   const [isLoading, setIsLoading] = useState(true);
 
+  // Debug logging
+  console.log('HREmployeesPage Debug:', {
+    users: users ? `Array(${users.length})` : users,
+    addUser: typeof addUser,
+    updateUser: typeof updateUser,
+    deleteUser: typeof deleteUser,
+    currentUser: currentUser ? `User(${currentUser.id})` : currentUser
+  });
+
   // Enhanced employee data with HR-specific fields
   const [employees, setEmployees] = useState([]);
 
   useEffect(() => {
+    // Safety check for users array
+    if (!users || !Array.isArray(users)) {
+      console.log('Users not available yet:', users);
+      return;
+    }
+
     // Convert users to employees with additional HR fields
-    const enhancedEmployees = users.map(user => ({
+    // First, deduplicate users by ID to prevent duplicate keys
+    const uniqueUsers = users.reduce((acc, user) => {
+      if (!acc.find(u => u.id === user.id)) {
+        acc.push(user);
+      }
+      return acc;
+    }, []);
+    
+    const enhancedEmployees = uniqueUsers.map(user => ({
       ...user,
       // HR-specific fields
       employeeId: `EMP${user.id.toString().padStart(4, '0')}`,
@@ -52,7 +75,7 @@ export default function HREmployeesPage() {
       position: user.position || user.workerType?.replace('-', ' ') || "Worker",
       salary: user.salary || 0,
       joinDate: user.joinDate || user.created || new Date().toISOString().split('T')[0],
-      performance: user.performance || 0,
+      target: user.target || 0,
       attendance: user.attendance || 0,
       lastReview: user.lastReview || null,
       phoneNumber: user.phoneNumber || "",
@@ -69,16 +92,29 @@ export default function HREmployeesPage() {
       emergencyNumber: user.emergencyNumber || ""
     }));
     
+    // Debug: Check for duplicate IDs
+    const duplicateIds = enhancedEmployees.filter((emp, index) => 
+      enhancedEmployees.findIndex(e => e.id === emp.id) !== index
+    );
+    if (duplicateIds.length > 0) {
+      console.warn('Duplicate employee IDs found:', duplicateIds.map(emp => ({ id: emp.id, name: emp.name })));
+    }
+    
     setEmployees(enhancedEmployees);
     setIsLoading(false);
   }, [users]);
 
   const filteredEmployees = employees.filter(employee => {
+    // Safety check for employee object
+    if (!employee || typeof employee !== 'object') {
+      return false;
+    }
+
     const matchesSearch = 
-      employee.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      employee.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      employee.employeeId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      employee.department.toLowerCase().includes(searchTerm.toLowerCase());
+      (employee.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (employee.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (employee.employeeId || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (employee.department || '').toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesStatus = statusFilter === "all" || employee.status === statusFilter;
     const matchesRole = roleFilter === "all" || employee.role === roleFilter;
@@ -86,24 +122,49 @@ export default function HREmployeesPage() {
     return matchesSearch && matchesStatus && matchesRole;
   });
 
+  // Final deduplication of filtered employees to ensure unique keys
+  const uniqueFilteredEmployees = filteredEmployees.reduce((acc, employee, index) => {
+    const existingIndex = acc.findIndex(emp => emp.id === employee.id);
+    if (existingIndex === -1) {
+      acc.push(employee);
+    } else {
+      console.warn(`Duplicate employee in filtered results: ${employee.name} (ID: ${employee.id})`);
+    }
+    return acc;
+  }, []);
+
   const handleCreateEmployee = () => {
     router.push("/hr-employees/create");
   };
 
   const handleEditEmployee = (employee) => {
+    if (!employee || !employee.id) {
+      toast.error("Invalid employee data");
+      return;
+    }
     router.push(`/hr-employees/edit/${employee.id}`);
   };
 
   const handleViewEmployee = (employee) => {
+    if (!employee || !employee.id) {
+      toast.error("Invalid employee data");
+      return;
+    }
     router.push(`/hr-employees/view/${employee.id}`);
   };
 
   const handleDeleteEmployee = async (employee) => {
-    if (window.confirm(`Are you sure you want to delete ${employee.name}?`)) {
+    if (!employee || !employee.id) {
+      toast.error("Invalid employee data");
+      return;
+    }
+    
+    if (window.confirm(`Are you sure you want to delete ${employee.name || 'this employee'}?`)) {
       try {
         deleteUser(employee.id);
         toast.success("Employee deleted successfully");
       } catch (error) {
+        console.error("Delete error:", error);
         toast.error("Failed to delete employee");
       }
     }
@@ -143,7 +204,8 @@ export default function HREmployeesPage() {
     );
   }
 
-  return (
+  try {
+    return (
     <HRLayout>
       <div className="space-y-6">
         {/* Header */}
@@ -271,7 +333,7 @@ export default function HREmployeesPage() {
         {/* Employees Table */}
         <Card>
           <CardHeader>
-            <CardTitle>Employees ({filteredEmployees.length})</CardTitle>
+            <CardTitle>Employees ({uniqueFilteredEmployees.length})</CardTitle>
             <CardDescription>
               Manage employee information, roles, and permissions
             </CardDescription>
@@ -288,13 +350,13 @@ export default function HREmployeesPage() {
                     <th className="text-left p-3 font-medium text-gray-600">Status</th>
                     <th className="text-left p-3 font-medium text-gray-600">Salary</th>
                     <th className="text-left p-3 font-medium text-gray-600">Join Date</th>
-                    <th className="text-left p-3 font-medium text-gray-600">Performance</th>
+                    <th className="text-left p-3 font-medium text-gray-600">Target</th>
                     <th className="text-left p-3 font-medium text-gray-600">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredEmployees.map((employee) => (
-                    <tr key={employee.id} className="border-b hover:bg-gray-50">
+                  {uniqueFilteredEmployees.map((employee, index) => (
+                    <tr key={`${employee.id}-${index}`} className="border-b hover:bg-gray-50">
                       <td className="p-3">
                         <div className="flex items-center gap-3">
                           <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
@@ -352,14 +414,9 @@ export default function HREmployeesPage() {
                         </div>
                       </td>
                       <td className="p-3">
-                        <div className="flex items-center gap-2">
-                          <div className="w-16 bg-gray-200 rounded-full h-2">
-                            <div 
-                              className="bg-green-500 h-2 rounded-full" 
-                              style={{ width: `${employee.performance}%` }}
-                            ></div>
-                          </div>
-                          <span className="text-sm font-medium">{employee.performance}%</span>
+                        <div className="flex items-center gap-1">
+                          <Award className="h-4 w-4 text-green-600" />
+                          <span className="text-sm font-medium">{employee.target}</span>
                         </div>
                       </td>
                       <td className="p-3">
@@ -401,4 +458,23 @@ export default function HREmployeesPage() {
       </div>
     </HRLayout>
   );
+  } catch (error) {
+    console.error('HREmployeesPage Error:', error);
+    return (
+      <HRLayout>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="text-red-600 mb-2">Something went wrong</div>
+            <div className="text-sm text-gray-500">Please refresh the page or contact support</div>
+            <Button 
+              onClick={() => window.location.reload()} 
+              className="mt-4"
+            >
+              Refresh Page
+            </Button>
+          </div>
+        </div>
+      </HRLayout>
+    );
+  }
 }

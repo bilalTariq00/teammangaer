@@ -13,8 +13,19 @@ export function usePerformance() {
 export function PerformanceProvider({ children }) {
   const [performanceRecords, setPerformanceRecords] = useState({});
   const [isLoading, setIsLoading] = useState(false);
-  const { user } = useAuth();
-  const { users } = useUsers();
+  
+  // Safely get context values with fallbacks
+  let user = null;
+  let users = [];
+  
+  try {
+    const authContext = useAuth();
+    const usersContext = useUsers();
+    user = authContext?.user || null;
+    users = usersContext?.users || [];
+  } catch (error) {
+    console.warn('PerformanceContext: Context not available yet', error);
+  }
 
   // Performance rating options
   const performanceLevels = [
@@ -114,6 +125,11 @@ export function PerformanceProvider({ children }) {
 
   // Get performance records for a manager's team
   const getTeamPerformance = (managerId, date) => {
+    if (!users || !Array.isArray(users)) {
+      console.log('getTeamPerformance - Users not available:', { users });
+      return [];
+    }
+    
     const manager = users.find(u => u.id === managerId);
     if (!manager || !manager.assignedUsers) {
       console.log('getTeamPerformance - No manager or assignedUsers:', { managerId, manager: !!manager, assignedUsers: manager?.assignedUsers });

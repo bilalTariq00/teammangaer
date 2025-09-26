@@ -36,6 +36,7 @@ import {
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAttendance } from "@/contexts/AttendanceContext";
+import { useUsers } from "@/contexts/UsersContext";
 
 // Mock data for HR dashboard
 const mockEmployees = [
@@ -205,6 +206,7 @@ const initialEvents = [
 function HRDashboardContent() {
   const { user } = useAuth();
   const { isAttendanceMarkedToday } = useAttendance();
+  const { users } = useUsers();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState("overview");
@@ -408,7 +410,7 @@ function HRDashboardContent() {
           <div className="space-y-6">
 
             {/* Key Metrics Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {/* Total Employees */}
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -416,62 +418,54 @@ function HRDashboardContent() {
                   <Users className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{mockEmployees.length}</div>
+                  <div className="text-2xl font-bold">{users.length}</div>
                   <p className="text-xs text-muted-foreground">
-                    <span className="text-green-600 font-medium">{mockEmployees.filter(e => e.status === "Active").length} active</span>
+                    <span className="text-green-600 font-medium">{users.filter(u => u.locked === "unlocked").length} active</span>
                   </p>
                 </CardContent>
               </Card>
 
-              {/* Average Performance */}
+              {/* Inactive Employees */}
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Avg Performance</CardTitle>
-                  <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                  <CardTitle className="text-sm font-medium">Inactive Employees</CardTitle>
+                  <AlertTriangle className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-green-600">
-                    {Math.round(mockEmployees.reduce((sum, e) => sum + e.performance, 0) / mockEmployees.length)}%
+                  <div className="text-2xl font-bold text-orange-600">
+                    {users.filter(u => u.locked === "locked").length}
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Team performance
+                    Locked accounts
                   </p>
                 </CardContent>
               </Card>
 
-              {/* Average Attendance */}
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Avg Attendance</CardTitle>
-                  <Clock className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-blue-600">
-                    {Math.round(mockEmployees.reduce((sum, e) => sum + e.attendance, 0) / mockEmployees.length)}%
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Monthly average
-                  </p>
-                </CardContent>
-              </Card>
-
-              {/* Total Departments */}
+              {/* Departments */}
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Departments</CardTitle>
                   <Building className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{mockDepartments.length}</div>
+                  <div className="text-2xl font-bold">
+                    {new Set(users.map(u => {
+                      let dept = u.workerType || u.role;
+                      return dept === 'manager' ? 'QC' : dept;
+                    })).size}
+                  </div>
                   <p className="text-xs text-muted-foreground">
                     Active departments
                   </p>
                 </CardContent>
               </Card>
+
+              {/* Total Users by Role */}
+            
             </div>
 
             {/* Department Overview and Upcoming Events */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-1 gap-6">
               {/* Department Overview */}
               <Card>
                 <CardHeader>
@@ -480,44 +474,45 @@ function HRDashboardContent() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {mockDepartments.map((dept, index) => (
-                      <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
-                        <div>
-                          <p className="font-medium">{dept.name}</p>
-                          <p className="text-sm text-gray-500">{dept.count} employees</p>
+                    {(() => {
+                      // Group users by department/role
+                      const departmentGroups = users.reduce((acc, user) => {
+                        let dept = user.workerType || user.role || 'Unknown';
+                        
+                        // Replace 'manager' with 'QC' for display
+                        if (dept === 'manager') {
+                          dept = 'QC';
+                        }
+                        
+                        if (!acc[dept]) {
+                          acc[dept] = { name: dept, count: 0, users: [] };
+                        }
+                        acc[dept].count++;
+                        acc[dept].users.push(user);
+                        return acc;
+                      }, {});
+
+                      return Object.values(departmentGroups).map((dept, index) => (
+                        <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
+                          <div>
+                            <p className="font-medium">{dept.name}</p>
+                            <p className="text-sm text-gray-500">{dept.count} employees</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="font-medium text-green-600">
+                              {dept.users.filter(u => u.locked === "unlocked").length}
+                            </p>
+                            <p className="text-sm text-gray-500">active</p>
+                          </div>
                         </div>
-                        <div className="text-right">
-                          <p className="font-medium">${dept.avgSalary.toLocaleString()}</p>
-                          <p className="text-sm text-gray-500">avg salary</p>
-                        </div>
-                      </div>
-                    ))}
+                      ));
+                    })()}
                   </div>
                 </CardContent>
               </Card>
 
               {/* Upcoming Events */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Upcoming Events</CardTitle>
-                  <CardDescription>HR calendar and important dates</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {calendarEvents.slice(0, 4).map((event) => (
-                      <div key={event.id} className="flex items-center gap-3 p-3 border rounded-lg">
-                        <div className="flex-shrink-0">
-                          {getEventIcon(event.type)}
-                        </div>
-                        <div className="flex-1">
-                          <p className="font-medium text-sm">{event.title}</p>
-                          <p className="text-xs text-gray-500">{new Date(event.date).toLocaleDateString()}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
+             
             </div>
 
           </div>

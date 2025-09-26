@@ -55,8 +55,8 @@ export default function ViewEmployeePage() {
             position: foundUser.position || foundUser.workerType?.replace('-', ' ') || "Worker",
             salary: foundUser.salary || 0,
             joinDate: foundUser.joinDate || foundUser.created || new Date().toISOString().split('T')[0],
-            performance: foundUser.performance || 0,
-            attendance: foundUser.attendance || 0,
+            target: foundUser.target || 0,
+            // attendance: foundUser.attendance || 0,
             lastReview: foundUser.lastReview || "",
             phoneNumber: foundUser.phoneNumber || "",
             address: foundUser.address || "",
@@ -194,14 +194,14 @@ export default function ViewEmployeePage() {
                 <div className="flex items-center gap-2">
                   <Award className="h-4 w-4 text-green-600" />
                   <div>
-                    <p className="text-sm text-gray-600">Performance</p>
-                    <p className="text-2xl font-bold">{employee.performance}%</p>
+                    <p className="text-sm text-gray-600">Daily Target</p>
+                    <p className="text-2xl font-bold">{employee.target}</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
             <Card>
-              <CardContent className="p-4">
+              {/* <CardContent className="p-4">
                 <div className="flex items-center gap-2">
                   <Clock className="h-4 w-4 text-blue-600" />
                   <div>
@@ -209,7 +209,7 @@ export default function ViewEmployeePage() {
                     <p className="text-2xl font-bold">{employee.attendance}%</p>
                   </div>
                 </div>
-              </CardContent>
+              </CardContent> */}
             </Card>
             <Card>
               <CardContent className="p-4">
@@ -217,7 +217,7 @@ export default function ViewEmployeePage() {
                   <DollarSign className="h-4 w-4 text-purple-600" />
                   <div>
                     <p className="text-sm text-gray-600">Salary</p>
-                    <p className="text-2xl font-bold">${employee.salary.toLocaleString()}</p>
+                    <p className="text-2xl font-bold">{employee.salary.toLocaleString()}</p>
                   </div>
                 </div>
               </CardContent>
@@ -315,23 +315,23 @@ export default function ViewEmployeePage() {
                     <div>
                       <p className="text-sm font-medium text-gray-600">Salary</p>
                       <p className="text-gray-900 flex items-center gap-1">
-                        <DollarSign className="h-3 w-3" />
+                      
                         ${employee.salary.toLocaleString()}
                       </p>
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-gray-600">Performance Score</p>
+                      <p className="text-sm font-medium text-gray-600">Daily Target</p>
                       <div className="flex items-center gap-2">
                         <div className="w-20 bg-gray-200 rounded-full h-2">
                           <div 
                             className="bg-green-500 h-2 rounded-full" 
-                            style={{ width: `${employee.performance}%` }}
+                            style={{ width: `${Math.min((employee.target / 100) * 100, 100)}%` }}
                           ></div>
                         </div>
-                        <span className="text-sm font-medium">{employee.performance}%</span>
+                        <span className="text-sm font-medium">{employee.target}</span>
                       </div>
                     </div>
-                    <div>
+                    {/* <div>
                       <p className="text-sm font-medium text-gray-600">Attendance</p>
                       <div className="flex items-center gap-2">
                         <div className="w-20 bg-gray-200 rounded-full h-2">
@@ -342,7 +342,7 @@ export default function ViewEmployeePage() {
                         </div>
                         <span className="text-sm font-medium">{employee.attendance}%</span>
                       </div>
-                    </div>
+                    </div> */}
                   </div>
                 </CardContent>
               </Card>
@@ -517,28 +517,28 @@ export default function ViewEmployeePage() {
                   <div className="space-y-4">
                     <div>
                       <div className="flex justify-between text-sm mb-1">
-                        <span className="text-gray-600">Performance</span>
-                        <span className="font-medium">{employee.performance}%</span>
+                        <span className="text-gray-600">Daily Target</span>
+                        <span className="font-medium">{employee.target}</span>
                       </div>
                       <div className="w-full bg-gray-200 rounded-full h-2">
                         <div 
                           className="bg-green-500 h-2 rounded-full" 
-                          style={{ width: `${employee.performance}%` }}
+                          style={{ width: `${Math.min((employee.target / 100) * 100, 100)}%` }}
                         ></div>
                       </div>
                     </div>
                     
                     <div>
-                      <div className="flex justify-between text-sm mb-1">
+                      {/* <div className="flex justify-between text-sm mb-1">
                         <span className="text-gray-600">Attendance</span>
                         <span className="font-medium">{employee.attendance}%</span>
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2">
+                      </div> */}
+                      {/* <div className="w-full bg-gray-200 rounded-full h-2">
                         <div 
                           className="bg-blue-500 h-2 rounded-full" 
                           style={{ width: `${employee.attendance}%` }}
                         ></div>
-                      </div>
+                      </div> */}
                     </div>
                     
                     {employee.lastReview && (

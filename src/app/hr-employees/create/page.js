@@ -35,7 +35,7 @@ export default function CreateEmployeePage() {
     position: "",
     salary: 0,
     joinDate: new Date().toISOString().split('T')[0],
-    performance: 0,
+    target: 0,
     attendance: 0,
     lastReview: "",
     
@@ -384,19 +384,19 @@ export default function CreateEmployeePage() {
                       <p className="text-xs text-gray-500">Monthly salary in USD</p>
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="performance" className="text-sm font-medium text-gray-700">
-                        Performance Score
+                      <Label htmlFor="target" className="text-sm font-medium text-gray-700">
+                        Daily Target
                       </Label>
                       <Input
-                        id="performance"
+                        id="target"
                         type="number"
                         min="0"
-                        max="100"
-                        value={employee.performance}
-                        onChange={(e) => handleEmployeeChange("performance", parseInt(e.target.value) || 0)}
-                        placeholder="0-100"
+                        value={employee.target}
+                        onChange={(e) => handleEmployeeChange("target", parseInt(e.target.value) || 0)}
+                        placeholder="Enter daily target"
                         className="h-10"
                       />
+                      <p className="text-xs text-gray-500">Daily tasks or goals to achieve</p>
                     </div>
                   </div>
                 </CardContent>
@@ -651,7 +651,7 @@ export default function CreateEmployeePage() {
                     <p>• <strong>Work Category:</strong> Worker (for Workers)</p>
                     <p>• <strong>Salary:</strong> Required field - enter monthly salary in USD</p>
                     <p>• <strong>Employee ID</strong> will be auto-generated if empty</p>
-                    <p>• <strong>Performance score</strong> should be 0-100</p>
+                    <p>• <strong>Daily target</strong> should be a positive number (tasks/goals per day)</p>
                   </div>
                 </CardContent>
               </Card>

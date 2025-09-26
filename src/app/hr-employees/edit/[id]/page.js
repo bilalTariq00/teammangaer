@@ -36,7 +36,7 @@ export default function EditEmployeePage() {
     position: "",
     salary: 0,
     joinDate: "",
-    performance: 0,
+    target: 0,
     attendance: 0,
     lastReview: "",
     
@@ -81,7 +81,7 @@ export default function EditEmployeePage() {
             position: foundUser.position || foundUser.workerType?.replace('-', ' ') || "Worker",
             salary: foundUser.salary || 0,
             joinDate: foundUser.joinDate || foundUser.created || new Date().toISOString().split('T')[0],
-            performance: foundUser.performance || 0,
+            target: foundUser.target || 0,
             attendance: foundUser.attendance || 0,
             lastReview: foundUser.lastReview || "",
             phoneNumber: foundUser.phoneNumber || "",
@@ -422,19 +422,19 @@ export default function EditEmployeePage() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="performance" className="text-sm font-medium text-gray-700">
-                        Performance Score
+                      <Label htmlFor="target" className="text-sm font-medium text-gray-700">
+                        Daily Target
                       </Label>
                       <Input
-                        id="performance"
+                        id="target"
                         type="number"
                         min="0"
-                        max="100"
-                        value={employee.performance}
-                        onChange={(e) => handleEmployeeChange("performance", parseInt(e.target.value) || 0)}
-                        placeholder="0-100"
+                        value={employee.target}
+                        onChange={(e) => handleEmployeeChange("target", parseInt(e.target.value) || 0)}
+                        placeholder="Enter daily target"
                         className="h-10"
                       />
+                      <p className="text-xs text-gray-500">Daily tasks or goals to achieve</p>
                     </div>
                   </div>
                 </CardContent>
@@ -680,7 +680,7 @@ export default function EditEmployeePage() {
                 <CardContent>
                   <div className="space-y-2 text-sm text-gray-600">
                     <p>• <strong>Required fields</strong> are marked with *</p>
-                    <p>• <strong>Performance score</strong> should be 0-100</p>
+                    <p>• <strong>Daily target</strong> should be a positive number (tasks/goals per day)</p>
                     <p>• <strong>Personal information</strong> is kept secure</p>
                     <p>• <strong>Changes are saved</strong> in real-time</p>
                   </div>

@@ -24,70 +24,89 @@ export function ManagerWorkflowProvider({ children }) {
 
   // Check if manager has marked their own attendance
   const checkManagerAttendance = () => {
-    if (!user || user.role !== 'manager') return false;
-    
-    // Check if manager has marked attendance today
-    const managerAttendance = localStorage.getItem(`attendance_${user.id}_${today}`);
-    return !!managerAttendance;
+    try {
+      if (!user || user.role !== 'manager') return false;
+      
+      // Check if manager has marked attendance today
+      const managerAttendance = localStorage.getItem(`attendance_${user.id}_${today}`);
+      return !!managerAttendance;
+    } catch (error) {
+      console.error('Error checking manager attendance:', error);
+      return false;
+    }
   };
 
   // Check attendance verification status
   const checkAttendanceVerification = () => {
-    if (!user || user.role !== 'manager') return false;
-    
-    const verificationKey = `attendance_verified_${user.id}_${today}`;
-    const verified = localStorage.getItem(verificationKey);
-    
-    // Clean up old verification data (older than today)
-    cleanupOldVerificationData();
-    
-    return verified === 'true';
+    try {
+      if (!user || user.role !== 'manager') return false;
+      
+      const verificationKey = `attendance_verified_${user.id}_${today}`;
+      const verified = localStorage.getItem(verificationKey);
+      
+      // Clean up old verification data (older than today)
+      cleanupOldVerificationData();
+      
+      return verified === 'true';
+    } catch (error) {
+      console.error('Error checking attendance verification:', error);
+      return false;
+    }
   };
 
   // Clean up old verification data (older than today)
   const cleanupOldVerificationData = () => {
-    if (!user || user.role !== 'manager') return;
-    
-    const keysToCheck = [
-      `attendance_verified_${user.id}_`,
-      `verified_users_${user.id}_`,
-      `performance_completed_${user.id}_`
-    ];
-    
-    // Get all localStorage keys and remove old ones
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key) {
-        // Check if this key belongs to the current user but is for a different date
-        const isOldUserKey = keysToCheck.some(prefix => 
-          key.startsWith(prefix) && !key.endsWith(today)
-        );
-        
-        if (isOldUserKey) {
-          console.log('Cleaning up old verification data:', key);
-          localStorage.removeItem(key);
+    try {
+      if (!user || user.role !== 'manager') return;
+      
+      const keysToCheck = [
+        `attendance_verified_${user.id}_`,
+        `verified_users_${user.id}_`,
+        `performance_completed_${user.id}_`
+      ];
+      
+      // Get all localStorage keys and remove old ones
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key) {
+          // Check if this key belongs to the current user but is for a different date
+          const isOldUserKey = keysToCheck.some(prefix => 
+            key.startsWith(prefix) && !key.endsWith(today)
+          );
+          
+          if (isOldUserKey) {
+            console.log('Cleaning up old verification data:', key);
+            localStorage.removeItem(key);
+          }
         }
       }
+    } catch (error) {
+      console.error('Error cleaning up verification data:', error);
     }
   };
 
   // Get verified users (users whose attendance has been verified)
   const getVerifiedUsers = () => {
-    if (!user || user.role !== 'manager') return [];
-    
-    const verificationKey = `verified_users_${user.id}_${today}`;
-    const stored = localStorage.getItem(verificationKey);
-    let verifiedUsers = stored ? JSON.parse(stored) : [];
-    
-    console.log('getVerifiedUsers:', {
-      user: user?.name,
-      verificationKey,
-      stored,
-      verifiedUsers,
-      today
-    });
-    
-    return verifiedUsers;
+    try {
+      if (!user || user.role !== 'manager') return [];
+      
+      const verificationKey = `verified_users_${user.id}_${today}`;
+      const stored = localStorage.getItem(verificationKey);
+      let verifiedUsers = stored ? JSON.parse(stored) : [];
+      
+      console.log('getVerifiedUsers:', {
+        user: user?.name,
+        verificationKey,
+        stored,
+        verifiedUsers,
+        today
+      });
+      
+      return verifiedUsers;
+    } catch (error) {
+      console.error('Error getting verified users:', error);
+      return [];
+    }
   };
 
   // Check if all verified users have performance marked
@@ -149,42 +168,50 @@ export function ManagerWorkflowProvider({ children }) {
 
   // Verify attendance for users
   const verifyAttendance = (userIds) => {
-    if (!user || user.role !== 'manager') return;
-    
-    // Filter out the manager's own ID to ensure only team members are verified
-    const teamMemberIds = userIds.filter(id => id !== user.id);
-    
-    const verificationKey = `attendance_verified_${user.id}_${today}`;
-    const usersKey = `verified_users_${user.id}_${today}`;
-    
-    console.log('verifyAttendance called with userIds:', userIds);
-    console.log('Filtered team member IDs (excluding manager):', teamMemberIds);
-    console.log('Storing verification data:', {
-      verificationKey,
-      usersKey,
-      originalUserIds: userIds,
-      filteredUserIds: teamMemberIds,
-      userIdsLength: teamMemberIds.length
-    });
-    
-    localStorage.setItem(verificationKey, 'true');
-    localStorage.setItem(usersKey, JSON.stringify(teamMemberIds));
-    
-    // Force state updates
-    setAttendanceVerified(true);
-    setVerifiedUsers([...teamMemberIds]); // Create new array to trigger re-render
-    setUpdateTrigger(prev => prev + 1); // Trigger update
-    
-    console.log('Verification data stored successfully');
-    console.log('State updated - attendanceVerified: true, verifiedUsers:', teamMemberIds);
-    
-    // Force a re-check after a short delay to ensure state is updated
-    setTimeout(() => {
-      const storedUsers = JSON.parse(localStorage.getItem(usersKey) || '[]');
-      console.log('Verification data verification - stored users:', storedUsers);
-      setVerifiedUsers([...storedUsers]);
-      setUpdateTrigger(prev => prev + 1); // Trigger another update
-    }, 100);
+    try {
+      if (!user || user.role !== 'manager') return;
+      
+      // Filter out the manager's own ID to ensure only team members are verified
+      const teamMemberIds = userIds.filter(id => id !== user.id);
+      
+      const verificationKey = `attendance_verified_${user.id}_${today}`;
+      const usersKey = `verified_users_${user.id}_${today}`;
+      
+      console.log('verifyAttendance called with userIds:', userIds);
+      console.log('Filtered team member IDs (excluding manager):', teamMemberIds);
+      console.log('Storing verification data:', {
+        verificationKey,
+        usersKey,
+        originalUserIds: userIds,
+        filteredUserIds: teamMemberIds,
+        userIdsLength: teamMemberIds.length
+      });
+      
+      localStorage.setItem(verificationKey, 'true');
+      localStorage.setItem(usersKey, JSON.stringify(teamMemberIds));
+      
+      // Force state updates
+      setAttendanceVerified(true);
+      setVerifiedUsers([...teamMemberIds]); // Create new array to trigger re-render
+      setUpdateTrigger(prev => prev + 1); // Trigger update
+      
+      console.log('Verification data stored successfully');
+      console.log('State updated - attendanceVerified: true, verifiedUsers:', teamMemberIds);
+      
+      // Force a re-check after a short delay to ensure state is updated
+      setTimeout(() => {
+        try {
+          const storedUsers = JSON.parse(localStorage.getItem(usersKey) || '[]');
+          console.log('Verification data verification - stored users:', storedUsers);
+          setVerifiedUsers([...storedUsers]);
+          setUpdateTrigger(prev => prev + 1); // Trigger another update
+        } catch (error) {
+          console.error('Error in verification timeout:', error);
+        }
+      }, 100);
+    } catch (error) {
+      console.error('Error verifying attendance:', error);
+    }
   };
 
   // Mark performance as completed

@@ -51,21 +51,21 @@ const navigation = [
   //   href: "/hr-dashboard?tab=departments",
   //   icon: Building,
   // },
-  {
-    name: "Calendar",
-    href: "/hr-dashboard?tab=calendar",
-    icon: Calendar,
-  },
+  // {
+  //   name: "Calendar",
+  //   href: "/hr-dashboard?tab=calendar",
+  //   icon: Calendar,
+  // },
   {
     name: "My Attendance",
     href: "/hr-attendance",
     icon: Clock,
   },
-  {
-    name: "All Attendance",
-    href: "/hr-all-attendance",
-    icon: Calendar,
-  },
+  // {
+  //   name: "All Attendance",
+  //   href: "/hr-all-attendance",
+  //   icon: Calendar,
+  // },
 //   {
 //     name: "Settings",
 //     href: "/hr-settings",
