@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import dynamic from "next/dynamic";
 import { useRouter, useParams } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -27,19 +26,25 @@ import { useUsers } from "@/contexts/UsersContext";
 import { toast } from "sonner";
 import HRLayout from "@/components/layout/HRLayout";
 
-function ViewEmployeePage() {
+export default function ViewEmployeePage() {
   const router = useRouter();
   const params = useParams();
   const employeeId = params?.id ? parseInt(params.id) : null;
   
+  // Safety check for context
+  let getUserById;
+  try {
+    const usersContext = useUsers();
+    getUserById = usersContext?.getUserById;
+  } catch (error) {
+    console.error('Error accessing UsersContext:', error);
+  }
+  
   const [isLoading, setIsLoading] = useState(true);
   const [isClient, setIsClient] = useState(false);
-  const [employee, setEmployee] = useState(null);
-  const [error, setError] = useState(null);
   
-  // Always call hooks unconditionally
-  const usersContext = useUsers();
-  const getUserById = usersContext?.getUserById;
+  // Comprehensive employee state with all HR fields
+  const [employee, setEmployee] = useState(null);
 
   // Set client-side flag
   useEffect(() => {
@@ -49,27 +54,17 @@ function ViewEmployeePage() {
   // Load employee data
   useEffect(() => {
     if (!isClient) return;
-    
     const loadEmployee = async () => {
       setIsLoading(true);
-      setError(null);
-      
       try {
-        // Wait a bit for context to be ready
-        await new Promise(resolve => setTimeout(resolve, 100));
+        // Simulate API call
+        await new Promise(resolve => setTimeout(resolve, 500));
         
         // Safety check for getUserById function
         if (!getUserById || typeof getUserById !== 'function') {
-          console.error('getUserById function not available, context might not be ready');
-          setError('Context not ready. Please refresh the page.');
-          setIsLoading(false);
-          return;
-        }
-        
-        if (!employeeId || isNaN(employeeId)) {
-          console.error('Invalid employee ID:', employeeId);
-          setError('Invalid employee ID');
-          setIsLoading(false);
+          console.error('getUserById function not available');
+          toast.error("Unable to load employee data");
+          router.push("/hr-employees");
           return;
         }
         
@@ -103,13 +98,14 @@ function ViewEmployeePage() {
           };
           setEmployee(employeeData);
         } else {
-          console.error("Employee not found for ID:", employeeId);
-          setError("Employee not found");
-          setIsLoading(false);
+          toast.error("Employee not found");
+          router.push("/hr-employees");
         }
       } catch (error) {
         console.error("Error loading employee:", error);
-        setError("Failed to load employee data. Please try again.");
+        toast.error("Failed to load employee data");
+        router.push("/hr-employees");
+      } finally {
         setIsLoading(false);
       }
     };
@@ -118,12 +114,12 @@ function ViewEmployeePage() {
       loadEmployee();
     } else if (!employeeId) {
       console.error('Invalid employee ID');
-      setError("Invalid employee ID");
-      setIsLoading(false);
+      toast.error("Invalid employee ID");
+      router.push("/hr-employees");
     } else if (!getUserById) {
       console.error('Context not available');
-      setError("Unable to access employee data. Please refresh the page.");
-      setIsLoading(false);
+      toast.error("Unable to access employee data");
+      router.push("/hr-employees");
     }
   }, [employeeId, router, getUserById, isClient]);
 
@@ -159,35 +155,6 @@ function ViewEmployeePage() {
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
             <p className="text-gray-600">{!isClient ? 'Loading...' : 'Loading employee data...'}</p>
-          </div>
-        </div>
-      </HRLayout>
-    );
-  }
-
-  if (error) {
-    return (
-      <HRLayout>
-        <div className="min-h-screen bg-gray-50/50 flex items-center justify-center">
-          <div className="text-center max-w-md mx-auto p-6">
-            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <User className="h-8 w-8 text-red-600" />
-            </div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">Error Loading Employee</h1>
-            <p className="text-gray-600 mb-6">{error}</p>
-            <div className="space-y-3">
-              <Button onClick={() => window.location.reload()} className="w-full">
-                Refresh Page
-              </Button>
-              <Button 
-                variant="outline" 
-                onClick={() => router.push("/hr-employees")} 
-                className="w-full"
-              >
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Employees
-              </Button>
-            </div>
           </div>
         </div>
       </HRLayout>
@@ -622,16 +589,3 @@ function ViewEmployeePage() {
     </HRLayout>
   );
 }
-
-// Export as dynamic component to prevent SSR issues
-export default dynamic(() => Promise.resolve(ViewEmployeePage), {
-  ssr: false,
-  loading: () => (
-    <div className="min-h-screen bg-gray-50/50 flex items-center justify-center">
-      <div className="text-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-        <p className="text-gray-600">Loading...</p>
-      </div>
-    </div>
-  )
-});
