@@ -39,21 +39,21 @@ const navigation = [
   //   href: "/manager-dashboard?tab=campaigns",
   //   icon: FolderOpen,
   // },
-  {
-    name: "Tasks",
-    href: "/manager-dashboard?tab=tasks",
-    icon: ClipboardList,
-  },
+  // {
+  //   name: "Tasks",
+  //   href: "/manager-dashboard?tab=tasks",
+  //   icon: ClipboardList,
+  // },
   {
     name: "Daily Performance",
     href: "/manager-dashboard?tab=performance",
     icon: Award,
   },
-  {
-    name: "Team Performance",
-    href: "/manager-performance",
-    icon: BarChart3,
-  },
+  // {
+  //   name: "Team Performance",
+  //   href: "/manager-performance",
+  //   icon: BarChart3,
+  // },
   // {
   //   name: "Attendance",
   //   href: "/manager-dashboard?tab=attendance",

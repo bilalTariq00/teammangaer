@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import MainLayout from "@/components/layout/MainLayout";
+import HRMainLayout from "@/components/layout/HRMainLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -18,19 +18,19 @@ import {
   Filter,
   Download,
   RefreshCw,
-  Search
+  Search,
+  UserCheck,
+  Shield
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUsers } from "@/contexts/UsersContext";
 import { useAttendance } from "@/contexts/AttendanceContext";
-import { useManagerWorkflow } from "@/contexts/ManagerWorkflowContext";
 import { toast } from "sonner";
 
-export default function AdminAttendancePage() {
+export default function HRAllAttendancePage() {
   const { user } = useAuth();
   const { users: contextUsers } = useUsers();
   const { getAttendanceForDate, getAttendanceStats } = useAttendance();
-  const { getVerifiedUsers } = useManagerWorkflow();
   
   // State for filters and data
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
@@ -42,7 +42,7 @@ export default function AdminAttendancePage() {
 
   // Get all users from both AuthContext and UsersContext
   const getAllUsers = useCallback(() => {
-    // Users from AuthContext (includes QC, HR, and other demo users)
+    // Users from AuthContext (demo users for login)
     const authUsers = [
       {
         id: 2,
@@ -71,42 +71,95 @@ export default function AdminAttendancePage() {
         email: "hr@joyapps.com",
         role: "hr",
         workerType: "hr"
-      },
-      {
-        id: 5,
-        name: "Hasan Abbas",
-        email: "hasan@joyapps.net",
-        role: "user",
-        workerType: "permanent-worker"
-      },
-      {
-        id: 6,
-        name: "Adnan Amir",
-        email: "adnan@joyapps.net",
-        role: "user",
-        workerType: "permanent-worker"
-      },
-      {
-        id: 7,
-        name: "Waleed Bin Shakeel",
-        email: "waleed@joyapps.net",
-        role: "user",
-        workerType: "trainee-worker"
       }
     ];
 
-    // Users from UsersContext (workers and managers created by admin)
+    // Users from UsersContext (dynamically created users)
     const contextUsersList = contextUsers || [];
 
-    // Combine both lists and remove duplicates by email
+    // Combine both sources
     const allUsers = [...authUsers, ...contextUsersList];
-    const uniqueUsers = allUsers.filter((user, index, self) => 
-      index === self.findIndex(u => u.email === user.email)
-    );
+    
+    // Deduplicate by email (prefer AuthContext users as they have more complete data)
+    const uniqueUsers = allUsers.reduce((acc, current) => {
+      const existingUser = acc.find(u => u.email === current.email);
+      if (!existingUser) {
+        acc.push(current);
+      } else {
+        // Prefer AuthContext users (they have more complete data)
+        const currentIsAuth = authUsers.some(au => au.email === current.email);
+        const existingIsAuth = authUsers.some(au => au.email === existingUser.email);
+        
+        if (currentIsAuth && !existingIsAuth) {
+          const index = acc.findIndex(u => u.email === current.email);
+          acc[index] = current;
+        }
+      }
+      return acc;
+    }, []);
 
-    // Filter out admin users
-    return uniqueUsers.filter(u => u.role !== 'admin');
-  }, [contextUsers]);
+    // Filter out admin users and current HR user (don't show HR their own attendance)
+    const filteredUsers = uniqueUsers.filter(u => u.role !== 'admin' && u.email !== user?.email);
+    
+    console.log('All users for HR attendance:', filteredUsers.map(u => ({ id: u.id, name: u.name, role: u.role, email: u.email })));
+    console.log('Total users:', filteredUsers.length);
+    
+    return filteredUsers;
+  }, [contextUsers, user]);
+
+  // Check if a user's attendance is verified by their manager (only for workers)
+  const isUserVerified = useCallback((userId) => {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      
+      // Get all users to check if this user is a worker
+      const allUsers = getAllUsers();
+      const user = allUsers.find(u => u.id === userId);
+      
+      // Only check verification for workers (not managers, QC, or HR)
+      if (!user || (user.role !== 'worker' && user.role !== 'user')) {
+        return false;
+      }
+      
+      // Get all managers and check their verified users
+      const managers = allUsers.filter(u => u.role === 'manager');
+      
+      for (const manager of managers) {
+        const usersKey = `verified_users_${manager.id}_${today}`;
+        const verifiedUsers = JSON.parse(localStorage.getItem(usersKey) || '[]');
+        
+        if (verifiedUsers.includes(userId)) {
+          return true;
+        }
+      }
+      
+      return false;
+    } catch (error) {
+      console.error('Error checking verification status:', error);
+      return false;
+    }
+  }, [getAllUsers]);
+
+  // Get manager name for a user (only for workers)
+  const getManagerName = useCallback((userId) => {
+    const allUsers = getAllUsers();
+    const user = allUsers.find(u => u.id === userId);
+    
+    // Only get manager name for workers (not managers, QC, or HR)
+    if (!user || (user.role !== 'worker' && user.role !== 'user')) {
+      return null;
+    }
+    
+    const managers = allUsers.filter(u => u.role === 'manager');
+    
+    // Find manager who has this user assigned
+    for (const manager of managers) {
+      if (manager.assignedUsers && manager.assignedUsers.includes(userId)) {
+        return manager.name;
+      }
+    }
+    return null;
+  }, [getAllUsers]);
 
   const loadAttendanceData = useCallback(async () => {
     setIsLoading(true);
@@ -114,13 +167,23 @@ export default function AdminAttendancePage() {
       const date = selectedDate;
       const data = [];
       
-      // Get all users (excluding admin) - filter inside the function to avoid dependency issues
+      // Get all users (excluding admin)
       const allUsers = getAllUsers();
       
+      // Remove duplicates from allUsers to prevent processing the same user multiple times
+      const uniqueUsers = allUsers.filter((user, index, self) => 
+        self.findIndex(u => u.id === user.id) === index
+      );
+      
+      console.log('Processing unique users:', uniqueUsers.length, 'out of', allUsers.length);
+      
       // Get all users and their attendance data
-      for (const user of allUsers) {
+      for (const user of uniqueUsers) {
         try {
           const attendance = getAttendanceForDate(user.id, date);
+          const isVerified = isUserVerified(user.id);
+          const managerName = getManagerName(user.id);
+          
           data.push({
             id: user.id,
             name: user.name || 'Unknown',
@@ -133,7 +196,9 @@ export default function AdminAttendancePage() {
             hours: attendance?.hours || 0,
             markedAt: attendance?.markedAt || null,
             markedBy: attendance?.markedBy || null,
-            notes: attendance?.notes || null
+            notes: attendance?.notes || null,
+            isVerified: isVerified,
+            managerName: managerName
           });
         } catch (userError) {
           console.error(`Error loading attendance for user ${user.id}:`, userError);
@@ -150,22 +215,45 @@ export default function AdminAttendancePage() {
             hours: 0,
             markedAt: null,
             markedBy: null,
-            notes: null
+            notes: null,
+            isVerified: false,
+            managerName: null
           });
         }
       }
       
-      setAttendanceData(data);
+      console.log('Loaded attendance data:', data);
+      console.log('Sample data roles:', data.map(item => ({ id: item.id, name: item.name, role: item.role, workerType: item.workerType, email: item.email })));
+      
+      // Check for duplicates in attendance data
+      const duplicateIds = data.filter((item, index, self) => 
+        self.findIndex(i => i.id === item.id) !== index
+      );
+      const duplicateEmails = data.filter((item, index, self) => 
+        self.findIndex(i => i.email === item.email) !== index
+      );
+      
+      if (duplicateIds.length > 0) {
+        console.warn('Duplicate IDs found in attendance data:', duplicateIds.map(d => ({ id: d.id, name: d.name, email: d.email })));
+      }
+      if (duplicateEmails.length > 0) {
+        console.warn('Duplicate emails found in attendance data:', duplicateEmails.map(d => ({ id: d.id, name: d.name, email: d.email })));
+      }
+      
+      // Final deduplication to ensure no duplicates in the final data
+      const finalData = data.filter((item, index, self) => 
+        self.findIndex(i => i.id === item.id) === index
+      );
+      
+      console.log('Final data after deduplication:', finalData.length, 'out of', data.length);
+      setAttendanceData(finalData);
     } catch (error) {
       console.error('Error loading attendance data:', error);
       toast.error('Failed to load attendance data');
     } finally {
       setIsLoading(false);
     }
-  }, [selectedDate, getAllUsers, getAttendanceForDate]);
-
-  // Get all users (excluding admin) for display
-  const allUsers = getAllUsers();
+  }, [selectedDate, getAllUsers, getAttendanceForDate, isUserVerified, getManagerName]);
 
   // Load attendance data for selected date
   useEffect(() => {
@@ -176,13 +264,23 @@ export default function AdminAttendancePage() {
   const filteredData = attendanceData.filter(item => {
     let matchesRole = false;
     
+    // Role filtering logic
     if (roleFilter === "all") {
       matchesRole = true;
     } else if (roleFilter === "worker") {
       // Show both 'worker' and 'user' roles as workers
       matchesRole = item.role === "worker" || item.role === "user";
+    } else if (roleFilter === "manager") {
+      // Only show managers
+      matchesRole = item.role === "manager";
+    } else if (roleFilter === "qc") {
+      // Only show QC
+      matchesRole = item.role === "qc";
+    } else if (roleFilter === "hr") {
+      // Only show HR
+      matchesRole = item.role === "hr";
     } else {
-      // For specific roles (manager, qc, hr), match exactly
+      // Fallback: exact match
       matchesRole = item.role === roleFilter;
     }
     
@@ -191,7 +289,21 @@ export default function AdminAttendancePage() {
       item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.email.toLowerCase().includes(searchTerm.toLowerCase());
     
-    return matchesRole && matchesStatus && matchesSearch;
+    const result = matchesRole && matchesStatus && matchesSearch;
+    
+    // Debug logging for role filtering
+    if (roleFilter !== "all") {
+      console.log('Role Filter Debug:', {
+        item: item.name,
+        role: item.role,
+        workerType: item.workerType,
+        roleFilter,
+        matchesRole,
+        result: result ? 'INCLUDED' : 'EXCLUDED'
+      });
+    }
+    
+    return result;
   });
 
   // Calculate statistics
@@ -199,64 +311,12 @@ export default function AdminAttendancePage() {
     total: filteredData.length,
     present: filteredData.filter(item => ['present', 'marked', 'approved'].includes(item.status)).length,
     absent: filteredData.filter(item => ['absent', 'rejected'].includes(item.status)).length,
+    pending: filteredData.filter(item => item.status === 'marked').length,
     notMarked: filteredData.filter(item => item.status === 'not_marked').length,
-    pending: filteredData.filter(item => item.status === 'marked').length
+    verified: filteredData.filter(item => item.isVerified && (item.role === 'worker' || item.role === 'user')).length
   };
 
-  // Get status badge
-  const getStatusBadge = (status) => {
-    const statusConfig = {
-      present: { className: "bg-green-100 text-green-800", label: "Present" },
-      marked: { className: "bg-yellow-100 text-yellow-800", label: "Marked" },
-      approved: { className: "bg-green-100 text-green-800", label: "Approved" },
-      absent: { className: "bg-red-100 text-red-800", label: "Absent" },
-      rejected: { className: "bg-red-100 text-red-800", label: "Rejected" },
-      not_marked: { className: "bg-gray-100 text-gray-800", label: "Not Marked" }
-    };
-    
-    const config = statusConfig[status] || statusConfig.not_marked;
-    return <Badge className={config.className}>{config.label}</Badge>;
-  };
-
-  // Get role badge
-  const getRoleBadge = (role) => {
-    const roleConfig = {
-      manager: { className: "bg-blue-100 text-blue-800", label: "Manager" },
-      qc: { className: "bg-purple-100 text-purple-800", label: "QC" },
-      hr: { className: "bg-pink-100 text-pink-800", label: "HR" },
-      worker: { className: "bg-orange-100 text-orange-800", label: "Worker" },
-      user: {className: "bg-orange-100 text-orange-800", label: "Worker" }
-    };
-    
-    const config = roleConfig[role] || { className: "bg-gray-100 text-gray-800", label: role };
-    return <Badge className={config.className}>{config.label}</Badge>;
-  };
-
-  // Export data to CSV
-  const exportToCSV = () => {
-    const csvContent = [
-      ['Name', 'Email', 'Role', 'Status', 'Check In', 'Check Out', 'Hours'],
-      ...filteredData.map(item => [
-        item.name,
-        item.email,
-        item.role,
-        item.status,
-        item.checkIn || '',
-        item.checkOut || '',
-        item.hours || 0
-      ])
-    ].map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `attendance_${selectedDate}.csv`;
-    a.click();
-    window.URL.revokeObjectURL(url);
-  };
-
-  // Define role filter options
+  // Role filter options
   const roleOptions = [
     { value: "all", label: "All Roles" },
     { value: "manager", label: "Manager" },
@@ -265,34 +325,151 @@ export default function AdminAttendancePage() {
     { value: "worker", label: "Worker" }
   ];
 
+  // Helper functions for badges
+  const getRoleBadge = (role) => {
+    const colors = {
+      manager: "bg-blue-100 text-blue-800",
+      qc: "bg-purple-100 text-purple-800",
+      hr: "bg-green-100 text-green-800",
+      worker: "bg-orange-100 text-orange-800",
+      user: "bg-orange-100 text-orange-800"
+    };
+    
+    return (
+      <Badge className={colors[role] || "bg-gray-100 text-gray-800"}>
+        {role.charAt(0).toUpperCase() + role.slice(1)}
+      </Badge>
+    );
+  };
+
+  const getStatusBadge = (status) => {
+    const colors = {
+      present: "bg-green-100 text-green-800",
+      approved: "bg-green-100 text-green-800",
+      marked: "bg-yellow-100 text-yellow-800",
+      absent: "bg-red-100 text-red-800",
+      rejected: "bg-red-100 text-red-800",
+      not_marked: "bg-gray-100 text-gray-800"
+    };
+    
+    const labels = {
+      present: "Present",
+      approved: "Approved",
+      marked: "Pending",
+      absent: "Absent",
+      rejected: "Rejected",
+      not_marked: "Not Marked"
+    };
+    
+    return (
+      <Badge className={colors[status] || "bg-gray-100 text-gray-800"}>
+        {labels[status] || status}
+      </Badge>
+    );
+  };
+
+  const getVerificationBadge = (isVerified, managerName, role) => {
+    // Only show verification status for workers
+    if (role !== 'worker' && role !== 'user') {
+      return (
+        <Badge variant="outline" className="text-gray-500">
+          <Shield className="h-3 w-3 mr-1" />
+          N/A
+        </Badge>
+      );
+    }
+    
+    if (!isVerified) {
+      return (
+        <Badge variant="outline" className="text-gray-600">
+          <Clock className="h-3 w-3 mr-1" />
+          Not Verified
+        </Badge>
+      );
+    }
+    
+    return (
+      <Badge className="bg-green-100 text-green-800">
+        <UserCheck className="h-3 w-3 mr-1" />
+        Verified
+        {managerName && (
+          <span className="ml-1 text-xs">by {managerName}</span>
+        )}
+      </Badge>
+    );
+  };
+
+  // Export to CSV
+  const exportToCSV = () => {
+    const csvData = filteredData.map(item => ({
+      Name: item.name,
+      Email: item.email,
+      Role: item.role,
+      Status: item.status,
+      'Check In': item.checkIn || '-',
+      'Check Out': item.checkOut || '-',
+      Hours: item.hours || 0,
+      'Verification Status': (item.role === 'worker' || item.role === 'user') 
+        ? (item.isVerified ? 'Verified' : 'Not Verified') 
+        : 'N/A',
+      'Manager': item.managerName || '-'
+    }));
+
+    const csvContent = [
+      Object.keys(csvData[0]).join(','),
+      ...csvData.map(row => Object.values(row).join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `hr-attendance-${selectedDate}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  };
+
+  if (!user) {
+    return (
+      <HRMainLayout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Please Log In</h2>
+            <p className="text-gray-600">You need to be logged in to access the HR attendance page.</p>
+          </div>
+        </div>
+      </HRMainLayout>
+    );
+  }
+
   return (
-    <MainLayout>
+    <HRMainLayout>
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">All Users Attendance</h1>
-          <p className="text-muted-foreground">
-            View attendance records for all users across all roles
-          </p>
-        </div>
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">All Users Attendance</h1>
+            <p className="text-gray-600 mt-1">
+              Monitor attendance records for all users including managers, QC, HR, and workers
+            </p>
+          </div>
           <div className="flex gap-2">
             <Button onClick={exportToCSV} variant="outline">
               <Download className="h-4 w-4 mr-2" />
               Export CSV
             </Button>
-            <Button onClick={loadAttendanceData} disabled={isLoading}>
-              <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+            <Button onClick={loadAttendanceData} variant="outline">
+              <RefreshCw className="h-4 w-4 mr-2" />
               Refresh
             </Button>
           </div>
         </div>
 
         {/* Statistics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-6">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Users</CardTitle>
+              <CardTitle className="text-sm font-medium">Total</CardTitle>
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -337,6 +514,16 @@ export default function AdminAttendancePage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-gray-600">{stats.notMarked}</div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Verified</CardTitle>
+              <Shield className="h-4 w-4 text-blue-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-blue-600">{stats.verified}</div>
             </CardContent>
           </Card>
         </div>
@@ -435,6 +622,7 @@ export default function AdminAttendancePage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead>S.No</TableHead>
                       <TableHead>Name</TableHead>
                       <TableHead>Email</TableHead>
                       <TableHead>Role</TableHead>
@@ -442,18 +630,20 @@ export default function AdminAttendancePage() {
                       <TableHead>Check In</TableHead>
                       <TableHead>Check Out</TableHead>
                       <TableHead>Hours</TableHead>
+                      <TableHead>Verification Status</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filteredData.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
+                        <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                           No attendance records found for the selected filters
                         </TableCell>
                       </TableRow>
                     ) : (
-                      filteredData.map((item) => (
+                      filteredData.map((item, index) => (
                         <TableRow key={item.id}>
+                          <TableCell>{index + 1}</TableCell>
                           <TableCell className="font-medium">{item.name}</TableCell>
                           <TableCell>{item.email}</TableCell>
                           <TableCell>{getRoleBadge(item.role)}</TableCell>
@@ -461,6 +651,7 @@ export default function AdminAttendancePage() {
                           <TableCell>{item.checkIn || '-'}</TableCell>
                           <TableCell>{item.checkOut || '-'}</TableCell>
                           <TableCell>{item.hours || 0}h</TableCell>
+                          <TableCell>{getVerificationBadge(item.isVerified, item.managerName, item.role)}</TableCell>
                         </TableRow>
                       ))
                     )}
@@ -471,6 +662,6 @@ export default function AdminAttendancePage() {
           </CardContent>
         </Card>
       </div>
-    </MainLayout>
+    </HRMainLayout>
   );
 }

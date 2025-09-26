@@ -19,7 +19,7 @@ export function middleware(request) {
   const qcRoutes = ['/qc-dashboard', '/qc-tasks', '/qc-reports', '/qc-settings'];
   
   // HR-only routes
-  const hrRoutes = ['/hr-dashboard', '/hr-employees', '/hr-reports', '/hr-settings'];
+  const hrRoutes = ['/hr-dashboard', '/hr-employees', '/hr-reports', '/hr-settings', '/hr-all-attendance'];
   
   // User-only routes  
   const userRoutes = ['/user-dashboard', '/user-tasks'];

@@ -63,7 +63,7 @@ const navigation = [
   },
   {
     name: "All Attendance",
-    href: "/admin-attendance",
+    href: "/hr-all-attendance",
     icon: Calendar,
   },
 //   {

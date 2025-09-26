@@ -1,55 +1,75 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, useCallback } from "react";
 import HRMainLayout from "@/components/layout/HRMainLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Clock, CheckCircle, User, Calendar, TrendingUp } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { 
+  Calendar,
+  Users,
+  CheckCircle,
+  XCircle,
+  Clock,
+  Filter,
+  Download,
+  RefreshCw,
+  Search,
+  UserCheck,
+  Shield,
+  TrendingUp,
+  User
+} from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUsers } from "@/contexts/UsersContext";
 import { useAttendance } from "@/contexts/AttendanceContext";
 import { toast } from "sonner";
 
-// Mock data for previous month attendance
-const generateMockPreviousMonthData = () => {
-  const mockData = []
-  const currentDate = new Date()
-  const previousMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1)
-  const daysInPreviousMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 0).getDate()
-
-  for (let day = 1; day <= daysInPreviousMonth; day++) {
-    const date = new Date(previousMonth.getFullYear(), previousMonth.getMonth(), day)
-    const dayOfWeek = date.getDay()
-
-    // Skip weekends for work attendance
-    if (dayOfWeek === 0 || dayOfWeek === 6) continue
-
-    // Random attendance with 85% present rate
-    const isPresent = Math.random() > 0.15
-
-    mockData.push({
-      date: date.toISOString().split("T")[0],
-      day: date.getDate(),
-      dayName: date.toLocaleDateString("en-US", { weekday: "short" }),
-      status: isPresent ? "present" : "absent",
-      checkIn: isPresent
-        ? `${8 + Math.floor(Math.random() * 2)}:${Math.floor(Math.random() * 60)
-            .toString()
-            .padStart(2, "0")}`
-        : null,
-    })
+// Generate mock previous month data
+function generateMockPreviousMonthData() {
+  const data = [];
+  const today = new Date();
+  const lastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+  const daysInMonth = new Date(today.getFullYear(), today.getMonth(), 0).getDate();
+  
+  for (let day = 1; day <= daysInMonth; day++) {
+    const date = new Date(lastMonth.getFullYear(), lastMonth.getMonth(), day);
+    const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
+    
+    // Skip weekends for mock data
+    if (date.getDay() === 0 || date.getDay() === 6) continue;
+    
+    data.push({
+      date: date.toISOString().split('T')[0],
+      day: day,
+      dayName: dayName,
+      status: Math.random() > 0.1 ? "present" : "absent", // 90% present
+      checkIn: Math.random() > 0.1 ? "09:00" : null,
+    });
   }
-
-  return mockData.reverse() // Show most recent first
+  
+  return data;
 }
 
 export default function HRAttendancePage() {
   const { user } = useAuth();
-  const { markAttendance, isAttendanceMarkedToday } = useAttendance();
-  const [currentTime, setCurrentTime] = useState(new Date());
+  const { users: contextUsers } = useUsers();
+  const { getAttendanceForDate, getAttendanceStats, markAttendance, isAttendanceMarkedToday } = useAttendance();
+  
+  // State for filters and data
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [roleFilter, setRoleFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [attendanceData, setAttendanceData] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
   const [isMarking, setIsMarking] = useState(false);
   const [showDashboard, setShowDashboard] = useState(false);
+  const [currentTime, setCurrentTime] = useState(new Date());
   const [previousMonthData] = useState(generateMockPreviousMonthData());
 
   // Update current time every second
