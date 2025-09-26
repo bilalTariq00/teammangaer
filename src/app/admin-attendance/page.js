@@ -23,14 +23,12 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { useUsers } from "@/contexts/UsersContext";
 import { useAttendance } from "@/contexts/AttendanceContext";
-import { useManagerWorkflow } from "@/contexts/ManagerWorkflowContext";
 import { toast } from "sonner";
 
 export default function AdminAttendancePage() {
   const { user } = useAuth();
   const { users: contextUsers } = useUsers();
   const { getAttendanceForDate, getAttendanceStats } = useAttendance();
-  const { getVerifiedUsers } = useManagerWorkflow();
   
   // State for filters and data
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
