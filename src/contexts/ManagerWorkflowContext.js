@@ -17,6 +17,7 @@ export function ManagerWorkflowProvider({ children }) {
   const [performanceMarked, setPerformanceMarked] = useState(false);
   const [workflowBlocked, setWorkflowBlocked] = useState(false);
   const [navigationBlocked, setNavigationBlocked] = useState(false);
+  const [updateTrigger, setUpdateTrigger] = useState(0);
 
   // Get today's date
   const today = new Date().toISOString().split('T')[0];
@@ -36,7 +37,38 @@ export function ManagerWorkflowProvider({ children }) {
     
     const verificationKey = `attendance_verified_${user.id}_${today}`;
     const verified = localStorage.getItem(verificationKey);
+    
+    // Clean up old verification data (older than today)
+    cleanupOldVerificationData();
+    
     return verified === 'true';
+  };
+
+  // Clean up old verification data (older than today)
+  const cleanupOldVerificationData = () => {
+    if (!user || user.role !== 'manager') return;
+    
+    const keysToCheck = [
+      `attendance_verified_${user.id}_`,
+      `verified_users_${user.id}_`,
+      `performance_completed_${user.id}_`
+    ];
+    
+    // Get all localStorage keys and remove old ones
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key) {
+        // Check if this key belongs to the current user but is for a different date
+        const isOldUserKey = keysToCheck.some(prefix => 
+          key.startsWith(prefix) && !key.endsWith(today)
+        );
+        
+        if (isOldUserKey) {
+          console.log('Cleaning up old verification data:', key);
+          localStorage.removeItem(key);
+        }
+      }
+    }
   };
 
   // Get verified users (users whose attendance has been verified)
@@ -45,7 +77,17 @@ export function ManagerWorkflowProvider({ children }) {
     
     const verificationKey = `verified_users_${user.id}_${today}`;
     const stored = localStorage.getItem(verificationKey);
-    return stored ? JSON.parse(stored) : [];
+    let verifiedUsers = stored ? JSON.parse(stored) : [];
+    
+    console.log('getVerifiedUsers:', {
+      user: user?.name,
+      verificationKey,
+      stored,
+      verifiedUsers,
+      today
+    });
+    
+    return verifiedUsers;
   };
 
   // Check if all verified users have performance marked
@@ -112,11 +154,32 @@ export function ManagerWorkflowProvider({ children }) {
     const verificationKey = `attendance_verified_${user.id}_${today}`;
     const usersKey = `verified_users_${user.id}_${today}`;
     
+    console.log('verifyAttendance called with userIds:', userIds);
+    console.log('Storing verification data:', {
+      verificationKey,
+      usersKey,
+      userIds,
+      userIdsLength: userIds.length
+    });
+    
     localStorage.setItem(verificationKey, 'true');
     localStorage.setItem(usersKey, JSON.stringify(userIds));
     
+    // Force state updates
     setAttendanceVerified(true);
-    setVerifiedUsers(userIds);
+    setVerifiedUsers([...userIds]); // Create new array to trigger re-render
+    setUpdateTrigger(prev => prev + 1); // Trigger update
+    
+    console.log('Verification data stored successfully');
+    console.log('State updated - attendanceVerified: true, verifiedUsers:', userIds);
+    
+    // Force a re-check after a short delay to ensure state is updated
+    setTimeout(() => {
+      const storedUsers = JSON.parse(localStorage.getItem(usersKey) || '[]');
+      console.log('Verification data verification - stored users:', storedUsers);
+      setVerifiedUsers([...storedUsers]);
+      setUpdateTrigger(prev => prev + 1); // Trigger another update
+    }, 100);
   };
 
   // Mark performance as completed
@@ -130,6 +193,38 @@ export function ManagerWorkflowProvider({ children }) {
     setPerformanceMarked(true);
     
     console.log('Performance marked as completed');
+  };
+
+  // Clear verification data (for testing/debugging)
+  const clearVerificationData = () => {
+    if (!user || user.role !== 'manager') return;
+    
+    const verificationKey = `attendance_verified_${user.id}_${today}`;
+    const usersKey = `verified_users_${user.id}_${today}`;
+    
+    localStorage.removeItem(verificationKey);
+    localStorage.removeItem(usersKey);
+    
+    setAttendanceVerified(false);
+    setVerifiedUsers([]);
+    
+    console.log('Verification data cleared');
+  };
+
+  // Refresh verification data from localStorage
+  const refreshVerificationData = () => {
+    if (!user || user.role !== 'manager') return;
+    
+    const attendanceVerifiedStatus = checkAttendanceVerification();
+    const verifiedUsersList = getVerifiedUsers();
+    
+    console.log('Refreshing verification data:', {
+      attendanceVerifiedStatus,
+      verifiedUsersList
+    });
+    
+    setAttendanceVerified(attendanceVerifiedStatus);
+    setVerifiedUsers(verifiedUsersList);
   };
 
   // Check workflow status on mount
@@ -167,10 +262,13 @@ export function ManagerWorkflowProvider({ children }) {
     performanceMarked,
     workflowBlocked,
     navigationBlocked,
+    updateTrigger,
     
     // Actions
     verifyAttendance,
     markPerformanceCompleted,
+    clearVerificationData,
+    refreshVerificationData,
     
     // Checks
     checkManagerAttendance,

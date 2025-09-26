@@ -20,7 +20,7 @@ import { useAttendance } from "@/contexts/AttendanceContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
-export default function AttendanceVerification() {
+export default function AttendanceVerification({ onVerificationComplete }) {
   const { 
     attendanceVerified, 
     verifyAttendance, 
@@ -35,6 +35,7 @@ export default function AttendanceVerification() {
   const [selectedUsers, setSelectedUsers] = useState([]);
   const [teamMembers, setTeamMembers] = useState([]);
   const [isVerifying, setIsVerifying] = useState(false);
+  const [justVerified, setJustVerified] = useState(false);
 
   // Get today's date
   const today = new Date().toISOString().split('T')[0];
@@ -70,6 +71,13 @@ export default function AttendanceVerification() {
   const verifiedTeamMembers = teamMembers.filter(member => 
     verifiedUsers && verifiedUsers.includes(member.id)
   );
+
+  console.log('AttendanceVerification Debug:', {
+    teamMembers: teamMembers.map(m => ({ id: m.id, name: m.name })),
+    verifiedUsers,
+    verifiedTeamMembers: verifiedTeamMembers.map(m => ({ id: m.id, name: m.name })),
+    attendanceVerified
+  });
 
   // Get attendance status for each team member
   const getAttendanceStatus = (userId) => {
@@ -120,7 +128,7 @@ export default function AttendanceVerification() {
   // Handle select all
   const handleSelectAll = (checked) => {
     if (checked) {
-      const allUserIds = verifiedTeamMembers.map(member => member.id);
+      const allUserIds = teamMembers.map(member => member.id);
       setSelectedUsers(allUserIds);
     } else {
       setSelectedUsers([]);
@@ -143,6 +151,14 @@ export default function AttendanceVerification() {
       // Verify attendance
       verifyAttendance(selectedUsers);
       
+      // Set just verified state to show success message
+      setJustVerified(true);
+      
+      // Notify parent component
+      if (onVerificationComplete) {
+        onVerificationComplete(selectedUsers);
+      }
+      
       toast.success(`Attendance verified for ${selectedUsers.length} team member(s)`);
       
       // Clear selection
@@ -156,51 +172,7 @@ export default function AttendanceVerification() {
   };
 
   // Manager attendance is already marked, so we don't need to check it here
-
-  if (attendanceVerified) {
-  return (
-      <Card className="border-green-200 bg-green-50">
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <CheckCircle className="h-5 w-5 text-green-600" />
-            <CardTitle className="text-green-800">Attendance Verified</CardTitle>
-          </div>
-          <CardDescription className="text-green-700">
-            Team attendance has been verified. You can now proceed to other tasks.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center gap-2 text-sm text-green-600">
-            <UserCheck className="h-4 w-4" />
-            <span>Verified for {verifiedTeamMembers.length} team member(s)</span>
-          </div>
-          
-          {/* Verified Team Members Display */}
-          {verifiedUsers && verifiedUsers.length > 0 && (
-            <div className="mt-4 pt-4 border-t border-green-200">
-              <h4 className="text-sm font-medium text-green-800 mb-2">Verified Team Members:</h4>
-              <div className="flex flex-wrap gap-2">
-                {verifiedUsers.map(userId => {
-                  const user = verifiedTeamMembers.find(m => m.id === userId);
-                  if (!user) return null;
-                  return (
-                    <Badge 
-                      key={userId} 
-                      variant="outline" 
-                      className="bg-green-100 text-green-800 border-green-300"
-                    >
-                      <UserCheck className="h-3 w-3 mr-1" />
-                      {user.name}
-                    </Badge>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    );
-  }
+  // Always show the selection interface first, then verification status after completion
 
   return (
     <Card className={navigationBlocked ? "border-orange-200 bg-orange-50" : ""}>
@@ -211,11 +183,92 @@ export default function AttendanceVerification() {
             Verify Team Attendance
             </CardTitle>
         </div>
-        <CardDescription>
-          Select team members whose attendance you want to verify for today.
-        </CardDescription>
+       
           </CardHeader>
       <CardContent className="space-y-4">
+        {/* Selection Interface - Only show when not just verified */}
+        {!justVerified && (
+          <>
+            {/* Select All */}
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="select-all"
+                checked={selectedUsers.length === teamMembers.length && teamMembers.length > 0}
+                onCheckedChange={handleSelectAll}
+              />
+              <Label htmlFor="select-all" className="text-sm font-medium">
+                Select All Present ({teamMembers.length} members)
+              </Label>
+                  </div>
+                    
+            {/* Team Members List */}
+            <div className="space-y-3">
+              {teamMembers.map((member) => {
+                const attendanceStatus = getAttendanceStatus(member.id);
+                const isSelected = selectedUsers.includes(member.id);
+                
+                return (
+                  <div
+                    key={member.id}
+                    className={`flex items-center justify-between p-3 border rounded-lg ${
+                      isSelected ? 'bg-blue-50 border-blue-200' : 'bg-white'
+                    }`}
+                  >
+                    <div className="flex items-center space-x-3">
+                      <Checkbox
+                        id={`user-${member.id}`}
+                        checked={isSelected}
+                        onCheckedChange={(checked) => handleUserSelect(member.id, checked)}
+                      />
+                  <div>
+                        <p className="font-medium">{member.name}</p>
+                        <p className="text-sm text-gray-500">{member.workerType?.replace('-', ' ')}</p>
+                        <p className="text-xs text-gray-400">
+                          {isSelected ? '✓ Selected as present' : 'Click to mark as present'}
+                        </p>
+                      </div>
+                  </div>
+                    <div className="flex items-center gap-2">
+                      {getAttendanceBadge(attendanceStatus)}
+                      {attendanceStatus === 'not_marked' && (
+                        <XCircle className="h-4 w-4 text-red-500" />
+                      )}
+                      {attendanceStatus === 'present' && (
+                        <CheckCircle className="h-4 w-4 text-green-500" />
+                      )}
+                  </div>
+                  </div>
+                );
+              })}
+                </div>
+          </>
+        )}
+        
+        {/* Success Message - Show after verification */}
+        {justVerified && (
+          <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+            <div className="flex items-center gap-2 mb-3">
+              <CheckCircle className="h-5 w-5 text-green-600" />
+              <h4 className="text-sm font-medium text-green-800">Attendance Verified Successfully!</h4>
+              </div>
+            <p className="text-sm text-green-700 mb-3">
+              Team attendance has been verified. You can now proceed to other tasks.
+            </p>
+            <div className="flex items-center gap-2 text-sm text-green-600 mb-3">
+              <UserCheck className="h-4 w-4" />
+              <span>Verified for {verifiedUsers?.length || 0} team member(s)</span>
+                </div>
+                <Button 
+              variant="outline" 
+                  size="sm"
+              onClick={() => setJustVerified(false)}
+              className="text-green-700 border-green-300 hover:bg-green-100"
+                >
+              Verify Again
+                </Button>
+              </div>
+        )}
+
         {/* Verified Team Members Display */}
         <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
           <h4 className="text-sm font-medium text-green-800 mb-3 flex items-center gap-2">
@@ -246,81 +299,33 @@ export default function AttendanceVerification() {
             </>
           ) : (
             <p className="text-sm text-green-600">
-              No team members have been verified yet. Select team members below and click "Verify Attendance" to verify them.
+              No team members have been verified yet. Select team members above and click "Verify Attendance" to verify them.
             </p>
           )}
-                  </div>
-        
-        {/* Select All */}
-        <div className="flex items-center space-x-2">
-          <Checkbox
-            id="select-all"
-            checked={selectedUsers.length === verifiedTeamMembers.length && verifiedTeamMembers.length > 0}
-            onCheckedChange={handleSelectAll}
-          />
-          <Label htmlFor="select-all" className="text-sm font-medium">
-            Select All ({verifiedTeamMembers.length} members)
-          </Label>
-                </div>
-                
-        {/* Team Members List */}
-        <div className="space-y-3">
-          {verifiedTeamMembers.map((member) => {
-            const attendanceStatus = getAttendanceStatus(member.id);
-            const isSelected = selectedUsers.includes(member.id);
-            
-            return (
-              <div 
-                key={member.id}
-                className={`flex items-center justify-between p-3 border rounded-lg ${
-                  isSelected ? 'bg-blue-50 border-blue-200' : 'bg-white'
-                }`}
-              >
-                <div className="flex items-center space-x-3">
-                  <Checkbox
-                    id={`user-${member.id}`}
-                    checked={isSelected}
-                    onCheckedChange={(checked) => handleUserSelect(member.id, checked)}
-                  />
-                  <div>
-                    <p className="font-medium">{member.name}</p>
-                    <p className="text-sm text-gray-500">{member.workerType?.replace('-', ' ')}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  {getAttendanceBadge(attendanceStatus)}
-                  {attendanceStatus === 'not_marked' && (
-                    <XCircle className="h-4 w-4 text-red-500" />
-                  )}
-                  {attendanceStatus === 'present' && (
-                    <CheckCircle className="h-4 w-4 text-green-500" />
-                  )}
-                </div>
-              </div>
-            );
-          })}
                     </div>
                     
-        {/* Verify Button */}
-        <div className="flex justify-end pt-4">
+        {/* Verify Button - Only show when not just verified */}
+        {!justVerified && (
+          <div className="flex justify-end pt-4">
                         <Button
-            onClick={handleVerifyAttendance}
-            disabled={selectedUsers.length === 0 || isVerifying}
-            className="bg-blue-600 hover:bg-blue-700"
-          >
-            {isVerifying ? (
-              <>
-                <Clock className="h-4 w-4 mr-2 animate-spin" />
-                Verifying...
-              </>
-            ) : (
-              <>
-                <UserCheck className="h-4 w-4 mr-2" />
-                Verify Attendance ({selectedUsers.length})
-              </>
-            )}
+              onClick={handleVerifyAttendance}
+              disabled={selectedUsers.length === 0 || isVerifying}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              {isVerifying ? (
+                <>
+                  <Clock className="h-4 w-4 mr-2 animate-spin" />
+                  Verifying...
+                </>
+              ) : (
+                <>
+                  <UserCheck className="h-4 w-4 mr-2" />
+                  Verify Attendance ({selectedUsers.length})
+                </>
+              )}
                         </Button>
-                      </div>
+            </div>
+          )}
         </CardContent>
       </Card>
   );

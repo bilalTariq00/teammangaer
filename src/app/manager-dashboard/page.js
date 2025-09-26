@@ -87,7 +87,7 @@ function ManagerDashboardContent() {
   const { users } = useUsers();
   const { getTeamPerformance, isPerformanceMarkedToday, getPerformanceLevelDetails } = usePerformance();
   const { getTeamAttendance, getAttendanceStats, approveAttendance, isAttendanceMarkedToday } = useAttendance();
-  const { verifiedUsers } = useManagerWorkflow();
+  const { verifiedUsers, clearVerificationData, refreshVerificationData, updateTrigger } = useManagerWorkflow();
   const today = new Date().toISOString().split('T')[0];
   
   // All hooks must be called before any early returns
@@ -101,6 +101,21 @@ function ManagerDashboardContent() {
     type: "",
     password: ""
   });
+  
+  // Force refresh mechanism for real-time updates
+  const [refreshKey, setRefreshKey] = useState(0);
+  const forceRefresh = () => {
+    setRefreshKey(prev => prev + 1);
+  };
+  
+  // Callback for when attendance verification is complete
+  const handleVerificationComplete = (verifiedUserIds) => {
+    console.log('Verification complete callback:', verifiedUserIds);
+    // Force refresh to update all components
+    forceRefresh();
+    // Also refresh verification data from context
+    refreshVerificationData();
+  };
   
   // Dynamic task management
   const [tasks, setTasks] = useState(mockTasks);
@@ -194,6 +209,22 @@ function ManagerDashboardContent() {
       { id: 7, name: "Waleed Bin Shakeel", email: "waleed.shakeel@joyapps.net", role: "worker", workerType: "Trainee Clicker" }
     ];
   }
+
+  // Debug logging
+  console.log('ManagerDashboard - verifiedUsers:', verifiedUsers);
+  console.log('ManagerDashboard - verifiedUsers length:', verifiedUsers?.length);
+  console.log('ManagerDashboard - teamMembers length:', teamMembers?.length);
+  
+  // Monitor verifiedUsers changes
+  useEffect(() => {
+    console.log('ManagerDashboard - verifiedUsers changed:', verifiedUsers);
+  }, [verifiedUsers]);
+  
+  // Monitor updateTrigger changes for real-time updates
+  useEffect(() => {
+    console.log('ManagerDashboard - updateTrigger changed:', updateTrigger);
+    console.log('ManagerDashboard - verifiedUsers after trigger:', verifiedUsers);
+  }, [updateTrigger, verifiedUsers]);
 
   // If no user is logged in, show login message
   if (!user) {
@@ -621,28 +652,71 @@ function ManagerDashboardContent() {
           </Card>
 
           {/* Team Attendance */}
-          <Card>
+          <Card key={`attendance-${verifiedUsers?.length || 0}-${updateTrigger}`}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Team Attendance</CardTitle>
               <Clock className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
+              {/* Debug Info */}
+             
               <div className="text-2xl font-bold text-green-600">
-                {attendanceStats.present}/{attendanceStats.total}
+                {verifiedUsers ? verifiedUsers.length : 0}/{teamMembers.length}
               </div>
-              <p className="text-xs text-muted-foreground">
-                <span className="text-green-600 font-medium">{attendanceStats.present} present</span> • 
-                <span className="text-red-600 font-medium ml-1">{attendanceStats.absent} absent</span>
-                {attendanceStats.pending > 0 && (
-                  <span className="text-yellow-600 font-medium ml-1"> • {attendanceStats.pending} pending</span>
+            
+              
+              {/* Verification Status Indicator */}
+              <div className="flex items-center gap-2 text-xs">
+                {verifiedUsers && verifiedUsers.length > 0 ? (
+                  <>
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <span className="text-green-600 font-medium">Verification Complete</span>
+                  </>
+                ) : (
+                  <>
+                    <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></div>
+                    <span className="text-orange-600 font-medium">Verification Required</span>
+                  </>
                 )}
-              </p>
+              </div>
+              
+              {/* Quick Action Hint */}
+              {(!verifiedUsers || verifiedUsers.length === 0) && (
+                <div className="mt-2 p-2 bg-orange-50 border border-orange-200 rounded text-xs text-orange-700">
+                  💡 Select team members who were present today and verify their attendance
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
 
+        {/* Debug Buttons - Temporary */}
+        {/* <div className="flex justify-end gap-2 mb-4">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => {
+              refreshVerificationData();
+            }}
+            className="text-blue-600 border-blue-300 hover:bg-blue-50"
+          >
+            🔄 Refresh Data
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => {
+              clearVerificationData();
+              window.location.reload();
+            }}
+            className="text-red-600 border-red-300 hover:bg-red-50"
+          >
+            🗑️ Clear Data
+          </Button>
+        </div> */}
+
         {/* Attendance Verification - Only show if navigation is blocked */}
-        <AttendanceVerification />
+        <AttendanceVerification onVerificationComplete={handleVerificationComplete} />
 
         {/* Team Attendance Details */}
         <Card>
@@ -652,11 +726,11 @@ function ManagerDashboardContent() {
               Today&apos;s Attendance Overview
             </CardTitle>
             <CardDescription>
-              Current attendance status for all team members
+              Current attendance status and verification status for all team members
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-6 gap-4 mb-6">
               <div className="text-center p-4 bg-green-50 rounded-lg">
                 <div className="text-2xl font-bold text-green-600">{attendanceStats.present}</div>
                 <div className="text-sm text-green-700">Present</div>
@@ -677,11 +751,19 @@ function ManagerDashboardContent() {
                 <div className="text-2xl font-bold text-blue-600">{attendanceStats.total}</div>
                 <div className="text-sm text-blue-700">Total Team</div>
               </div>
+              <div className={`text-center p-4 rounded-lg ${verifiedUsers && verifiedUsers.length > 0 ? 'bg-green-50' : 'bg-orange-50'}`}>
+                <div className={`text-2xl font-bold ${verifiedUsers && verifiedUsers.length > 0 ? 'text-green-600' : 'text-orange-600'}`}>
+                  {verifiedUsers ? verifiedUsers.length : 0}
+                </div>
+                <div className={`text-sm ${verifiedUsers && verifiedUsers.length > 0 ? 'text-green-700' : 'text-orange-700'}`}>
+                  Verified
+                </div>
+              </div>
             </div>
             
             {/* Verified Team Members Display */}
             {verifiedUsers && verifiedUsers.length > 0 && (
-              <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+              <div key={`verified-display-${updateTrigger}`} className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
                 <h4 className="text-sm font-medium text-green-800 mb-3 flex items-center gap-2">
                   <CheckCircle className="h-4 w-4" />
                   Verified Team Members
@@ -703,7 +785,7 @@ function ManagerDashboardContent() {
                   })}
                 </div>
                 <p className="text-xs text-green-600 mt-2">
-                  {verifiedUsers.length} team member{verifiedUsers.length !== 1 ? 's' : ''} verified for attendance
+                  {verifiedUsers.length} team member{verifiedUsers.length !== 1 ? 's' : ''} verified as present today
                 </p>
               </div>
             )}
