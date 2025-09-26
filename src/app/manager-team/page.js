@@ -354,7 +354,7 @@ function ManagerTeamPageContent() {
         </div>
 
         {/* Team Stats */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 md:grid-cols-3">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Team Members</CardTitle>
@@ -369,29 +369,20 @@ function ManagerTeamPageContent() {
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Permanent Staff</CardTitle>
-              <CheckCircle className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium">Performance</CardTitle>
+              <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
-                {teamMembers.filter(m => m.status === "permanent").length}
+              <div className="text-2xl font-bold text-blue-600">
+                {teamMembers.length > 0 ? Math.round(teamMembers.reduce((sum, member) => sum + (member.performance || 0), 0) / teamMembers.length) : 0}%
               </div>
               <p className="text-xs text-muted-foreground">
-                Full-time employees
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Trainees</CardTitle>
-              <Clock className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {teamMembers.filter(m => m.status === "trainee").length}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Learning and training
+                <span className="text-green-600 font-medium">
+                  {teamMembers.filter(m => (m.performance || 0) >= 80).length}
+                </span> excellent • 
+                <span className="text-yellow-600 font-medium ml-1">
+                  {teamMembers.filter(m => (m.performance || 0) >= 60 && (m.performance || 0) < 80).length}
+                </span> good
               </p>
             </CardContent>
           </Card>
