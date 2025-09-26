@@ -44,7 +44,8 @@ export default function PerformanceMarking() {
   const { getAttendanceForDate } = useAttendance();
   
   const [userRatings, setUserRatings] = useState({});
-  const [userNotes, setUserNotes] = useState({});
+  const [performanceRatings, setPerformanceRatings] = useState({});
+  const [performanceInputs, setPerformanceInputs] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submittingUsers, setSubmittingUsers] = useState(new Set());
   const [justMarkedPerformance, setJustMarkedPerformance] = useState(null);
@@ -304,9 +305,15 @@ export default function PerformanceMarking() {
   }, [teamPerformance]);
 
   // Handle performance submission for individual user
-  const handleSubmitPerformance = async (userId, rating, notes) => {
-    if (!rating) {
-      toast.error("Please select a rating");
+  const handleSubmitPerformance = async (userId, rating, notes, performanceRating, performanceInput) => {
+    if (!performanceRating) {
+      toast.error("Please select a performance rating");
+      return;
+    }
+
+    // Validate performance rating for bad/worst ratings
+    if ((performanceRating === 'bad' || performanceRating === 'worst') && !performanceInput?.trim()) {
+      toast.error("Please provide an explanation for the performance issues");
       return;
     }
 
@@ -333,12 +340,12 @@ export default function PerformanceMarking() {
           workerType: user.workerType 
         },
         performance: { 
-          rating: rating, 
+          rating: performanceRating, 
           markedAt: new Date().toISOString() 
         }
       };
       
-      console.log('Saving performance for:', user.name, 'ID:', userId, 'Rating:', rating);
+      console.log('Saving performance for:', user.name, 'ID:', userId, 'Rating:', performanceRating);
       console.log('Current teamPerformance before save:', teamPerformance);
       
       // Call markDailyPerformance first
@@ -346,8 +353,10 @@ export default function PerformanceMarking() {
         userId,
         currentUser.id,
         currentUser.name,
-        rating,
-        notes
+        performanceRating,
+        notes,
+        performanceRating,
+        performanceInput
       );
       console.log('Performance saved to localStorage for user:', userId);
 
@@ -413,9 +422,17 @@ export default function PerformanceMarking() {
     setUserRatings(prev => ({ ...prev, [userId]: rating }));
   };
 
-  // Handle notes change
-  const handleNotesChange = (userId, notes) => {
-    setUserNotes(prev => ({ ...prev, [userId]: notes }));
+
+  // Handle performance rating dropdown change
+  const handlePerformanceRatingChange = (userId, rating) => {
+    setPerformanceRatings(prev => ({ ...prev, [userId]: rating }));
+    // Clear input field when rating changes
+    setPerformanceInputs(prev => ({ ...prev, [userId]: '' }));
+  };
+
+  // Handle performance input field change
+  const handlePerformanceInputChange = (userId, input) => {
+    setPerformanceInputs(prev => ({ ...prev, [userId]: input }));
   };
 
   // Emoji mapping for performance levels
@@ -673,14 +690,13 @@ export default function PerformanceMarking() {
                   <TableHead>Account Locks</TableHead>
                   <TableHead>Current Status</TableHead>
                   <TableHead>Performance Rating</TableHead>
-                  <TableHead>Review Notes</TableHead>
                   <TableHead>Action</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredTeamMembers.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8">
+                    <TableCell colSpan={7} className="text-center py-8">
                       <div className="flex flex-col items-center gap-2">
                         <Users className="h-8 w-8 text-gray-400" />
                         <p className="text-gray-500">No team members found matching your criteria</p>
@@ -731,7 +747,6 @@ export default function PerformanceMarking() {
                     });
                   }
                   const currentRating = userRatings[member.id] || '';
-                  const currentNotes = userNotes[member.id] || '';
                 
                 return (
                     <TableRow 
@@ -829,45 +844,54 @@ export default function PerformanceMarking() {
 
                       {/* Performance Rating */}
                       <TableCell>
-                        <div className="flex gap-1">
+                        <div className="space-y-2">
+                          {/* Performance Rating Dropdown */}
+                          <Select
+                            value={performanceRatings[member.id] || ''}
+                            onValueChange={(value) => handlePerformanceRatingChange(member.id, value)}
+                            disabled={isMarked}
+                          >
+                            <SelectTrigger className="w-full">
+                              <SelectValue placeholder="Select rating" />
+                            </SelectTrigger>
+                            <SelectContent>
                 {performanceLevels.map((level) => (
-                  <Button
-                    key={level.value}
-                              variant={currentRating === level.value ? "default" : "outline"}
-                              size="sm"
-                              onClick={() => handleRatingChange(member.id, level.value)}
-                              className={`h-10 w-10 p-0 hover:scale-105 transition-transform ${
-                                currentRating === level.value 
-                        ? `${level.bgColor} ${level.color} border-current` 
-                                  : 'hover:bg-gray-50'
-                    }`}
+                                <SelectItem key={level.value} value={level.value}>
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-lg">{performanceEmojis[level.value]}</span>
+                                    <span>{level.label}</span>
+                                  </div>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          
+                          {/* Conditional Input Field for Bad/Worst ratings */}
+                          {(performanceRatings[member.id] === 'bad' || performanceRatings[member.id] === 'worst') && (
+                            <Input
+                              value={performanceInputs[member.id] || ''}
+                              onChange={(e) => handlePerformanceInputChange(member.id, e.target.value)}
+                              placeholder="Please explain the performance issues..."
+                              className="w-full"
                               disabled={isMarked}
-                              title={`${level.label} - ${level.value}`}
-                  >
-                              <span className="text-lg">{performanceEmojis[level.value]}</span>
-                  </Button>
-                ))}
+                            />
+                          )}
               </div>
                       </TableCell>
 
-                      {/* Review Notes */}
-                      <TableCell>
-              <Textarea
-                          value={currentNotes}
-                          onChange={(e) => handleNotesChange(member.id, e.target.value)}
-                          placeholder="Add review notes..."
-                          rows={2}
-                          className="w-full min-w-[200px]"
-                          disabled={isMarked}
-                        />
-                      </TableCell>
 
                       {/* Action */}
                       <TableCell>
                         {!isMarked ? (
               <Button
-                            onClick={() => handleSubmitPerformance(member.id, currentRating, currentNotes)}
-                            disabled={submittingUsers.has(member.id) || !currentRating}
+                            onClick={() => handleSubmitPerformance(
+                              member.id, 
+                              performanceRatings[member.id], 
+                              '', 
+                              performanceRatings[member.id], 
+                              performanceInputs[member.id]
+                            )}
+                            disabled={submittingUsers.has(member.id) || !performanceRatings[member.id]}
                             size="sm"
                             className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
                           >

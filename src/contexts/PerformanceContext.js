@@ -65,7 +65,7 @@ export function PerformanceProvider({ children }) {
   }, [performanceRecords]);
 
   // Mark daily performance for a worker
-  const markDailyPerformance = (workerId, managerId, managerName, rating, notes = '') => {
+  const markDailyPerformance = (workerId, managerId, managerName, rating, notes = '', performanceRating = null, performanceInput = '') => {
     const today = new Date().toISOString().split('T')[0];
     const newRecord = {
       workerId,
@@ -73,6 +73,8 @@ export function PerformanceProvider({ children }) {
       managerName,
       rating,
       notes,
+      performanceRating,
+      performanceInput,
       date: today,
       markedAt: new Date().toISOString()
     };

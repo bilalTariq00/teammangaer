@@ -36,6 +36,7 @@ export default function AttendanceVerification({ onVerificationComplete }) {
   const [teamMembers, setTeamMembers] = useState([]);
   const [isVerifying, setIsVerifying] = useState(false);
   const [justVerified, setJustVerified] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
 
   // Get today's date
   const today = new Date().toISOString().split('T')[0];
@@ -153,13 +154,14 @@ export default function AttendanceVerification({ onVerificationComplete }) {
       
       // Set just verified state to show success message
       setJustVerified(true);
+      setIsEditing(false);
       
       // Notify parent component
       if (onVerificationComplete) {
         onVerificationComplete(selectedUsers);
       }
       
-      toast.success(`Attendance verified for ${selectedUsers.length} team member(s)`);
+      toast.success(`Attendance ${isEditing ? 'updated' : 'verified'} for ${selectedUsers.length} team member(s)`);
       
       // Clear selection
       setSelectedUsers([]);
@@ -169,6 +171,20 @@ export default function AttendanceVerification({ onVerificationComplete }) {
     } finally {
       setIsVerifying(false);
     }
+  };
+
+  // Handle edit verification
+  const handleEditVerification = () => {
+    // Set current verified users as selected
+    setSelectedUsers(verifiedUsers || []);
+    setIsEditing(true);
+    setJustVerified(false);
+  };
+
+  // Handle cancel edit
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    setSelectedUsers([]);
   };
 
   // Manager attendance is already marked, so we don't need to check it here
@@ -186,8 +202,8 @@ export default function AttendanceVerification({ onVerificationComplete }) {
        
           </CardHeader>
       <CardContent className="space-y-4">
-        {/* Selection Interface - Only show when not just verified */}
-        {!justVerified && (
+        {/* Selection Interface - Show when not just verified or when editing */}
+        {(!justVerified || isEditing) && (
           <>
             {/* Select All */}
             <div className="flex items-center space-x-2">
@@ -252,7 +268,7 @@ export default function AttendanceVerification({ onVerificationComplete }) {
               <h4 className="text-sm font-medium text-green-800">Attendance Verified Successfully!</h4>
               </div>
             <p className="text-sm text-green-700 mb-3">
-              Team attendance has been verified. You can now proceed to other tasks.
+              Team attendance has been {isEditing ? 'updated' : 'verified'}. You can now proceed to other tasks.
             </p>
             <div className="flex items-center gap-2 text-sm text-green-600 mb-3">
               <UserCheck className="h-4 w-4" />
@@ -261,10 +277,10 @@ export default function AttendanceVerification({ onVerificationComplete }) {
                 <Button 
               variant="outline" 
                   size="sm"
-              onClick={() => setJustVerified(false)}
+              onClick={handleEditVerification}
               className="text-green-700 border-green-300 hover:bg-green-100"
                 >
-              Verify Again
+              Edit Verification
                 </Button>
               </div>
         )}
@@ -304,10 +320,19 @@ export default function AttendanceVerification({ onVerificationComplete }) {
           )}
                     </div>
                     
-        {/* Verify Button - Only show when not just verified */}
-        {!justVerified && (
-          <div className="flex justify-end pt-4">
-                        <Button
+        {/* Action Buttons */}
+        {(!justVerified || isEditing) && (
+          <div className="flex justify-end gap-2 pt-4">
+            {isEditing && (
+              <Button
+                variant="outline"
+                onClick={handleCancelEdit}
+                className="text-gray-600 border-gray-300 hover:bg-gray-50"
+              >
+                Cancel
+              </Button>
+            )}
+            <Button
               onClick={handleVerifyAttendance}
               disabled={selectedUsers.length === 0 || isVerifying}
               className="bg-blue-600 hover:bg-blue-700"
@@ -315,17 +340,17 @@ export default function AttendanceVerification({ onVerificationComplete }) {
               {isVerifying ? (
                 <>
                   <Clock className="h-4 w-4 mr-2 animate-spin" />
-                  Verifying...
+                  {isEditing ? 'Updating...' : 'Verifying...'}
                 </>
               ) : (
                 <>
                   <UserCheck className="h-4 w-4 mr-2" />
-                  Verify Attendance ({selectedUsers.length})
+                  {isEditing ? `Update Verification (${selectedUsers.length})` : `Verify Attendance (${selectedUsers.length})`}
                 </>
               )}
-                        </Button>
-            </div>
-          )}
+            </Button>
+          </div>
+        )}
         </CardContent>
       </Card>
   );
