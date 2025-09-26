@@ -31,14 +31,9 @@ export default function ViewEmployeePage() {
   const params = useParams();
   const employeeId = params?.id ? parseInt(params.id) : null;
   
-  // Safety check for context
-  let getUserById;
-  try {
-    const usersContext = useUsers();
-    getUserById = usersContext?.getUserById;
-  } catch (error) {
-    console.error('Error accessing UsersContext:', error);
-  }
+  // Always call hooks unconditionally
+  const usersContext = useUsers();
+  const getUserById = usersContext?.getUserById;
   
   const [isLoading, setIsLoading] = useState(true);
   const [isClient, setIsClient] = useState(false);

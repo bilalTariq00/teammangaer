@@ -18,15 +18,10 @@ export default function EditEmployeePage() {
   const params = useParams();
   const employeeId = params?.id ? parseInt(params.id) : null;
   
-  // Safety check for context
-  let getUserById, updateUser;
-  try {
-    const usersContext = useUsers();
-    getUserById = usersContext?.getUserById;
-    updateUser = usersContext?.updateUser;
-  } catch (error) {
-    console.error('Error accessing UsersContext:', error);
-  }
+  // Always call hooks unconditionally
+  const usersContext = useUsers();
+  const getUserById = usersContext?.getUserById;
+  const updateUser = usersContext?.updateUser;
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
