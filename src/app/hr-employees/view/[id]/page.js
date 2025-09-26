@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import dynamic from "next/dynamic";
 import { useRouter, useParams } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -26,7 +27,7 @@ import { useUsers } from "@/contexts/UsersContext";
 import { toast } from "sonner";
 import HRLayout from "@/components/layout/HRLayout";
 
-export default function ViewEmployeePage() {
+function ViewEmployeePage() {
   const router = useRouter();
   const params = useParams();
   const employeeId = params?.id ? parseInt(params.id) : null;
@@ -621,3 +622,16 @@ export default function ViewEmployeePage() {
     </HRLayout>
   );
 }
+
+// Export as dynamic component to prevent SSR issues
+export default dynamic(() => Promise.resolve(ViewEmployeePage), {
+  ssr: false,
+  loading: () => (
+    <div className="min-h-screen bg-gray-50/50 flex items-center justify-center">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+        <p className="text-gray-600">Loading...</p>
+      </div>
+    </div>
+  )
+});
