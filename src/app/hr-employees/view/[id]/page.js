@@ -451,6 +451,10 @@ export default function ViewEmployeePage() {
                       <p className="text-sm font-medium text-gray-600">Benefits</p>
                       <p className="text-gray-900">{employee.benefits || "—"}</p>
                     </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">Vacation Day</p>
+                      <p className="text-gray-900">{employee.vacationDay || "—"}</p>
+                    </div>
                   </div>
                 </CardContent>
               </Card>

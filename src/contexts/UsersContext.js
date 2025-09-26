@@ -26,7 +26,8 @@ const initialUsers = [
     locked: "unlocked",
     links: 1,
     created: "2025-09-10 20:17:31",
-    assignedUsers: []
+    assignedUsers: [],
+    vacationDay: "Friday"
   },
   {
     id: 2,
@@ -40,7 +41,8 @@ const initialUsers = [
     locked: "unlocked",
     links: 1,
     created: "2025-09-10 16:46:31",
-    assignedUsers: [5, 6] // Only permanent workers: Hasan Abbas (5) and Adnan Amir (6)
+    assignedUsers: [5, 6], // Only permanent workers: Hasan Abbas (5) and Adnan Amir (6)
+    vacationDay: "Saturday"
   },
   {
     id: 3,
@@ -54,7 +56,8 @@ const initialUsers = [
     locked: "unlocked",
     links: 0,
     created: "2025-09-10 15:30:15",
-    assignedUsers: []
+    assignedUsers: [],
+    vacationDay: "Sunday"
   },
   {
     id: 4,
@@ -69,7 +72,8 @@ const initialUsers = [
     links: 0,
     phone: "+92 307 1000052",
     created: "2025-09-09 14:22:10",
-    assignedUsers: [5, 6, 7]
+    assignedUsers: [5, 6, 7],
+    vacationDay: "Monday"
   },
   {
     id: 5,
@@ -85,7 +89,8 @@ const initialUsers = [
     links: 0,
     phone: "+92 300 1234567",
     created: "2025-09-09 10:15:30",
-    assignedUsers: []
+    assignedUsers: [],
+    vacationDay: "Tuesday"
   },
   {
     id: 6,
@@ -101,7 +106,8 @@ const initialUsers = [
     links: 0,
     phone: "+92 301 2345678",
     created: "2025-09-08 16:45:20",
-    assignedUsers: []
+    assignedUsers: [],
+    vacationDay: "Wednesday"
   },
   {
     id: 7,
@@ -117,7 +123,8 @@ const initialUsers = [
     links: 0,
     phone: "+92 302 3456789",
     created: "2025-09-08 12:30:15",
-    assignedUsers: []
+    assignedUsers: [],
+    vacationDay: "Thursday"
   },
   {
     id: 8,
@@ -131,7 +138,8 @@ const initialUsers = [
     locked: "unlocked",
     links: 0,
     created: "2025-09-07 09:20:45",
-    assignedUsers: []
+    assignedUsers: [],
+    vacationDay: "Wednesday"
   },
   {
     id: 9,
@@ -145,7 +153,8 @@ const initialUsers = [
     locked: "unlocked",
     links: 0,
     created: "2025-09-07 08:15:30",
-    assignedUsers: []
+    assignedUsers: [],
+    vacationDay: "Thursday"
   },
   {
     id: 10,
@@ -159,7 +168,8 @@ const initialUsers = [
     locked: "unlocked",
     links: 3,
     created: "2025-09-06 14:10:20",
-    assignedUsers: []
+    assignedUsers: [],
+    vacationDay: "Friday"
   },
   {
     id: 8,
@@ -173,13 +183,59 @@ const initialUsers = [
     locked: "unlocked",
     links: 2,
     created: "2025-09-08 10:30:15",
-    assignedUsers: [5, 6, 7]
+    assignedUsers: [5, 6, 7],
+    vacationDay: "Monday"
+  },
+  {
+    id: 11,
+    name: "John QC Manager",
+    email: "john.qc@joyapps.net",
+    role: "qc",
+    workerType: "qc",
+    defaultTasker: "Tasker Worker",
+    defaultTaskerSlug: "tasker-worker",
+    status: "permanent",
+    locked: "unlocked",
+    links: 0,
+    created: "2025-09-05 10:00:00",
+    assignedUsers: [],
+    vacationDay: "Tuesday"
+  },
+  {
+    id: 12,
+    name: "Sarah QC Lead",
+    email: "sarah.qc@joyapps.net",
+    role: "qc",
+    workerType: "qc",
+    defaultTasker: "Tasker Worker",
+    defaultTaskerSlug: "tasker-worker",
+    status: "permanent",
+    locked: "unlocked",
+    links: 0,
+    created: "2025-09-04 14:30:00",
+    assignedUsers: [],
+    vacationDay: "Wednesday"
+  },
+  {
+    id: 13,
+    name: "Mike QC Specialist",
+    email: "mike.qc@joyapps.net",
+    role: "qc",
+    workerType: "qc",
+    defaultTasker: "Tasker Worker",
+    defaultTaskerSlug: "tasker-worker",
+    status: "permanent",
+    locked: "unlocked",
+    links: 0,
+    created: "2025-09-03 09:15:00",
+    assignedUsers: [],
+    vacationDay: "Thursday"
   }
 ];
 
 export const UsersProvider = ({ children }) => {
   const [users, setUsers] = useState(initialUsers);
-  const [nextId, setNextId] = useState(12);
+  const [nextId, setNextId] = useState(14);
 
   // Load users from localStorage on mount
   useEffect(() => {

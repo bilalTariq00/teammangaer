@@ -418,9 +418,13 @@ function HRDashboardContent() {
                   <Users className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{users.length}</div>
+                  <div className="text-2xl font-bold">
+                    {users.filter(u => u.role === 'qc' || u.role === 'worker' || u.role === 'user').length}
+                  </div>
                   <p className="text-xs text-muted-foreground">
-                    <span className="text-green-600 font-medium">{users.filter(u => u.locked === "unlocked").length} active</span>
+                    <span className="text-green-600 font-medium">
+                      {users.filter(u => (u.role === 'qc' || u.role === 'worker' || u.role === 'user') && u.locked === "unlocked").length} active
+                    </span>
                   </p>
                 </CardContent>
               </Card>
@@ -433,7 +437,7 @@ function HRDashboardContent() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-orange-600">
-                    {users.filter(u => u.locked === "locked").length}
+                    {users.filter(u => (u.role === 'qc' || u.role === 'worker' || u.role === 'user') && u.locked === "locked").length}
                   </div>
                   <p className="text-xs text-muted-foreground">
                     Locked accounts
@@ -449,9 +453,11 @@ function HRDashboardContent() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">
-                    {new Set(users.map(u => {
+                    {new Set(users.filter(u => u.role === 'qc' || u.role === 'worker' || u.role === 'user').map(u => {
                       let dept = u.workerType || u.role;
-                      return dept === 'manager' ? 'QC' : dept;
+                      if (dept === 'manager') dept = 'QC';
+                      if (dept && dept.includes('-worker')) dept = dept.split('-')[0];
+                      return dept;
                     })).size}
                   </div>
                   <p className="text-xs text-muted-foreground">
@@ -475,13 +481,19 @@ function HRDashboardContent() {
                 <CardContent>
                   <div className="space-y-4">
                     {(() => {
-                      // Group users by department/role
-                      const departmentGroups = users.reduce((acc, user) => {
+                      // Group users by department/role (only QC and workers)
+                      const filteredUsers = users.filter(u => u.role === 'qc' || u.role === 'worker' || u.role === 'user');
+                      const departmentGroups = filteredUsers.reduce((acc, user) => {
                         let dept = user.workerType || user.role || 'Unknown';
                         
                         // Replace 'manager' with 'QC' for display
                         if (dept === 'manager') {
                           dept = 'QC';
+                        }
+                        
+                        // Simplify worker types for display
+                        if (dept.includes('-worker')) {
+                          dept = dept.split('-')[0];
                         }
                         
                         if (!acc[dept]) {

@@ -70,7 +70,8 @@ export default function EditEmployeePage() {
     // Additional Information
     notes: "",
     assignedUsers: [],
-    defaultTasker: "none"
+    defaultTasker: "none",
+    vacationDay: "Monday"
   });
 
   // Set client-side flag
@@ -337,10 +338,7 @@ export default function EditEmployeePage() {
                           <SelectValue placeholder="Select role" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="admin">Admin</SelectItem>
-                          <SelectItem value="manager">Manager</SelectItem>
                           <SelectItem value="qc">QC (Quality Control)</SelectItem>
-                          <SelectItem value="hr">HR (Human Resources)</SelectItem>
                           <SelectItem value="worker">Worker</SelectItem>
                         </SelectContent>
                       </Select>
@@ -607,6 +605,32 @@ export default function EditEmployeePage() {
                         placeholder="XXX-XX-XXXX"
                         className="h-10"
                       />
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="vacationDay" className="text-sm font-medium text-gray-700">
+                        Vacation Day <span className="text-red-500">*</span>
+                      </Label>
+                      <Select 
+                        value={employee.vacationDay} 
+                        onValueChange={(value) => handleEmployeeChange("vacationDay", value)}
+                      >
+                        <SelectTrigger className="h-10">
+                          <SelectValue placeholder="Select vacation day" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Monday">Monday</SelectItem>
+                          <SelectItem value="Tuesday">Tuesday</SelectItem>
+                          <SelectItem value="Wednesday">Wednesday</SelectItem>
+                          <SelectItem value="Thursday">Thursday</SelectItem>
+                          <SelectItem value="Friday">Friday</SelectItem>
+                          <SelectItem value="Saturday">Saturday</SelectItem>
+                          <SelectItem value="Sunday">Sunday</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-gray-500">Select the day of the week for this employee&apos;s vacation</p>
                     </div>
                   </div>
                   

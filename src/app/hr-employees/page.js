@@ -38,6 +38,8 @@ export default function HREmployeesPage() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [roleFilter, setRoleFilter] = useState("all");
   const [isLoading, setIsLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   // Debug logging
   console.log('HREmployeesPage Debug:', {
@@ -89,7 +91,8 @@ export default function HREmployeesPage() {
       notes: user.notes || "",
       // Contact info (user can edit)
       contactNumber: user.contactNumber || "",
-      emergencyNumber: user.emergencyNumber || ""
+      emergencyNumber: user.emergencyNumber || "",
+      vacationDay: user.vacationDay || "Monday" // Include vacation day
     }));
     
     // Debug: Check for duplicate IDs
@@ -126,6 +129,12 @@ export default function HREmployeesPage() {
       return false;
     }
 
+    // Only show QC and workers, exclude managers and HR
+    const isAllowedRole = employee.role === 'qc' || employee.role === 'worker' || employee.role === 'user';
+    if (!isAllowedRole) {
+      return false;
+    }
+
     const matchesSearch = 
       (employee.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       (employee.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -133,7 +142,9 @@ export default function HREmployeesPage() {
       (employee.department || '').toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesStatus = statusFilter === "all" || employee.status === statusFilter;
-    const matchesRole = roleFilter === "all" || employee.role === roleFilter;
+    const matchesRole = roleFilter === "all" || 
+      (roleFilter === "worker" && (employee.role === "worker" || employee.role === "user")) ||
+      (roleFilter === "qc" && employee.role === "qc");
     
     return matchesSearch && matchesStatus && matchesRole;
   });
@@ -148,6 +159,17 @@ export default function HREmployeesPage() {
     }
     return acc;
   }, []);
+
+  // Pagination logic
+  const totalPages = Math.ceil(uniqueFilteredEmployees.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedEmployees = uniqueFilteredEmployees.slice(startIndex, endIndex);
+
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter, roleFilter]);
 
   const handleCreateEmployee = () => {
     router.push("/hr-employees/create");
@@ -249,7 +271,7 @@ export default function HREmployeesPage() {
                 <Users className="h-4 w-4 text-blue-600" />
                 <div>
                   <p className="text-sm text-gray-600">Total Employees</p>
-                  <p className="text-2xl font-bold">{employees.length}</p>
+                  <p className="text-2xl font-bold">{uniqueFilteredEmployees.length}</p>
                 </div>
               </div>
             </CardContent>
@@ -367,11 +389,12 @@ export default function HREmployeesPage() {
                     <th className="text-left p-3 font-medium text-gray-600">Salary</th>
                     <th className="text-left p-3 font-medium text-gray-600">Join Date</th>
                     <th className="text-left p-3 font-medium text-gray-600">Target</th>
+                    <th className="text-left p-3 font-medium text-gray-600">Vacation Day</th>
                     <th className="text-left p-3 font-medium text-gray-600">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {uniqueFilteredEmployees.map((employee, index) => (
+                  {paginatedEmployees.map((employee, index) => (
                     <tr key={`${employee.id}-${index}`} className="border-b hover:bg-gray-50">
                       <td className="p-3">
                         <div className="flex items-center gap-3">
@@ -395,11 +418,14 @@ export default function HREmployeesPage() {
                       <td className="p-3">
                         <div className="flex flex-col gap-1">
                           <Badge variant={getRoleBadgeVariant(employee.role)}>
-                            {employee.role.toUpperCase()}
+                            {employee.role === 'user' ? 'WORKER' : employee.role.toUpperCase()}
                           </Badge>
                           {employee.workerType && (
                             <span className="text-xs text-gray-500">
-                              {employee.workerType.replace('-', ' ').toUpperCase()}
+                              {employee.workerType.includes('-') 
+                                ? employee.workerType.split('-')[0].toUpperCase()
+                                : employee.workerType.toUpperCase()
+                              }
                             </span>
                           )}
                         </div>
@@ -437,6 +463,12 @@ export default function HREmployeesPage() {
                       </td>
                       <td className="p-3">
                         <div className="flex items-center gap-1">
+                          <Calendar className="h-4 w-4 text-blue-600" />
+                          <span className="text-sm font-medium">{employee.vacationDay || "—"}</span>
+                        </div>
+                      </td>
+                      <td className="p-3">
+                        <div className="flex items-center gap-1">
                           <Button
                             variant="ghost"
                             size="sm"
@@ -469,6 +501,95 @@ export default function HREmployeesPage() {
                 </tbody>
               </table>
             </div>
+            
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between px-6 py-4 border-t">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-600">
+                    Showing {startIndex + 1} to {Math.min(endIndex, uniqueFilteredEmployees.length)} of {uniqueFilteredEmployees.length} employees
+                  </span>
+                  <Select value={itemsPerPage.toString()} onValueChange={(value) => {
+                    setItemsPerPage(parseInt(value));
+                    setCurrentPage(1);
+                  }}>
+                    <SelectTrigger className="w-20">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="5">5</SelectItem>
+                      <SelectItem value="10">10</SelectItem>
+                      <SelectItem value="20">20</SelectItem>
+                      <SelectItem value="50">50</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <span className="text-sm text-gray-600">per page</span>
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(1)}
+                    disabled={currentPage === 1}
+                  >
+                    First
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(currentPage - 1)}
+                    disabled={currentPage === 1}
+                  >
+                    Previous
+                  </Button>
+                  
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                      let pageNum;
+                      if (totalPages <= 5) {
+                        pageNum = i + 1;
+                      } else if (currentPage <= 3) {
+                        pageNum = i + 1;
+                      } else if (currentPage >= totalPages - 2) {
+                        pageNum = totalPages - 4 + i;
+                      } else {
+                        pageNum = currentPage - 2 + i;
+                      }
+                      
+                      return (
+                        <Button
+                          key={pageNum}
+                          variant={currentPage === pageNum ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setCurrentPage(pageNum)}
+                          className="w-8 h-8 p-0"
+                        >
+                          {pageNum}
+                        </Button>
+                      );
+                    })}
+                  </div>
+                  
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                  >
+                    Next
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(totalPages)}
+                    disabled={currentPage === totalPages}
+                  >
+                    Last
+                  </Button>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
