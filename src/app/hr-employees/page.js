@@ -417,7 +417,7 @@ export default function HREmployeesPage() {
                       </td>
                       <td className="p-3">
                         <div className="flex items-center gap-1">
-                          <DollarSign className="h-3 w-3 text-green-600" />
+                        
                           <span className="text-sm font-medium text-green-700">
                             ${employee.salary ? employee.salary.toLocaleString() : '0'}/month
                           </span>

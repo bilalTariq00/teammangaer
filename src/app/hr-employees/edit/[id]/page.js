@@ -26,6 +26,7 @@ export default function EditEmployeePage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isClient, setIsClient] = useState(false);
+  const [error, setError] = useState(null);
   
   // Comprehensive employee state with all HR fields
   const [employee, setEmployee] = useState({
@@ -76,17 +77,27 @@ export default function EditEmployeePage() {
   // Load employee data
   useEffect(() => {
     if (!isClient) return;
+    
     const loadEmployee = async () => {
       setIsLoading(true);
+      setError(null);
+      
       try {
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 500));
+        // Wait a bit for context to be ready
+        await new Promise(resolve => setTimeout(resolve, 100));
         
         // Safety check for getUserById function
         if (!getUserById || typeof getUserById !== 'function') {
-          console.error('getUserById function not available');
-          toast.error("Unable to load employee data");
-          router.push("/hr-employees");
+          console.error('getUserById function not available, context might not be ready');
+          setError('Context not ready. Please refresh the page.');
+          setIsLoading(false);
+          return;
+        }
+        
+        if (!employeeId || isNaN(employeeId)) {
+          console.error('Invalid employee ID:', employeeId);
+          setError('Invalid employee ID');
+          setIsLoading(false);
           return;
         }
         
@@ -121,14 +132,13 @@ export default function EditEmployeePage() {
           };
           setEmployee(employeeData);
         } else {
-          toast.error("Employee not found");
-          router.push("/hr-employees");
+          console.error("Employee not found for ID:", employeeId);
+          setError("Employee not found");
+          setIsLoading(false);
         }
       } catch (error) {
         console.error("Error loading employee:", error);
-        toast.error("Failed to load employee data");
-        router.push("/hr-employees");
-      } finally {
+        setError("Failed to load employee data. Please try again.");
         setIsLoading(false);
       }
     };
@@ -137,12 +147,12 @@ export default function EditEmployeePage() {
       loadEmployee();
     } else if (!employeeId) {
       console.error('Invalid employee ID');
-      toast.error("Invalid employee ID");
-      router.push("/hr-employees");
+      setError("Invalid employee ID");
+      setIsLoading(false);
     } else if (!getUserById) {
       console.error('Context not available');
-      toast.error("Unable to access employee data");
-      router.push("/hr-employees");
+      setError("Unable to access employee data. Please refresh the page.");
+      setIsLoading(false);
     }
   }, [employeeId, router, getUserById, isClient]);
 
@@ -225,6 +235,35 @@ export default function EditEmployeePage() {
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
             <p className="text-gray-600">{!isClient ? 'Loading...' : 'Loading employee data...'}</p>
+          </div>
+        </div>
+      </HRLayout>
+    );
+  }
+
+  if (error) {
+    return (
+      <HRLayout>
+        <div className="min-h-screen bg-gray-50/50 flex items-center justify-center">
+          <div className="text-center max-w-md mx-auto p-6">
+            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <User className="h-8 w-8 text-red-600" />
+            </div>
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">Error Loading Employee</h1>
+            <p className="text-gray-600 mb-6">{error}</p>
+            <div className="space-y-3">
+              <Button onClick={() => window.location.reload()} className="w-full">
+                Refresh Page
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={() => router.push("/hr-employees")} 
+                className="w-full"
+              >
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back to Employees
+              </Button>
+            </div>
           </div>
         </div>
       </HRLayout>
