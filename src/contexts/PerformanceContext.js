@@ -14,18 +14,13 @@ export function PerformanceProvider({ children }) {
   const [performanceRecords, setPerformanceRecords] = useState({});
   const [isLoading, setIsLoading] = useState(false);
   
-  // Safely get context values with fallbacks
-  let user = null;
-  let users = [];
+  // Always call hooks unconditionally
+  const authContext = useAuth();
+  const usersContext = useUsers();
   
-  try {
-    const authContext = useAuth();
-    const usersContext = useUsers();
-    user = authContext?.user || null;
-    users = usersContext?.users || [];
-  } catch (error) {
-    console.warn('PerformanceContext: Context not available yet', error);
-  }
+  // Safely get context values with fallbacks
+  const user = authContext?.user || null;
+  const users = usersContext?.users || [];
 
   // Performance rating options
   const performanceLevels = [
