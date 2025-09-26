@@ -16,10 +16,21 @@ import HRLayout from "@/components/layout/HRLayout";
 export default function EditEmployeePage() {
   const router = useRouter();
   const params = useParams();
-  const employeeId = parseInt(params.id);
-  const { getUserById, updateUser } = useUsers();
+  const employeeId = params?.id ? parseInt(params.id) : null;
+  
+  // Safety check for context
+  let getUserById, updateUser;
+  try {
+    const usersContext = useUsers();
+    getUserById = usersContext?.getUserById;
+    updateUser = usersContext?.updateUser;
+  } catch (error) {
+    console.error('Error accessing UsersContext:', error);
+  }
+  
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isClient, setIsClient] = useState(false);
   
   // Comprehensive employee state with all HR fields
   const [employee, setEmployee] = useState({
@@ -62,13 +73,27 @@ export default function EditEmployeePage() {
     defaultTasker: "none"
   });
 
+  // Set client-side flag
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
   // Load employee data
   useEffect(() => {
+    if (!isClient) return;
     const loadEmployee = async () => {
       setIsLoading(true);
       try {
         // Simulate API call
         await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Safety check for getUserById function
+        if (!getUserById || typeof getUserById !== 'function') {
+          console.error('getUserById function not available');
+          toast.error("Unable to load employee data");
+          router.push("/hr-employees");
+          return;
+        }
         
         const foundUser = getUserById(employeeId);
         if (foundUser) {
@@ -113,10 +138,18 @@ export default function EditEmployeePage() {
       }
     };
 
-    if (employeeId) {
+    if (employeeId && getUserById) {
       loadEmployee();
+    } else if (!employeeId) {
+      console.error('Invalid employee ID');
+      toast.error("Invalid employee ID");
+      router.push("/hr-employees");
+    } else if (!getUserById) {
+      console.error('Context not available');
+      toast.error("Unable to access employee data");
+      router.push("/hr-employees");
     }
-  }, [employeeId, router, getUserById]);
+  }, [employeeId, router, getUserById, isClient]);
 
   // Handle employee data changes
   const handleEmployeeChange = (field, value) => {
@@ -190,13 +223,13 @@ export default function EditEmployeePage() {
     router.push("/hr-employees");
   };
 
-  if (isLoading) {
+  if (!isClient || isLoading) {
     return (
       <HRLayout>
         <div className="min-h-screen bg-gray-50/50 flex items-center justify-center">
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading employee data...</p>
+            <p className="text-gray-600">{!isClient ? 'Loading...' : 'Loading employee data...'}</p>
           </div>
         </div>
       </HRLayout>
