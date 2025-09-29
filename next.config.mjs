@@ -8,6 +8,15 @@ const nextConfig = {
   // Add cache busting for development
   generateEtags: false,
   poweredByHeader: false,
+  // Ensure API routes work properly on Vercel
+  async rewrites() {
+    return [
+      {
+        source: '/api/:path*',
+        destination: '/api/:path*',
+      },
+    ]
+  },
   webpack: (config, { dev, isServer }) => {
     if (dev && !isServer) {
       config.watchOptions = {
