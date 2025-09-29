@@ -25,8 +25,8 @@ export default function UserHeader({ sidebarCollapsed, onSidebarToggle }) {
     setShowLogoutConfirmation(true);
   };
 
-  const handleLogoutConfirm = () => {
-    logout();
+  const handleLogoutConfirm = async () => {
+    await logout();
   };
 
   return (

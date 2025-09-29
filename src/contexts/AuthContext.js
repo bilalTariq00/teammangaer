@@ -331,7 +331,28 @@ export function AuthProvider({ children }) {
     return { success: false, error: "No user logged in" };
   };
 
-  const logout = () => {
+  const logout = async () => {
+    try {
+      // Call logout API
+      const response = await fetch('/api/auth/logout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const result = await response.json();
+      
+      if (result.success) {
+        console.log('Logout successful');
+      } else {
+        console.warn('Logout API returned error:', result.error);
+      }
+    } catch (error) {
+      console.error('Logout API error:', error);
+      // Continue with logout even if API fails
+    }
+
     // Clear user state
     setUser(null);
     
