@@ -18,6 +18,7 @@ import { ArrowLeft, Target, Plus, MousePointer, Users, TrendingUp, CheckCircle, 
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import RoleProtectedRoute from "@/components/RoleProtectedRoute";
 
 const quickDateRanges = [
   "Today",
@@ -1130,7 +1131,8 @@ export default function CampaignsPage() {
   }
 
   return (
-    <MainLayout>
+    <RoleProtectedRoute allowedRoles={["admin"]}>
+      <MainLayout>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
@@ -1506,7 +1508,8 @@ export default function CampaignsPage() {
             </div>
           </DialogContent>
         </Dialog>
-      </div>
-    </MainLayout>
+        </div>
+      </MainLayout>
+    </RoleProtectedRoute>
   );
 }

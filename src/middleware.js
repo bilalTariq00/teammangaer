@@ -41,7 +41,7 @@ export function middleware(request) {
   const isAttendanceRoute = attendanceRoutes.some(route => pathname.startsWith(route));
   const isSharedRoute = sharedRoutes.some(route => pathname.startsWith(route));
   
-  // Get user role from cookies or headers
+  // Get user role from cookie
   const userRole = request.cookies.get('user-role')?.value;
   
   // Debug logging

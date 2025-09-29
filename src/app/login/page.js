@@ -24,26 +24,60 @@ export default function LoginPage() {
     setLoading(true);
     setError("");
 
-    const result = await login(email, password);
-    
-    if (result.success) {
-      // Redirect based on user role
-      const user = JSON.parse(localStorage.getItem("user"));
-      if (user.role === "admin") {
-        router.push("/dashboard");
-      } else if (user.role === "manager") {
-        router.push("/manager-dashboard");
-      } else if (user.role === "qc") {
-        router.push("/qc-dashboard");
-      } else if (user.role === "hr") {
-        router.push("/hr-dashboard");
-      } else if (user.role === "user") {
-        router.push("/user-dashboard");
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const result = await response.json();
+      
+      if (result.success) {
+        // Debug logging
+        console.log('Login successful, user data:', result.user);
+        console.log('User role:', result.user.role);
+        
+        // Store token and user data
+        localStorage.setItem('token', result.token);
+        localStorage.setItem('user', JSON.stringify(result.user));
+        
+        // Set user role cookie for middleware access
+        document.cookie = `user-role=${result.user.role}; path=/; max-age=86400`; // 24 hours
+        
+        console.log('Stored user in localStorage:', JSON.parse(localStorage.getItem('user')));
+        console.log('Cookie set:', document.cookie);
+        
+        // Dispatch custom event to notify AuthContext of login
+        window.dispatchEvent(new CustomEvent('userLogin', { 
+          detail: { user: result.user, token: result.token } 
+        }));
+        
+        // Small delay to ensure localStorage is updated before redirect
+        setTimeout(() => {
+          // Redirect based on user role
+          if (result.user.role === "admin") {
+            router.push("/dashboard");
+          } else if (result.user.role === "manager") {
+            router.push("/manager-dashboard");
+          } else if (result.user.role === "qc") {
+            router.push("/qc-dashboard");
+          } else if (result.user.role === "hr") {
+            router.push("/hr-dashboard");
+          } else if (result.user.role === "user") {
+            router.push("/user-dashboard");
+          } else {
+            router.push("/dashboard");
+          }
+        }, 100);
       } else {
-        router.push("/dashboard");
+        setError(result.error || 'Login failed');
       }
-    } else {
-      setError(result.error);
+    } catch (error) {
+      console.error('Login error:', error);
+      setError('Network error. Please try again.');
     }
     
     setLoading(false);

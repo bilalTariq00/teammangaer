@@ -9,18 +9,24 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    // Check if user is logged in on mount (only in browser)
+  const loadUserFromStorage = () => {
     if (typeof window !== 'undefined') {
+      const token = localStorage.getItem("token");
       const savedUser = localStorage.getItem("user");
-      if (savedUser) {
+      
+      console.log('AuthContext loadUserFromStorage - token:', token ? 'present' : 'missing');
+      console.log('AuthContext loadUserFromStorage - savedUser:', savedUser ? 'present' : 'missing');
+      
+      if (token && savedUser) {
         try {
           const userData = JSON.parse(savedUser);
+          console.log('AuthContext loadUserFromStorage - parsed userData:', userData);
           
           // Check if user is locked
           if (userData.locked === "locked") {
             // Log out locked user
             localStorage.removeItem("user");
+            localStorage.removeItem("token");
             clearUserRoleCookie();
             setUser(null);
             return;
@@ -29,14 +35,57 @@ export function AuthProvider({ children }) {
           setUser(userData);
           // Set user role in cookie for middleware access
           setUserRoleCookie(userData.role);
+          console.log('AuthContext loadUserFromStorage - user set, role:', userData.role);
         } catch (error) {
+          console.error('AuthContext loadUserFromStorage - error parsing user data:', error);
           // If there's an error parsing user data, clear it
           localStorage.removeItem("user");
+          localStorage.removeItem("token");
           setUser(null);
         }
+      } else {
+        console.log('AuthContext loadUserFromStorage - no token or savedUser found');
+        // If no user data, clear any existing data
+        localStorage.removeItem("user");
+        localStorage.removeItem("token");
+        clearUserRoleCookie();
+        setUser(null);
       }
     }
+  };
+
+  useEffect(() => {
+    // Check if user is logged in on mount (only in browser)
+    loadUserFromStorage();
     setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    // Listen for storage changes (when user logs in from another tab)
+    if (typeof window !== 'undefined') {
+      const handleStorageChange = (e) => {
+        if (e.key === 'user' || e.key === 'token') {
+          console.log('AuthContext - storage changed, reloading user');
+          loadUserFromStorage();
+        }
+      };
+
+      const handleUserLogin = (e) => {
+        console.log('AuthContext - user login event received', e.detail);
+        if (e.detail && e.detail.user) {
+          setUser(e.detail.user);
+          setUserRoleCookie(e.detail.user.role);
+        }
+      };
+
+      window.addEventListener('storage', handleStorageChange);
+      window.addEventListener('userLogin', handleUserLogin);
+      
+      return () => {
+        window.removeEventListener('storage', handleStorageChange);
+        window.removeEventListener('userLogin', handleUserLogin);
+      };
+    }
   }, []);
 
   const login = async (email, password) => {
@@ -288,6 +337,10 @@ export function AuthProvider({ children }) {
     
     // Clear all cache and storage (only in browser)
     if (typeof window !== 'undefined') {
+      localStorage.removeItem("user");
+      localStorage.removeItem("token");
+      // Clear user role cookie
+      document.cookie = "user-role=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
       clearAllCache();
       // Force logout with redirect
       forceLogout();

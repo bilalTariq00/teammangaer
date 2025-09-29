@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import UserManagementLayout from "@/components/layout/UserManagementLayout";
 import { UserHeader, UserContent } from "./components";
 import { useUsers } from "@/contexts/UsersContext";
+import RoleProtectedRoute from "@/components/RoleProtectedRoute";
 
 
 export default function UsersPage() {
@@ -136,7 +137,8 @@ export default function UsersPage() {
   }
 
   return (
-    <UserManagementLayout>
+    <RoleProtectedRoute allowedRoles={["admin", "hr"]}>
+      <UserManagementLayout>
       <div className="space-y-6 h-full">
         <UserHeader
           searchTerm={searchTerm}
@@ -167,7 +169,8 @@ export default function UsersPage() {
           onDeleteUser={handleDeleteUser}
           onWorkerClick={handleWorkerClick}
         />
-      </div>
-    </UserManagementLayout>
+        </div>
+      </UserManagementLayout>
+    </RoleProtectedRoute>
   );
 }

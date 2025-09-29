@@ -17,6 +17,8 @@ import {
   ChevronRight
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import RoleProtectedRoute from "@/components/RoleProtectedRoute";
+
 
 // Mock data for dashboard
 const mockCampaigns = [
@@ -98,8 +100,9 @@ export default function DashboardPage() {
   };
 
   return (
-    <MainLayout>
-      <div className="space-y-6">
+    <RoleProtectedRoute allowedRoles={["admin"]}>
+      <MainLayout>
+        <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
@@ -181,14 +184,14 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
         </div>
-        {/* Recent Activity */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent Activity</CardTitle>
+          {/* Recent Activity */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Recent Activity</CardTitle>
             <CardDescription>User login events and account lock events</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
               {/* Scrollable activity list */}
               <div className="max-h-96 overflow-y-auto space-y-3">
                 {currentActivity.map((activity) => (
@@ -208,14 +211,14 @@ export default function DashboardPage() {
                         ) : (
                           <AlertTriangle className="w-4 h-4 text-orange-600" />
                         )}
-                      </div>
+                    </div>
                       <div>
                         <p className="font-medium">
                           {activity.user} {activity.action}
                           {activity.lockCount && ` (${activity.lockCount}${activity.lockCount === 1 ? 'st' : activity.lockCount === 2 ? 'nd' : activity.lockCount === 3 ? 'rd' : 'th'} time)`}
                         </p>
                         <p className="text-sm text-gray-500">{activity.timestamp}</p>
-                      </div>
+                    </div>
                     </div>
                     <div className="text-right">
                       <p className={`text-sm font-medium ${
@@ -230,27 +233,27 @@ export default function DashboardPage() {
                     </div>
                   </div>
                 ))}
-              </div>
+                  </div>
 
               {/* Pagination */}
               <div className="flex items-center justify-between pt-4 border-t">
                 <div className="text-sm text-gray-500">
                   Showing {startIndex + 1} to {Math.min(endIndex, mockRecentActivity.length)} of {mockRecentActivity.length} activities
-                </div>
+          </div>
                 <div className="flex items-center space-x-2">
-                  <Button
-                    variant="outline"
+              <Button 
+                variant="outline" 
                     size="sm"
                     onClick={() => handlePageChange(currentPage - 1)}
                     disabled={currentPage === 1}
-                  >
+              >
                     <ChevronLeft className="w-4 h-4" />
                     Previous
-                  </Button>
+              </Button>
                   
                   <div className="flex items-center space-x-1">
                     {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                      <Button
+              <Button 
                         key={page}
                         variant={currentPage === page ? "default" : "outline"}
                         size="sm"
@@ -258,25 +261,26 @@ export default function DashboardPage() {
                         className="w-8 h-8 p-0"
                       >
                         {page}
-                      </Button>
+              </Button>
                     ))}
                   </div>
                   
-                  <Button
-                    variant="outline"
+              <Button 
+                variant="outline" 
                     size="sm"
                     onClick={() => handlePageChange(currentPage + 1)}
                     disabled={currentPage === totalPages}
-                  >
+              >
                     Next
                     <ChevronRight className="w-4 h-4" />
-                  </Button>
+              </Button>
                 </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    </MainLayout>
+                  </div>
+                </CardContent>
+              </Card>
+        </div>
+      </MainLayout>
+    </RoleProtectedRoute>
   );
 }
