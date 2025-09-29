@@ -27,7 +27,6 @@ const UserTable = ({
             <TableHead className="w-[200px] px-4 py-3 text-left font-semibold">Email</TableHead>
             <TableHead className="w-[80px] px-4 py-3 text-center font-semibold">Role</TableHead>
             <TableHead className="w-[120px] px-4 py-3 text-center font-semibold">Worker Type</TableHead>
-            <TableHead className="w-[150px] px-4 py-3 text-left font-semibold">Default Tasker</TableHead>
             <TableHead className="w-[100px] px-4 py-3 text-center font-semibold">Status</TableHead>
             <TableHead className="w-[80px] px-4 py-3 text-center font-semibold">Locked</TableHead>
             <TableHead className="w-[60px] px-4 py-3 text-center font-semibold">Links</TableHead>
@@ -66,9 +65,6 @@ const UserTable = ({
                 <Badge variant="outline" className="text-xs">
                   {user.workerType?.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
                 </Badge>
-              </TableCell>
-              <TableCell className="w-[150px] px-4 py-3 text-left text-sm">
-                {user.defaultTasker}
               </TableCell>
               <TableCell className="w-[100px] px-4 py-3 text-center">
                 <Badge 

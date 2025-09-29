@@ -11,7 +11,22 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, Search, Edit, Ban, ExternalLink, Trash2, AlertTriangle } from "lucide-react";
+import { Plus, Search, Edit, Ban, ExternalLink, Trash2, AlertTriangle, CheckCircle } from "lucide-react";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { useEffect, useRef } from "react";
+
+// Mock workers data with creation dates (newest first)
+const mockWorkers = [
+  { id: 1, name: "Muhammad Shahood", email: "Shahood1@joyapps.net", createdAt: "2025-01-15" },
+  { id: 2, name: "Abid", email: "Abid1@joyapps.net", createdAt: "2025-01-14" },
+  { id: 3, name: "Hassan", email: "Hassan1@joyapps.net", createdAt: "2025-01-13" },
+  { id: 4, name: "Zaim", email: "Zaim1@joyapps.net", createdAt: "2025-01-12" },
+  { id: 5, name: "Hamza Farid", email: "Hamza1@joyapps.net", createdAt: "2025-01-11" },
+  { id: 6, name: "Sarah Johnson", email: "Sarah1@joyapps.net", createdAt: "2025-01-10" },
+  { id: 7, name: "Emma Wilson", email: "Emma1@joyapps.net", createdAt: "2025-01-09" },
+  { id: 8, name: "Alex Rodriguez", email: "Alex1@joyapps.net", createdAt: "2025-01-08" },
+];
 
 const mockLinks = [
   {
@@ -106,6 +121,31 @@ export default function LinksPage() {
     country: "US",
     min: ""
   });
+  const [workerSearchOpen, setWorkerSearchOpen] = useState(false);
+  const [workerSearchQuery, setWorkerSearchQuery] = useState("");
+  const [editWorkerSearchOpen, setEditWorkerSearchOpen] = useState(false);
+  const [editWorkerSearchQuery, setEditWorkerSearchQuery] = useState("");
+  
+  // Refs for click outside detection
+  const workerSearchRef = useRef(null);
+  const editWorkerSearchRef = useRef(null);
+
+  // Click outside handlers
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (workerSearchRef.current && !workerSearchRef.current.contains(event.target)) {
+        setWorkerSearchOpen(false);
+      }
+      if (editWorkerSearchRef.current && !editWorkerSearchRef.current.contains(event.target)) {
+        setEditWorkerSearchOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
   const [editLink, setEditLink] = useState({
     destination: "",
     worker: "",
@@ -212,6 +252,27 @@ export default function LinksPage() {
     setDeletingLink(null);
   };
 
+  const handleDeactivateLink = (link) => {
+    // Toggle the status of the link
+    setLinks(links.map(l => 
+      l.id === link.id 
+        ? { ...l, status: l.status === 'active' ? 'inactive' : 'active' }
+        : l
+    ));
+  };
+
+  // Filter workers based on search query
+  const filteredWorkers = mockWorkers.filter(worker =>
+    worker.name.toLowerCase().includes(workerSearchQuery.toLowerCase()) ||
+    worker.email.toLowerCase().includes(workerSearchQuery.toLowerCase())
+  );
+
+  // Filter workers for edit form
+  const filteredEditWorkers = mockWorkers.filter(worker =>
+    worker.name.toLowerCase().includes(editWorkerSearchQuery.toLowerCase()) ||
+    worker.email.toLowerCase().includes(editWorkerSearchQuery.toLowerCase())
+  );
+
   return (
     <MainLayout>
       <div className="space-y-6">
@@ -261,18 +322,40 @@ export default function LinksPage() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="worker">Worker</Label>
-                    <Select value={newLink.worker} onValueChange={(value) => setNewLink({...newLink, worker: value})}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a worker" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Muhammad Shahood">Muhammad Shahood</SelectItem>
-                        <SelectItem value="Abid">Abid</SelectItem>
-                        <SelectItem value="Hassan">Hassan</SelectItem>
-                        <SelectItem value="Zaim">Zaim</SelectItem>
-                        <SelectItem value="Hamza Farid">Hamza Farid</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <div className="relative" ref={workerSearchRef}>
+                      <Command className="border rounded-md">
+                        <CommandInput
+                          placeholder={newLink.worker || "Search workers..."}
+                          value={workerSearchOpen ? workerSearchQuery : newLink.worker}
+                          onValueChange={setWorkerSearchQuery}
+                          onFocus={() => setWorkerSearchOpen(true)}
+                          className={`h-10 ${newLink.worker ? 'bg-green-50 border-green-200' : ''}`}
+                        />
+                        {workerSearchOpen && (
+                          <CommandList className="max-h-60 overflow-y-auto">
+                            <CommandEmpty>No worker found.</CommandEmpty>
+                            <CommandGroup>
+                              {filteredWorkers.map((worker) => (
+                                <CommandItem
+                                  key={worker.id}
+                                  value={worker.name}
+                                  onSelect={() => {
+                                    setNewLink({...newLink, worker: worker.name});
+                                    setWorkerSearchOpen(false);
+                                    setWorkerSearchQuery("");
+                                  }}
+                                >
+                                  <div className="flex flex-col">
+                                    <span className="font-medium">{worker.name}</span>
+                                    <span className="text-sm text-muted-foreground">{worker.email}</span>
+                                  </div>
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        )}
+                      </Command>
+                    </div>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="country">Country</Label>
@@ -333,18 +416,40 @@ export default function LinksPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="edit-worker">Worker</Label>
-              <Select value={editLink.worker} onValueChange={(value) => setEditLink({...editLink, worker: value})}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a worker" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Muhammad Shahood">Muhammad Shahood</SelectItem>
-                  <SelectItem value="Abid">Abid</SelectItem>
-                  <SelectItem value="Hassan">Hassan</SelectItem>
-                  <SelectItem value="Zaim">Zaim</SelectItem>
-                  <SelectItem value="Hamza Farid">Hamza Farid</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="relative" ref={editWorkerSearchRef}>
+                <Command className="border rounded-md">
+                  <CommandInput
+                    placeholder={editLink.worker || "Search workers..."}
+                    value={editWorkerSearchOpen ? editWorkerSearchQuery : editLink.worker}
+                    onValueChange={setEditWorkerSearchQuery}
+                    onFocus={() => setEditWorkerSearchOpen(true)}
+                    className={`h-10 ${editLink.worker ? 'bg-green-50 border-green-200' : ''}`}
+                  />
+                  {editWorkerSearchOpen && (
+                    <CommandList className="max-h-60 overflow-y-auto">
+                      <CommandEmpty>No worker found.</CommandEmpty>
+                      <CommandGroup>
+                        {filteredEditWorkers.map((worker) => (
+                          <CommandItem
+                            key={worker.id}
+                            value={worker.name}
+                            onSelect={() => {
+                              setEditLink({...editLink, worker: worker.name});
+                              setEditWorkerSearchOpen(false);
+                              setEditWorkerSearchQuery("");
+                            }}
+                          >
+                            <div className="flex flex-col">
+                              <span className="font-medium">{worker.name}</span>
+                              <span className="text-sm text-muted-foreground">{worker.email}</span>
+                            </div>
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  )}
+                </Command>
+              </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="edit-country">Country</Label>
@@ -451,7 +556,7 @@ export default function LinksPage() {
                 <TableHead>Destination</TableHead>
                 <TableHead>Worker</TableHead>
                 <TableHead>Country</TableHead>
-                <TableHead>IP</TableHead>
+                <TableHead>1x IP</TableHead>
                 <TableHead>Min(min)</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Allowed</TableHead>
@@ -520,6 +625,21 @@ export default function LinksPage() {
                         onClick={() => handleEditLink(link)}
                       >
                         <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className={link.status === 'active' 
+                          ? "text-orange-600 hover:text-orange-700" 
+                          : "text-green-600 hover:text-green-700"
+                        }
+                        onClick={() => handleDeactivateLink(link)}
+                      >
+                        {link.status === 'active' ? (
+                          <Ban className="h-4 w-4" />
+                        ) : (
+                          <CheckCircle className="h-4 w-4" />
+                        )}
                       </Button>
                       <Button 
                         variant="outline" 

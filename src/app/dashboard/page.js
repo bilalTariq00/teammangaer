@@ -4,49 +4,21 @@ import { useState } from "react";
 import MainLayout from "@/components/layout/MainLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { 
-  CalendarIcon, 
-  TrendingUp, 
   Users, 
   MousePointer, 
   CheckCircle, 
   Target,
   BarChart3,
   Activity,
-  DollarSign,
-  Clock,
   AlertTriangle,
-  CheckCircle2,
   XCircle,
-  ArrowUpRight,
-  ArrowDownRight
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { format } from "date-fns";
-import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from "recharts";
 
-const quickDateRanges = [
-  "Today",
-  "Yesterday", 
-  "Last 7 Days",
-  // "Last 14 Days",
-  "Last 30 Days",
-  // "Last 60 Days",
-  // "Last 90 Days",
-  // "This Month",
-  // "Last Month",
-  "All Time"
-];
-
-// Mock data for comprehensive dashboard
+// Mock data for dashboard
 const mockCampaigns = [
   { id: 1, name: "Summer Sale Campaign", status: "active", budget: 50000, spent: 32500, clicks: 15420, views: 23450, conversionRate: 12.5 },
   { id: 2, name: "Black Friday Blitz", status: "active", budget: 75000, spent: 68000, clicks: 28450, views: 45600, conversionRate: 18.2 },
@@ -68,46 +40,34 @@ const mockWorkers = [
   { id: 10, name: "David Kim", email: "david.kim@joyapps.net", type: "Trainee Worker", status: "Active", totalClicks: 38, success: 31, formFills: 15, failed: 7 }
 ];
 
-const mockTasks = [
-  { id: 1, title: "Tasker Click", status: "active", completed: 45, total: 50, priority: "high" },
-  { id: 2, title: "Tasker View", status: "active", completed: 38, total: 40, priority: "medium" },
-  { id: 3, title: "Form Fill Task", status: "active", completed: 25, total: 30, priority: "high" },
-  { id: 4, title: "Survey Task", status: "paused", completed: 15, total: 20, priority: "low" },
-  { id: 5, title: "Review Task", status: "completed", completed: 30, total: 30, priority: "medium" }
-];
-
-// Chart data
-const performanceData = [
-  { name: "Jan", campaigns: 2, clicks: 12000, views: 18000, tasks: 15 },
-  { name: "Feb", campaigns: 3, clicks: 15000, views: 22000, tasks: 18 },
-  { name: "Mar", campaigns: 4, clicks: 18000, views: 26000, tasks: 22 },
-  { name: "Apr", campaigns: 3, clicks: 16000, views: 24000, tasks: 20 },
-  { name: "May", campaigns: 5, clicks: 22000, views: 32000, tasks: 25 },
-  { name: "Jun", campaigns: 4, clicks: 19000, views: 28000, tasks: 23 },
-  { name: "Jul", campaigns: 6, clicks: 25000, views: 38000, tasks: 28 },
-  { name: "Aug", campaigns: 5, clicks: 21000, views: 31000, tasks: 26 },
-  { name: "Sep", campaigns: 7, clicks: 28000, views: 42000, tasks: 32 },
-  { name: "Oct", campaigns: 6, clicks: 24000, views: 36000, tasks: 29 },
-  { name: "Nov", campaigns: 8, clicks: 32000, views: 48000, tasks: 35 },
-  { name: "Dec", campaigns: 5, clicks: 20000, views: 30000, tasks: 27 }
-];
-
-const campaignStatusData = [
-  { name: "Active", value: 3, color: "#10b981" },
-  { name: "Paused", value: 1, color: "#f59e0b" },
-  { name: "Completed", value: 1, color: "#6b7280" }
-];
-
-const workerTypeData = [
-  { name: "Permanent Workers", value: 6, color: "#3b82f6" },
-  { name: "Trainee Workers", value: 4, color: "#8b5cf6" }
+// Mock recent activity data
+const mockRecentActivity = [
+  { id: 1, user: "Muhammad Shahood", action: "logged in", type: "login", timestamp: "2 minutes ago", lockCount: null },
+  { id: 2, user: "Sarah Johnson", action: "account locked", type: "lock", timestamp: "15 minutes ago", lockCount: 1 },
+  { id: 3, user: "Emma Wilson", action: "logged in", type: "login", timestamp: "1 hour ago", lockCount: null },
+  { id: 4, user: "Hasan Abbas", action: "account locked", type: "lock", timestamp: "2 hours ago", lockCount: 3 },
+  { id: 5, user: "Alex Rodriguez", action: "logged in", type: "login", timestamp: "3 hours ago", lockCount: null },
+  { id: 6, user: "James Brown", action: "account locked", type: "lock", timestamp: "4 hours ago", lockCount: 2 },
+  { id: 7, user: "Lisa Thompson", action: "logged in", type: "login", timestamp: "5 hours ago", lockCount: null },
+  { id: 8, user: "Abid", action: "account locked", type: "lock", timestamp: "6 hours ago", lockCount: 1 },
+  { id: 9, user: "Mike Chen", action: "logged in", type: "login", timestamp: "7 hours ago", lockCount: null },
+  { id: 10, user: "David Kim", action: "account locked", type: "lock", timestamp: "8 hours ago", lockCount: 4 },
+  { id: 11, user: "Muhammad Shahood", action: "logged in", type: "login", timestamp: "9 hours ago", lockCount: null },
+  { id: 12, user: "Sarah Johnson", action: "account locked", type: "lock", timestamp: "10 hours ago", lockCount: 2 },
+  { id: 13, user: "Emma Wilson", action: "logged in", type: "login", timestamp: "11 hours ago", lockCount: null },
+  { id: 14, user: "Hasan Abbas", action: "account locked", type: "lock", timestamp: "12 hours ago", lockCount: 5 },
+  { id: 15, user: "Alex Rodriguez", action: "logged in", type: "login", timestamp: "13 hours ago", lockCount: null },
+  { id: 16, user: "James Brown", action: "account locked", type: "lock", timestamp: "14 hours ago", lockCount: 3 },
+  { id: 17, user: "Lisa Thompson", action: "logged in", type: "login", timestamp: "15 hours ago", lockCount: null },
+  { id: 18, user: "Abid", action: "account locked", type: "lock", timestamp: "16 hours ago", lockCount: 2 },
+  { id: 19, user: "Mike Chen", action: "logged in", type: "login", timestamp: "17 hours ago", lockCount: null },
+  { id: 20, user: "David Kim", action: "account locked", type: "lock", timestamp: "18 hours ago", lockCount: 6 }
 ];
 
 export default function DashboardPage() {
   const router = useRouter();
-  const [fromDate, setFromDate] = useState(new Date());
-  const [toDate, setToDate] = useState(new Date());
-  const [selectedRange, setSelectedRange] = useState("Last 30 Days");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
 
   // Calculate metrics
   const totalCampaigns = mockCampaigns.length;
@@ -115,82 +75,26 @@ export default function DashboardPage() {
   const totalWorkers = mockWorkers.length;
   const permanentWorkers = mockWorkers.filter(w => w.type.includes("Permanent Worker")).length;
   const traineeWorkers = mockWorkers.filter(w => w.type.includes("Trainee Worker")).length;
-  const totalTasks = mockTasks.length;
-  const activeTasks = mockTasks.filter(t => t.status === "active").length;
-  const completedTasks = mockTasks.filter(t => t.status === "completed").length;
   
   const totalClicks = mockWorkers.reduce((sum, worker) => sum + worker.totalClicks, 0);
   const totalSuccess = mockWorkers.reduce((sum, worker) => sum + worker.success, 0);
-  const totalFormFills = mockWorkers.reduce((sum, worker) => sum + worker.formFills, 0);
-  const totalFailed = mockWorkers.reduce((sum, worker) => sum + worker.failed, 0);
-  
-  const totalBudget = mockCampaigns.reduce((sum, campaign) => sum + campaign.budget, 0);
-  const totalSpent = mockCampaigns.reduce((sum, campaign) => sum + campaign.spent, 0);
   const totalCampaignClicks = mockCampaigns.reduce((sum, campaign) => sum + campaign.clicks, 0);
   const totalCampaignViews = mockCampaigns.reduce((sum, campaign) => sum + campaign.views, 0);
   
   const successRate = totalClicks > 0 ? ((totalSuccess / totalClicks) * 100).toFixed(1) : 0;
-  const budgetUtilization = totalBudget > 0 ? ((totalSpent / totalBudget) * 100).toFixed(1) : 0;
-  const conversionRate = totalCampaignViews > 0 ? ((totalCampaignClicks / totalCampaignViews) * 100).toFixed(1) : 0;
 
-  const handleShowData = () => {
-    // Handle date range filtering
-    console.log("Filtering data from", fromDate, "to", toDate);
-  };
+  // Pagination calculations
+  const totalPages = Math.ceil(mockRecentActivity.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentActivity = mockRecentActivity.slice(startIndex, endIndex);
 
-  const handleReset = () => {
-    setFromDate(new Date());
-    setToDate(new Date());
-    setSelectedRange("Last 30 Days");
-  };
-
-  const handleQuickRange = (range) => {
-    setSelectedRange(range);
-    const today = new Date();
-    
-    switch (range) {
-      case "Today":
-        setFromDate(today);
-        setToDate(today);
-        break;
-      case "Yesterday":
-        const yesterday = new Date(today);
-        yesterday.setDate(yesterday.getDate() - 1);
-        setFromDate(yesterday);
-        setToDate(yesterday);
-        break;
-      case "Last 7 Days":
-        const last7Days = new Date(today);
-        last7Days.setDate(last7Days.getDate() - 7);
-        setFromDate(last7Days);
-        setToDate(today);
-        break;
-      case "Last 30 Days":
-        const last30Days = new Date(today);
-        last30Days.setDate(last30Days.getDate() - 30);
-        setFromDate(last30Days);
-        setToDate(today);
-        break;
-      case "All Time":
-        const allTime = new Date(2024, 0, 1);
-        setFromDate(allTime);
-        setToDate(today);
-        break;
-      default:
-        break;
-    }
-  };
-
-  const handleWorkerClick = (workerId) => {
-    router.push(`/worker/${workerId}`);
-  };
-
-  const handleCampaignClick = (campaignId) => {
+  const handleCampaignClick = () => {
     router.push(`/campaigns`);
   };
 
-  const handleTaskClick = () => {
-    router.push(`/tasks`);
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
   };
 
   return (
@@ -204,91 +108,9 @@ export default function DashboardPage() {
           </div>
         </div>
 
-      {/* Date Range Filters */}
-      {/* <Card>
-        <CardHeader>
-          <CardTitle>Date Range Filters</CardTitle>
-          <CardDescription>
-            Select a date range to filter your dashboard data
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="from-date">From</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !fromDate && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                      {fromDate ? format(fromDate, "PPP") : <span>Pick a date</span>}
-                  </Button>
-                </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
-                  <Calendar
-                    mode="single"
-                    selected={fromDate}
-                    onSelect={setFromDate}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="to-date">To</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !toDate && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                      {toDate ? format(toDate, "PPP") : <span>Pick a date</span>}
-                  </Button>
-                </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
-                  <Calendar
-                    mode="single"
-                    selected={toDate}
-                    onSelect={setToDate}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-              <div className="space-y-2">
-                <Label>Quick Range</Label>
-                <Select value={selectedRange} onValueChange={handleQuickRange}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select range" />
-                  </SelectTrigger>
-                  <SelectContent>
-            {quickDateRanges.map((range) => (
-                      <SelectItem key={range} value={range}>
-                {range}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex items-end gap-2">
-                <Button onClick={handleShowData}>Show Data</Button>
-                <Button variant="outline" onClick={handleReset}>Reset</Button>
-          </div>
-          </div>
-        </CardContent>
-      </Card> */}
 
         {/* Main Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
           {/* Total Campaigns */}
           <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => handleCampaignClick()}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -317,24 +139,38 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
 
-          {/* Total Tasks */}
-          <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={handleTaskClick}>
+          {/* Session */}
+          <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Tasks</CardTitle>
-              <CheckCircle className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium">Session</CardTitle>
+              <BarChart3 className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{totalTasks}</div>
+              <div className="text-2xl font-bold">{Math.floor(totalClicks * 0.2).toLocaleString()}</div>
               <p className="text-xs text-muted-foreground">
-                <span className="text-green-600 font-medium">{activeTasks} active</span> • <span className="text-gray-600 font-medium">{completedTasks} completed</span>
+                <span className="text-blue-600 font-medium">Active sessions</span>
               </p>
             </CardContent>
           </Card>
 
-          {/* Total Clicks */}
+          {/* Search */}
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Clicks</CardTitle>
+              <CardTitle className="text-sm font-medium">Search</CardTitle>
+              <Activity className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{Math.floor(totalClicks * 0.3).toLocaleString()}</div>
+              <p className="text-xs text-muted-foreground">
+                <span className="text-purple-600 font-medium">Search queries</span>
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* Clicks */}
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Clicks</CardTitle>
               <MousePointer className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -345,206 +181,101 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
         </div>
-        
-        {/* Performance Metrics Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {/* Success Rate */}
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Success Rate</CardTitle>
-              <CheckCircle2 className="h-4 w-4 text-green-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-600">{successRate}%</div>
-              <p className="text-xs text-muted-foreground">
-                {totalSuccess.toLocaleString()} successful clicks
-              </p>
-            </CardContent>
-          </Card>
-
-          {/* Form Fills */}
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Form Fills</CardTitle>
-              <Activity className="h-4 w-4 text-blue-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-blue-600">{totalFormFills.toLocaleString()}</div>
-              <p className="text-xs text-muted-foreground">
-                {totalClicks > 0 ? ((totalFormFills / totalClicks) * 100).toFixed(1) : 0}% of total clicks
-              </p>
-            </CardContent>
-          </Card>
-
-          {/* Budget Utilization */}
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Budget Utilization</CardTitle>
-              <DollarSign className="h-4 w-4 text-orange-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-orange-600">{budgetUtilization}%</div>
-              <p className="text-xs text-muted-foreground">
-                ${totalSpent.toLocaleString()} of ${totalBudget.toLocaleString()}
-              </p>
-            </CardContent>
-          </Card>
-
-          {/* Conversion Rate */}
-          <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Conversion Rate</CardTitle>
-              <TrendingUp className="h-4 w-4 text-purple-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-purple-600">{conversionRate}%</div>
-              <p className="text-xs text-muted-foreground">
-                {totalCampaignClicks.toLocaleString()} clicks from {totalCampaignViews.toLocaleString()} views
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Charts Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Performance Trends */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Performance Trends</CardTitle>
-              <CardDescription>Monthly performance metrics over time</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={performanceData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Line type="monotone" dataKey="campaigns" stroke="#3b82f6" strokeWidth={2} />
-                  <Line type="monotone" dataKey="clicks" stroke="#10b981" strokeWidth={2} />
-                  <Line type="monotone" dataKey="views" stroke="#f59e0b" strokeWidth={2} />
-                </LineChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-
-          {/* Campaign Status Distribution */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Campaign Status</CardTitle>
-              <CardDescription>Distribution of campaign statuses</CardDescription>
-                  </CardHeader>
-                <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie
-                    data={campaignStatusData}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                    outerRadius={80}
-                    fill="#8884d8"
-                    dataKey="value"
-                  >
-                    {campaignStatusData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-                    </div>
-
-        {/* Worker Distribution and Recent Activity */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Worker Type Distribution */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Worker Distribution</CardTitle>
-              <CardDescription>Breakdown of worker types</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={workerTypeData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip />
-                  <Bar dataKey="value" fill="#8884d8" />
-                </BarChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-
-          {/* Recent Activity */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Recent Activity</CardTitle>
-              <CardDescription>Latest worker performance</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {mockWorkers.slice(0, 5).map((worker) => (
-                  <div key={worker.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 cursor-pointer" onClick={() => handleWorkerClick(worker.id)}>
+        {/* Recent Activity */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Recent Activity</CardTitle>
+            <CardDescription>User login events and account lock events</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {/* Scrollable activity list */}
+              <div className="max-h-96 overflow-y-auto space-y-3">
+                {currentActivity.map((activity) => (
+                  <div key={activity.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 transition-colors">
                     <div className="flex items-center space-x-3">
-                      <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                        <Users className="w-4 h-4 text-blue-600" />
-                    </div>
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                        activity.type === 'login' 
+                          ? 'bg-green-100' 
+                          : activity.lockCount && activity.lockCount > 3 
+                            ? 'bg-red-100' 
+                            : 'bg-orange-100'
+                      }`}>
+                        {activity.type === 'login' ? (
+                          <CheckCircle className="w-4 h-4 text-green-600" />
+                        ) : activity.lockCount && activity.lockCount > 3 ? (
+                          <XCircle className="w-4 h-4 text-red-600" />
+                        ) : (
+                          <AlertTriangle className="w-4 h-4 text-orange-600" />
+                        )}
+                      </div>
                       <div>
-                        <p className="font-medium">{worker.name}</p>
-                        <p className="text-sm text-gray-500">{worker.type}</p>
-                    </div>
+                        <p className="font-medium">
+                          {activity.user} {activity.action}
+                          {activity.lockCount && ` (${activity.lockCount}${activity.lockCount === 1 ? 'st' : activity.lockCount === 2 ? 'nd' : activity.lockCount === 3 ? 'rd' : 'th'} time)`}
+                        </p>
+                        <p className="text-sm text-gray-500">{activity.timestamp}</p>
+                      </div>
                     </div>
                     <div className="text-right">
-                      <p className="font-medium">{worker.totalClicks} clicks</p>
-                      <p className="text-sm text-green-600">{worker.success} success</p>
+                      <p className={`text-sm font-medium ${
+                        activity.type === 'login' 
+                          ? 'text-green-600' 
+                          : activity.lockCount && activity.lockCount > 3 
+                            ? 'text-red-600' 
+                            : 'text-orange-600'
+                      }`}>
+                        {activity.type === 'login' ? 'Login' : `Account Locked`}
+                      </p>
                     </div>
                   </div>
                 ))}
-                  </div>
-                </CardContent>
-              </Card>
-          </div>
+              </div>
 
-        {/* Quick Actions */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Quick Actions</CardTitle>
-            <CardDescription>Common administrative tasks</CardDescription>
-                  </CardHeader>
-                <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Button 
-                variant="outline" 
-                className="h-20 flex flex-col items-center justify-center space-y-2"
-                onClick={() => router.push('/campaigns')}
-              >
-                <Target className="h-6 w-6" />
-                <span>Manage Campaigns</span>
-              </Button>
-              <Button 
-                variant="outline" 
-                className="h-20 flex flex-col items-center justify-center space-y-2"
-                onClick={() => router.push('/users')}
-              >
-                <Users className="h-6 w-6" />
-                <span>Manage Workers</span>
-              </Button>
-              <Button 
-                variant="outline" 
-                className="h-20 flex flex-col items-center justify-center space-y-2"
-                onClick={() => router.push('/tasks')}
-              >
-                <CheckCircle className="h-6 w-6" />
-                <span>Manage Tasks</span>
-              </Button>
+              {/* Pagination */}
+              <div className="flex items-center justify-between pt-4 border-t">
+                <div className="text-sm text-gray-500">
+                  Showing {startIndex + 1} to {Math.min(endIndex, mockRecentActivity.length)} of {mockRecentActivity.length} activities
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 1}
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                    Previous
+                  </Button>
+                  
+                  <div className="flex items-center space-x-1">
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                      <Button
+                        key={page}
+                        variant={currentPage === page ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => handlePageChange(page)}
+                        className="w-8 h-8 p-0"
+                      >
+                        {page}
+                      </Button>
+                    ))}
                   </div>
-                </CardContent>
-              </Card>
+                  
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                  >
+                    Next
+                    <ChevronRight className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </MainLayout>
   );

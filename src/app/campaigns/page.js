@@ -11,7 +11,10 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Target, Plus, MousePointer, Users, TrendingUp, CheckCircle, CalendarIcon, Search } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { ArrowLeft, Target, Plus, MousePointer, Users, TrendingUp, CheckCircle, CalendarIcon, Search, ChevronLeft, ChevronRight, UserPlus, UserMinus, X, UserCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -24,6 +27,24 @@ const quickDateRanges = [
   "Last 30 Days",
   
   "All Time"
+];
+
+// Mock user data for assignment
+const mockUsers = [
+  { id: 1, name: "Muhammad Shahood", email: "muhammad.shahood@joyapps.net", type: "permanent", role: "viewer" },
+  { id: 2, name: "Sarah Johnson", email: "sarah.johnson@joyapps.net", type: "permanent", role: "viewer" },
+  { id: 3, name: "Emma Wilson", email: "emma.wilson@joyapps.net", type: "permanent", role: "viewer" },
+  { id: 4, name: "Hasan Abbas", email: "hasan.abbas@joyapps.net", type: "permanent", role: "clicker" },
+  { id: 5, name: "Alex Rodriguez", email: "alex.rodriguez@joyapps.net", type: "permanent", role: "clicker" },
+  { id: 6, name: "James Brown", email: "james.brown@joyapps.net", type: "permanent", role: "clicker" },
+  { id: 7, name: "Lisa Thompson", email: "lisa.thompson@joyapps.net", type: "trainee", role: "viewer" },
+  { id: 8, name: "Abid", email: "abid1@joyapps.net", type: "trainee", role: "clicker" },
+  { id: 9, name: "Mike Chen", email: "mike.chen@joyapps.net", type: "trainee", role: "clicker" },
+  { id: 10, name: "David Kim", email: "david.kim@joyapps.net", type: "trainee", role: "clicker" },
+  { id: 101, name: "John Manager", email: "john.manager@joyapps.net", type: "manager", role: "manager" },
+  { id: 102, name: "Jane Supervisor", email: "jane.supervisor@joyapps.net", type: "manager", role: "manager" },
+  { id: 103, name: "Mike Director", email: "mike.director@joyapps.net", type: "manager", role: "manager" },
+  { id: 104, name: "Sarah Lead", email: "sarah.lead@joyapps.net", type: "manager", role: "manager" },
 ];
 
 // Mock worker data
@@ -274,6 +295,10 @@ const mockCampaigns = [
     conversionRate: 12.5,
     budget: 50000,
     spent: 32500,
+    sessions: 2500,
+    searches: 1800,
+    clicks: 15420,
+    assignedUsers: [1, 2, 4, 101], // User IDs
     workers: {
       permanentWorkers: [1, 2, 3, 4, 5, 6], // Worker IDs
       traineeWorkers: [7, 8, 9, 10]
@@ -293,6 +318,10 @@ const mockCampaigns = [
     conversionRate: 18.2,
     budget: 75000,
     spent: 68000,
+    sessions: 3200,
+    searches: 2400,
+    clicks: 28450,
+    assignedUsers: [3, 5, 6, 102, 103], // User IDs
     workers: {
       permanentWorkers: [1, 2, 4, 5, 6],
       traineeWorkers: [7, 8, 9, 10]
@@ -312,6 +341,10 @@ const mockCampaigns = [
     conversionRate: 15.8,
     budget: 40000,
     spent: 18500,
+    sessions: 1500,
+    searches: 1200,
+    clicks: 12300,
+    assignedUsers: [], // No users assigned
     workers: {
       permanentWorkers: [1, 3, 4, 6],
       traineeWorkers: [7, 8, 9, 10]
@@ -329,8 +362,12 @@ const mockCampaigns = [
     totalClicks: 18750,
     totalViews: 31200,
     conversionRate: 14.2,
+    sessions: 2200,
+    searches: 1600,
+    clicks: 18750,
     budget: 60000,
     spent: 60000,
+    assignedUsers: [7, 8, 9, 104], // User IDs
     workers: {
       permanentWorkers: [1, 2, 3, 4, 5],
       traineeWorkers: [7, 8, 9, 10]
@@ -343,7 +380,7 @@ const mockCampaigns = [
 export default function CampaignsPage() {
   const router = useRouter();
   const [selectedCampaign, setSelectedCampaign] = useState(null);
-  const [campaigns] = useState(mockCampaigns);
+  const [campaigns, setCampaigns] = useState(mockCampaigns);
   const [fromDate, setFromDate] = useState(new Date());
   const [toDate, setToDate] = useState(new Date());
   const [selectedRange, setSelectedRange] = useState("Today");
@@ -352,6 +389,18 @@ export default function CampaignsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [pageSize, setPageSize] = useState("100");
   const [isLoading, setIsLoading] = useState(false);
+  
+  // Pagination state for campaigns table
+  const [currentPage, setCurrentPage] = useState(1);
+  const campaignsPerPage = 3; // Show 3 campaigns per page
+  
+  // Assignment dialog state
+  const [assignmentDialog, setAssignmentDialog] = useState({
+    isOpen: false,
+    campaignId: null,
+    searchQuery: "",
+    userTypeFilter: "all"
+  });
 
   const handleCampaignClick = (campaign) => {
     setSelectedCampaign(campaign);
@@ -454,6 +503,69 @@ export default function CampaignsPage() {
     }
   };
 
+  // Pagination calculations for campaigns
+  const totalPages = Math.ceil(campaigns.length / campaignsPerPage);
+  const startIndex = (currentPage - 1) * campaignsPerPage;
+  const endIndex = startIndex + campaignsPerPage;
+  const currentCampaigns = campaigns.slice(startIndex, endIndex);
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+  };
+
+  // Assignment functions
+  const openAssignmentDialog = (campaignId) => {
+    setAssignmentDialog({
+      isOpen: true,
+      campaignId,
+      searchQuery: "",
+      userTypeFilter: "all"
+    });
+  };
+
+  const closeAssignmentDialog = () => {
+    setAssignmentDialog({
+      isOpen: false,
+      campaignId: null,
+      searchQuery: "",
+      userTypeFilter: "all"
+    });
+  };
+
+  const handleUserAssignment = (userId, assigned) => {
+    const campaignId = assignmentDialog.campaignId;
+    setCampaigns(prevCampaigns => 
+      prevCampaigns.map(campaign => {
+        if (campaign.id === campaignId) {
+          return {
+            ...campaign,
+            assignedUsers: assigned
+              ? [...campaign.assignedUsers, userId]
+              : campaign.assignedUsers.filter(id => id !== userId)
+          };
+        }
+        return campaign;
+      })
+    );
+  };
+
+  const getAssignedUsers = (campaignId) => {
+    const campaign = campaigns.find(c => c.id === campaignId);
+    if (!campaign) return [];
+    return mockUsers.filter(user => campaign.assignedUsers.includes(user.id));
+  };
+
+  const filteredUsers = mockUsers.filter(user => {
+    const matchesSearch = user.name.toLowerCase().includes(assignmentDialog.searchQuery.toLowerCase()) ||
+                         user.email.toLowerCase().includes(assignmentDialog.searchQuery.toLowerCase());
+    
+    const matchesType = assignmentDialog.userTypeFilter === "all" || 
+                       (assignmentDialog.userTypeFilter === "workers" && user.type !== "manager") ||
+                       (assignmentDialog.userTypeFilter === "managers" && user.type === "manager");
+    
+    return matchesSearch && matchesType;
+  });
+
   // Function to calculate filtered campaign data based on date range
   const getFilteredCampaignData = (campaign) => {
     // Get multiplier based on selected range
@@ -475,8 +587,12 @@ export default function CampaignsPage() {
     // Calculate filtered metrics
     const filteredTotalClicks = Math.floor(campaign.totalClicks * multiplier);
     const filteredTotalViews = Math.floor(campaign.totalViews * multiplier);
+    const filteredSessions = Math.floor((campaign.sessions || 0) * multiplier);
+    const filteredSearches = Math.floor((campaign.searches || 0) * multiplier);
+    const filteredClicks = Math.floor((campaign.clicks || campaign.totalClicks) * multiplier);
+    const totalEngagement = filteredSessions + filteredSearches + filteredClicks;
     const filteredConversionRate = filteredTotalViews > 0 
-      ? ((filteredTotalClicks / filteredTotalViews) * 100).toFixed(1)
+      ? ((totalEngagement / filteredTotalViews) * 100).toFixed(1)
       : campaign.conversionRate;
     const filteredSpent = Math.floor(campaign.spent * multiplier);
     
@@ -484,6 +600,9 @@ export default function CampaignsPage() {
       ...campaign,
       totalClicks: filteredTotalClicks,
       totalViews: filteredTotalViews,
+      sessions: filteredSessions,
+      searches: filteredSearches,
+      clicks: filteredClicks,
       conversionRate: parseFloat(filteredConversionRate),
       spent: filteredSpent
     };
@@ -1115,18 +1234,28 @@ export default function CampaignsPage() {
                 <TableRow>
                   <TableHead>Name</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Total Clicks</TableHead>
+                  <TableHead>Sessions</TableHead>
+                  <TableHead>Searches</TableHead>
+                  <TableHead>Clicks</TableHead>
                   <TableHead>Conversion Rate</TableHead>
-                  <TableHead>Budget</TableHead>
+                  <TableHead>Assigned Users</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {campaigns.map((campaign) => {
+                {currentCampaigns.map((campaign) => {
                   const filteredCampaign = getFilteredCampaignData(campaign);
+                  const assignedUsers = getAssignedUsers(campaign.id);
+                  const hasAssignedUsers = assignedUsers.length > 0;
+                  
                   return (
-                    <TableRow key={campaign.id} className="cursor-pointer hover:bg-muted/50" onClick={() => handleCampaignClick(campaign)}>
-                      <TableCell className="font-medium">{filteredCampaign.name}</TableCell>
+                    <TableRow key={campaign.id} className="hover:bg-muted/50">
+                      <TableCell 
+                        className="font-medium cursor-pointer" 
+                        onClick={() => handleCampaignClick(campaign)}
+                      >
+                        {filteredCampaign.name}
+                      </TableCell>
                       <TableCell>
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                           filteredCampaign.status === 'active' ? 'bg-green-100 text-green-800' :
@@ -1136,13 +1265,47 @@ export default function CampaignsPage() {
                           {filteredCampaign.status}
                         </span>
                       </TableCell>
-                      <TableCell>{(filteredCampaign.totalClicks || 0).toLocaleString()}</TableCell>
+                      <TableCell>{(filteredCampaign.sessions || 0).toLocaleString()}</TableCell>
+                      <TableCell>{(filteredCampaign.searches || 0).toLocaleString()}</TableCell>
+                      <TableCell>{(filteredCampaign.clicks || 0).toLocaleString()}</TableCell>
                       <TableCell>{filteredCampaign.conversionRate}%</TableCell>
-                      <TableCell>${(filteredCampaign.spent || 0).toLocaleString()} / ${(filteredCampaign.budget || 0).toLocaleString()}</TableCell>
                       <TableCell>
-                        <Button variant="outline" size="sm">
-                          View Details
-                        </Button>
+                        <div className="text-center">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                            {assignedUsers.length} users
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex gap-2">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => handleCampaignClick(campaign)}
+                          >
+                            View Details
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openAssignmentDialog(campaign.id);
+                            }}
+                          >
+                            {hasAssignedUsers ? (
+                              <>
+                                <UserMinus className="h-4 w-4 mr-1" />
+                                Manage Users
+                              </>
+                            ) : (
+                              <>
+                                <UserPlus className="h-4 w-4 mr-1" />
+                                Assign Users
+                              </>
+                            )}
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   );
@@ -1157,6 +1320,192 @@ export default function CampaignsPage() {
             </p>
           </div>
         </Card>
+
+        {/* Pagination */}
+        <div className="flex items-center justify-between">
+          <div className="text-sm text-muted-foreground">
+            Showing {startIndex + 1} to {Math.min(endIndex, campaigns.length)} of {campaigns.length} campaigns
+          </div>
+          <div className="flex items-center space-x-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+            >
+              <ChevronLeft className="w-4 h-4" />
+              Previous
+            </Button>
+            
+            <div className="flex items-center space-x-1">
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                <Button
+                  key={page}
+                  variant={currentPage === page ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => handlePageChange(page)}
+                  className="w-8 h-8 p-0"
+                >
+                  {page}
+                </Button>
+              ))}
+            </div>
+            
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage === totalPages}
+            >
+              Next
+              <ChevronRight className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
+
+        {/* Assignment Dialog */}
+        <Dialog open={assignmentDialog.isOpen} onOpenChange={closeAssignmentDialog}>
+          <DialogContent className="!w-[70vw] !max-w-none h-[90vh]">
+            <DialogHeader>
+              <DialogTitle>Assign Users to Campaign</DialogTitle>
+              <DialogDescription>
+                Search and select users to assign to this campaign
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-4">
+              {/* User Type Filter */}
+              <div className="space-y-2">
+                <Label className="text-base font-medium">Filter by User Type</Label>
+                <div className="flex gap-2">
+                  <Button
+                    variant={assignmentDialog.userTypeFilter === "all" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setAssignmentDialog(prev => ({ ...prev, userTypeFilter: "all" }))}
+                  >
+                    All Users
+                  </Button>
+                  <Button
+                    variant={assignmentDialog.userTypeFilter === "workers" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setAssignmentDialog(prev => ({ ...prev, userTypeFilter: "workers" }))}
+                  >
+                    Workers
+                  </Button>
+                  <Button
+                    variant={assignmentDialog.userTypeFilter === "managers" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setAssignmentDialog(prev => ({ ...prev, userTypeFilter: "managers" }))}
+                  >
+                    Managers
+                  </Button>
+                </div>
+              </div>
+
+              {/* Side by Side Layout */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Left Side - Assigned Users */}
+                <div className="space-y-3">
+                  <Label className="text-base font-medium">Assigned Users</Label>
+                  <div className="h-[60vh] overflow-y-auto border rounded-lg p-4 bg-muted/20">
+                    {assignmentDialog.campaignId && getAssignedUsers(assignmentDialog.campaignId).length > 0 ? (
+                      <div className="flex flex-wrap gap-2">
+                        {getAssignedUsers(assignmentDialog.campaignId).map((user) => (
+                          <Badge
+                            key={user.id}
+                            variant="secondary"
+                            className="flex items-center gap-2 pr-2 py-2 px-3 text-sm"
+                          >
+                            <span>
+                              {user.type === "manager" ? "👔" : "👷"} {user.name}
+                            </span>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-5 w-5 p-0 hover:bg-destructive hover:text-destructive-foreground"
+                              onClick={() => handleUserAssignment(user.id, false)}
+                            >
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </Badge>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-center h-full text-muted-foreground">
+                        <div className="text-center">
+                          <Users className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                          <p>No users assigned yet</p>
+                          <p className="text-sm">Select users from the right panel</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Right Side - User Selection */}
+                <div className="space-y-3">
+                  <Label className="text-base font-medium">Search and Select Users</Label>
+                  <Command className="border rounded-md h-[60vh]">
+                    <CommandInput
+                      placeholder="Search users by name or email..."
+                      value={assignmentDialog.searchQuery}
+                      onValueChange={(value) => setAssignmentDialog(prev => ({ ...prev, searchQuery: value }))}
+                      className="h-12"
+                    />
+                    <CommandList className="h-full">
+                      <CommandEmpty>No users found.</CommandEmpty>
+                      <CommandGroup>
+                        {filteredUsers.map((user) => {
+                          const isAssigned = assignmentDialog.campaignId && 
+                            campaigns.find(c => c.id === assignmentDialog.campaignId)?.assignedUsers.includes(user.id);
+                          return (
+                            <CommandItem
+                              key={user.id}
+                              onSelect={() => handleUserAssignment(user.id, !isAssigned)}
+                              className="flex items-start justify-between p-3"
+                            >
+                              <div className="flex items-start gap-3 flex-1 min-w-0">
+                                <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+                                  {user.type === "manager" ? "👔" : "👷"}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="font-medium text-sm break-words">{user.name}</div>
+                                  <div className="text-xs text-muted-foreground break-all">{user.email}</div>
+                                  <div className="text-xs text-muted-foreground capitalize break-words">
+                                    {user.type} {user.role && `• ${user.role}`}
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+                                {isAssigned ? (
+                                  <Badge variant="default" className="text-xs px-2 py-1">
+                                    <UserCheck className="h-3 w-3 mr-1" />
+                                    Assigned
+                                  </Badge>
+                                ) : (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleUserAssignment(user.id, true);
+                                    }}
+                                  >
+                                    Assign
+                                  </Button>
+                                )}
+                              </div>
+                            </CommandItem>
+                          );
+                        })}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </div>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </MainLayout>
   );

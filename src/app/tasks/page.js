@@ -11,11 +11,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Eye, Edit, Ban, Trash2, AlertTriangle, Power, PowerOff, Image as ImageIcon } from "lucide-react";
-import SimpleShadcnEditor from "@/components/SimpleShadcnEditor";
+import SimpleTiptapEditor from "@/components/SimpleTiptapEditor";
 import RichTextDisplay from "@/components/RichTextDisplay";
-import AdminTaskCreator from "@/components/tasks/AdminTaskCreator";
 
 const mockTaskers = [
   {
@@ -51,7 +49,6 @@ const mockTaskers = [
 ];
 
 export default function TasksPage() {
-  const [activeTab, setActiveTab] = useState("legacy");
   const [taskers, setTaskers] = useState(mockTaskers);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -208,28 +205,20 @@ export default function TasksPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Tasks</h1>
           <p className="text-muted-foreground">
-            Manage your taskers and create new tasks for workers
+            Manage your tasks and create new informational tasks for workers
           </p>
         </div>
       </div>
 
-      {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2 max-w-md">
-          <TabsTrigger value="legacy">Legacy Tasks</TabsTrigger>
-          <TabsTrigger value="enhanced">Enhanced Tasks</TabsTrigger>
-        </TabsList>
-
-        {/* Legacy Tasks Tab */}
-        <TabsContent value="legacy" className="space-y-6">
-
-      <div className="grid gap-6 lg:grid-cols-2">
-        {/* Create Tasker Form */}
+      {/* Tasks Section */}
+      <div className="space-y-6">
+        <div className="grid gap-6 lg:grid-cols-2">
+        {/* Create Task Form */}
         <Card>
           <CardHeader className="bg-blue-50 ">
-            <CardTitle className="text-blue-900">Create Tasker</CardTitle>
+            <CardTitle className="text-blue-900">Create Task</CardTitle>
             <CardDescription>
-              Create a new tasker for your workers to complete
+              Create a new informational task for your workers
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4 pt-6">
@@ -255,10 +244,10 @@ export default function TasksPage() {
             
             <div className="space-y-2">
               <Label htmlFor="content">Tasker Content</Label>
-              <SimpleShadcnEditor
+              <SimpleTiptapEditor
                 value={newTasker.content}
                 onChange={(content) => setNewTasker({...newTasker, content})}
-                placeholder="Enter tasker content... You can add images by clicking the image icon or dragging and dropping images into the editor."
+                placeholder="Enter task content... Use the toolbar above to format your text, add images, links, tables, and more!"
                 minHeight="200px"
               />
             </div>
@@ -275,17 +264,17 @@ export default function TasksPage() {
             </div>
             
             <Button onClick={handleCreateTasker} className="w-full">
-              Create Tasker
+              Create Task
             </Button>
           </CardContent>
         </Card>
 
-        {/* Taskers List */}
+        {/* Tasks List */}
         <Card>
           <CardHeader className="bg-gray-50">
-            <CardTitle>Taskers</CardTitle>
+            <CardTitle>Tasks</CardTitle>
             <CardDescription>
-              Manage your existing taskers
+              Manage your existing tasks
             </CardDescription>
           </CardHeader>
           <CardContent className="p-0">
@@ -387,13 +376,7 @@ export default function TasksPage() {
           </CardContent>
         </Card>
       </div>
-        </TabsContent>
-
-        {/* Enhanced Tasks Tab */}
-        <TabsContent value="enhanced" className="space-y-6">
-          <AdminTaskCreator />
-        </TabsContent>
-      </Tabs>
+      </div>
       </div>
 
       {/* View Tasker Dialog */}
@@ -440,10 +423,10 @@ export default function TasksPage() {
 
               {/* Tasker Content */}
               <div className="space-y-4">
-                <SimpleShadcnEditor
+                <SimpleTiptapEditor
                   value={viewEditContent}
                   onChange={setViewEditContent}
-                  placeholder="Enter tasker content... You can add images by clicking the image icon or dragging and dropping images into the editor."
+                  placeholder="Enter task content... Use the toolbar above to format your text, add images, links, tables, and more!"
                   minHeight="400px"
                 />
               </div>
@@ -495,10 +478,10 @@ export default function TasksPage() {
               
               <div className="space-y-2">
                 <Label htmlFor="edit-content">Tasker Content</Label>
-                <SimpleShadcnEditor
+                <SimpleTiptapEditor
                   value={editTasker.content}
                   onChange={(content) => setEditTasker({...editTasker, content})}
-                  placeholder="Enter tasker content... You can add images by clicking the image icon or dragging and dropping images into the editor."
+                  placeholder="Enter task content... Use the toolbar above to format your text, add images, links, tables, and more!"
                   minHeight="300px"
                 />
               </div>
