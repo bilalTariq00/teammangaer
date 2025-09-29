@@ -1,18 +1,27 @@
 export default function handler(req, res) {
-  if (req.method === 'GET') {
-    res.status(200).json({ 
-      success: true, 
-      message: 'Pages Router API works!',
-      timestamp: new Date().toISOString()
+  try {
+    if (req.method === 'GET') {
+      res.status(200).json({ 
+        success: true, 
+        message: 'Pages Router API works!',
+        timestamp: new Date().toISOString()
+      });
+    } else if (req.method === 'POST') {
+      res.status(200).json({ 
+        success: true, 
+        message: 'Pages Router POST works!',
+        timestamp: new Date().toISOString()
+      });
+    } else {
+      res.setHeader('Allow', ['GET', 'POST']);
+      res.status(405).end(`Method ${req.method} Not Allowed`);
+    }
+  } catch (error) {
+    console.error('API Error:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Internal server error',
+      details: error.message 
     });
-  } else if (req.method === 'POST') {
-    res.status(200).json({ 
-      success: true, 
-      message: 'Pages Router POST works!',
-      timestamp: new Date().toISOString()
-    });
-  } else {
-    res.setHeader('Allow', ['GET', 'POST']);
-    res.status(405).end(`Method ${req.method} Not Allowed`);
   }
 }
