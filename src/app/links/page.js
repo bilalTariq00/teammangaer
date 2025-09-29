@@ -119,7 +119,8 @@ export default function LinksPage() {
     destination: "",
     worker: "",
     country: "US",
-    min: ""
+    min: "",
+    reuseOption: "unlimited"
   });
   const [workerSearchOpen, setWorkerSearchOpen] = useState(false);
   const [workerSearchQuery, setWorkerSearchQuery] = useState("");
@@ -150,7 +151,8 @@ export default function LinksPage() {
     destination: "",
     worker: "",
     country: "US",
-    min: ""
+    min: "",
+    reuseOption: "unlimited"
   });
 
   const filteredLinks = links.filter(link =>
@@ -200,7 +202,8 @@ export default function LinksPage() {
       destination: "",
       worker: "",
       country: "US",
-      min: ""
+      min: "",
+      reuseOption: "unlimited"
     });
   };
 
@@ -210,7 +213,8 @@ export default function LinksPage() {
       destination: link.destination,
       worker: link.worker,
       country: link.country,
-      min: link.min
+      min: link.min,
+      reuseOption: link.reuseOption || "unlimited"
     });
     setIsEditDialogOpen(true);
   };
@@ -236,7 +240,8 @@ export default function LinksPage() {
       destination: "",
       worker: "",
       country: "US",
-      min: ""
+      min: "",
+      reuseOption: "unlimited"
     });
   };
 
@@ -380,6 +385,22 @@ export default function LinksPage() {
                       placeholder="3"
                     />
                   </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="reuse-option">Link Reuse Option</Label>
+                    <Select value={newLink.reuseOption} onValueChange={(value) => setNewLink({...newLink, reuseOption: value})}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select reuse option" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="unlimited">Unlimited reuse</SelectItem>
+                        <SelectItem value="1day">1 day</SelectItem>
+                        <SelectItem value="7days">7 days</SelectItem>
+                        <SelectItem value="14days">14 days</SelectItem>
+                        <SelectItem value="30days">30 days</SelectItem>
+                        <SelectItem value="never">Single use only</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                   <div className="flex justify-end gap-2 pt-4">
                     <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
                       Cancel
@@ -473,6 +494,22 @@ export default function LinksPage() {
                 onChange={(e) => setEditLink({...editLink, min: e.target.value})}
                 placeholder="3"
               />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-reuse-option">Link Reuse Option</Label>
+              <Select value={editLink.reuseOption} onValueChange={(value) => setEditLink({...editLink, reuseOption: value})}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select reuse option" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="unlimited">Unlimited reuse</SelectItem>
+                  <SelectItem value="1day">1 day</SelectItem>
+                  <SelectItem value="7days">7 days</SelectItem>
+                  <SelectItem value="14days">14 days</SelectItem>
+                  <SelectItem value="30days">30 days</SelectItem>
+                  <SelectItem value="never">Single use only</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div className="flex justify-end gap-2 pt-4">
               <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
