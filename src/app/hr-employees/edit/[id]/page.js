@@ -9,28 +9,18 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { ArrowLeft, User, Save, X, Building, DollarSign, Calendar, Phone, Mail, MapPin, Shield, Award } from "lucide-react";
-import { useUsers } from "@/contexts/UsersContext";
 import { toast } from "sonner";
 import HRLayout from "@/components/layout/HRLayout";
 
 export default function EditEmployeePage() {
   const router = useRouter();
   const params = useParams();
-  const employeeId = params?.id ? parseInt(params.id) : null;
-  
-  // Safety check for context
-  let getUserById, updateUser;
-  try {
-    const usersContext = useUsers();
-    getUserById = usersContext?.getUserById;
-    updateUser = usersContext?.updateUser;
-  } catch (error) {
-    console.error('Error accessing UsersContext:', error);
-  }
+  const employeeId = params?.id;
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isClient, setIsClient] = useState(false);
+  const [error, setError] = useState(null);
   
   // Comprehensive employee state with all HR fields
   const [employee, setEmployee] = useState({
@@ -79,78 +69,52 @@ export default function EditEmployeePage() {
     setIsClient(true);
   }, []);
 
-  // Load employee data
+  // Load employee data from backend API
   useEffect(() => {
-    if (!isClient) return;
+    if (!isClient || !employeeId) return;
+    
     const loadEmployee = async () => {
       setIsLoading(true);
+      setError(null);
+      
       try {
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        // Safety check for getUserById function
-        if (!getUserById || typeof getUserById !== 'function') {
-          console.error('getUserById function not available');
-          toast.error("Unable to load employee data");
-          router.push("/hr-employees");
+        const token = localStorage.getItem("token");
+        if (!token) {
+          toast.error("Please log in to edit employee details");
+          router.push("/login");
           return;
         }
+
+        const response = await fetch(`/api/hr/employees/${employeeId}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        const result = await response.json();
         
-        const foundUser = getUserById(employeeId);
-        if (foundUser) {
-          // Convert user to employee with all HR fields
-          const employeeData = {
-            ...foundUser,
-            // Ensure all HR fields exist
-            employeeId: foundUser.employeeId || `EMP${foundUser.id.toString().padStart(4, '0')}`,
-            department: foundUser.department || "Operations",
-            position: foundUser.position || foundUser.workerType?.replace('-', ' ') || "Worker",
-            workerType: foundUser.workerType?.includes('-') ? foundUser.workerType.split('-')[0] : foundUser.workerType,
-            salary: foundUser.salary || 0,
-            joinDate: foundUser.joinDate || foundUser.created || new Date().toISOString().split('T')[0],
-            target: foundUser.target || 0,
-            attendance: foundUser.attendance || 0,
-            lastReview: foundUser.lastReview || "",
-            phoneNumber: foundUser.phoneNumber || "",
-            address: foundUser.address || "",
-            emergencyContact: foundUser.emergencyContact || "",
-            emergencyPhone: foundUser.emergencyPhone || "",
-            contactNumber: foundUser.contactNumber || "",
-            emergencyNumber: foundUser.emergencyNumber || "",
-            dateOfBirth: foundUser.dateOfBirth || "",
-            socialSecurityNumber: foundUser.socialSecurityNumber || "",
-            bankAccount: foundUser.bankAccount || "",
-            benefits: foundUser.benefits || "",
-            notes: foundUser.notes || "",
-            assignedUsers: foundUser.assignedUsers || [],
-            defaultTasker: foundUser.defaultTasker || "none"
-          };
-          setEmployee(employeeData);
+        if (result.success) {
+          setEmployee(result.data);
         } else {
-          toast.error("Employee not found");
-          router.push("/hr-employees");
+          setError(result.error || 'Failed to load employee');
+          toast.error(result.error || 'Failed to load employee');
+          if (result.error === 'Employee not found') {
+            router.push("/hr-employees");
+          }
         }
       } catch (error) {
         console.error("Error loading employee:", error);
+        setError('Failed to load employee data');
         toast.error("Failed to load employee data");
-        router.push("/hr-employees");
       } finally {
         setIsLoading(false);
       }
     };
 
-    if (employeeId && getUserById) {
-      loadEmployee();
-    } else if (!employeeId) {
-      console.error('Invalid employee ID');
-      toast.error("Invalid employee ID");
-      router.push("/hr-employees");
-    } else if (!getUserById) {
-      console.error('Context not available');
-      toast.error("Unable to access employee data");
-      router.push("/hr-employees");
-    }
-  }, [employeeId, router, getUserById, isClient]);
+    loadEmployee();
+  }, [employeeId, router, isClient]);
 
   // Handle employee data changes
   const handleEmployeeChange = (field, value) => {
@@ -192,25 +156,41 @@ export default function EditEmployeePage() {
     setIsSubmitting(true);
     
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
+      const token = localStorage.getItem("token");
+      if (!token) {
+        toast.error("Please log in to update employee details");
+        router.push("/login");
+        return;
+      }
+
       // Set final worker type based on role and employment type
       let finalWorkerType = employee.workerType;
       if (employee.role === "worker") {
         finalWorkerType = `${employee.workerType}-worker`;
       }
       
-      // Update employee in the context
-      updateUser(employeeId, {
+      const updateData = {
         ...employee,
         workerType: finalWorkerType
+      };
+
+      const response = await fetch(`/api/hr/employees/${employeeId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(updateData)
       });
+
+      const result = await response.json();
       
-      console.log("Employee updated:", employee);
-      
-      toast.success("Employee updated successfully!");
-      router.push("/hr-employees");
+      if (result.success) {
+        toast.success("Employee updated successfully!");
+        router.push("/hr-employees");
+      } else {
+        toast.error(result.error || 'Failed to update employee');
+      }
     } catch (error) {
       console.error("Error updating employee:", error);
       toast.error("Failed to update employee. Please try again.");
@@ -223,6 +203,27 @@ export default function EditEmployeePage() {
   const handleCancel = () => {
     router.push("/hr-employees");
   };
+
+  if (error) {
+    return (
+      <HRLayout>
+        <div className="min-h-screen bg-gray-50/50 flex items-center justify-center">
+          <div className="text-center">
+            <div className="text-red-500 mb-4">
+              <svg className="h-12 w-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Error Loading Employee</h3>
+            <p className="text-gray-600 mb-4">{error}</p>
+            <Button onClick={() => router.push("/hr-employees")} className="mt-4">
+              Back to Employees
+            </Button>
+          </div>
+        </div>
+      </HRLayout>
+    );
+  }
 
   if (!isClient || isLoading) {
     return (
@@ -286,32 +287,35 @@ export default function EditEmployeePage() {
           {/* Form */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Main Form */}
-            <div className="lg:col-span-2 space-y-6">
+            <div className="lg:col-span-2 space-y-8">
               {/* Basic Information */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
+              <Card className="border-l-4 border-l-blue-500">
+                <CardHeader className="bg-blue-50/50">
+                  <CardTitle className="flex items-center gap-2 text-blue-900">
                     <User className="h-5 w-5" />
                     Basic Information
                   </CardTitle>
-                  <CardDescription>Essential employee details</CardDescription>
+                  <CardDescription className="text-blue-700">
+                    Essential employee details and personal information
+                  </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
-                      <Label htmlFor="name" className="text-sm font-medium text-gray-700">
+                      <Label htmlFor="name" className="text-sm font-semibold text-gray-800">
                         Full Name <span className="text-red-500">*</span>
                       </Label>
                       <Input
                         id="name"
                         value={employee.name}
                         onChange={(e) => handleEmployeeChange("name", e.target.value)}
-                        placeholder="Enter full name"
-                        className="h-10"
+                        placeholder="Enter employee's full name"
+                        className="h-11 border-2 focus:border-blue-500 transition-colors"
                       />
+                      <p className="text-xs text-gray-500">Employee's complete legal name</p>
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="email" className="text-sm font-medium text-gray-700">
+                      <Label htmlFor="email" className="text-sm font-semibold text-gray-800">
                         Email Address <span className="text-red-500">*</span>
                       </Label>
                       <Input
@@ -319,61 +323,64 @@ export default function EditEmployeePage() {
                         type="email"
                         value={employee.email}
                         onChange={(e) => handleEmployeeChange("email", e.target.value)}
-                        placeholder="Enter email address"
-                        className="h-10"
+                        placeholder="employee@company.com"
+                        className="h-11 border-2 focus:border-blue-500 transition-colors"
                       />
+                      <p className="text-xs text-gray-500">Primary contact email address</p>
                     </div>
                   </div>
                   
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
-                      <Label htmlFor="role" className="text-sm font-medium text-gray-700">
-                        Role <span className="text-red-500">*</span>
+                      <Label htmlFor="role" className="text-sm font-semibold text-gray-800">
+                        Job Role <span className="text-red-500">*</span>
                       </Label>
                       <Select 
                         value={employee.role} 
                         onValueChange={(value) => handleEmployeeChange("role", value)}
                       >
-                        <SelectTrigger className="h-10">
-                          <SelectValue placeholder="Select role" />
+                        <SelectTrigger className="h-11 border-2 focus:border-blue-500 transition-colors">
+                          <SelectValue placeholder="Select job role" />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="qc">QC (Quality Control)</SelectItem>
                           <SelectItem value="worker">Worker</SelectItem>
                         </SelectContent>
                       </Select>
+                      <p className="text-xs text-gray-500">Employee's primary job function</p>
                     </div>
                     
                     <div className="space-y-2">
-                      <Label htmlFor="workerType" className="text-sm font-medium text-gray-700">
+                      <Label htmlFor="workerType" className="text-sm font-semibold text-gray-800">
                         Employment Type <span className="text-red-500">*</span>
                       </Label>
                       <Select 
                         value={employee.workerType} 
                         onValueChange={(value) => handleEmployeeChange("workerType", value)}
                       >
-                        <SelectTrigger className="h-10">
+                        <SelectTrigger className="h-11 border-2 focus:border-blue-500 transition-colors">
                           <SelectValue placeholder="Select employment type" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="permanent">Permanent</SelectItem>
+                          <SelectItem value="permanent">Permanent Employee</SelectItem>
                           <SelectItem value="trainee">Trainee</SelectItem>
                         </SelectContent>
                       </Select>
+                      <p className="text-xs text-gray-500">Type of employment contract</p>
                     </div>
                   </div>
                   
-                  <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
-                      <Label htmlFor="status" className="text-sm font-medium text-gray-700">
-                        Status <span className="text-red-500">*</span>
+                      <Label htmlFor="status" className="text-sm font-semibold text-gray-800">
+                        Employment Status <span className="text-red-500">*</span>
                       </Label>
                       <Select 
                         value={employee.status} 
                         onValueChange={(value) => handleEmployeeChange("status", value)}
                       >
-                        <SelectTrigger className="h-10">
-                          <SelectValue placeholder="Select status" />
+                        <SelectTrigger className="h-11 border-2 focus:border-blue-500 transition-colors">
+                          <SelectValue placeholder="Select employment status" />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="trainee">Trainee</SelectItem>
@@ -382,43 +389,70 @@ export default function EditEmployeePage() {
                           <SelectItem value="blocked">Blocked</SelectItem>
                         </SelectContent>
                       </Select>
+                      <p className="text-xs text-gray-500">Current employment status</p>
                     </div>
+                    
+                    {/* Task Role - Only show for workers */}
+                    {employee.role === 'worker' && (
+                      <div className="space-y-2">
+                        <Label htmlFor="taskRole" className="text-sm font-semibold text-gray-800">
+                          Task Role <span className="text-red-500">*</span>
+                        </Label>
+                        <Select 
+                          value={employee.taskRole || 'viewer'} 
+                          onValueChange={(value) => handleEmployeeChange("taskRole", value)}
+                        >
+                          <SelectTrigger className="h-11 border-2 focus:border-blue-500 transition-colors">
+                            <SelectValue placeholder="Select task role" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="viewer">Viewer - Can only view tasks</SelectItem>
+                            <SelectItem value="clicker">Clicker - Can perform click tasks</SelectItem>
+                            <SelectItem value="both">Both - Can view and perform tasks</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <p className="text-xs text-gray-500">Worker's task capabilities</p>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
 
               {/* HR Information */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
+              <Card className="border-l-4 border-l-green-500">
+                <CardHeader className="bg-green-50/50">
+                  <CardTitle className="flex items-center gap-2 text-green-900">
                     <Building className="h-5 w-5" />
                     HR Information
                   </CardTitle>
-                  <CardDescription>Department, position, and employment details</CardDescription>
+                  <CardDescription className="text-green-700">
+                    Work-related details, compensation, and organizational information
+                  </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
-                      <Label htmlFor="employeeId" className="text-sm font-medium text-gray-700">
+                      <Label htmlFor="employeeId" className="text-sm font-semibold text-gray-800">
                         Employee ID
                       </Label>
                       <Input
                         id="employeeId"
                         value={employee.employeeId}
                         onChange={(e) => handleEmployeeChange("employeeId", e.target.value)}
-                        placeholder="Employee ID"
-                        className="h-10"
+                        placeholder="EMP-001234"
+                        className="h-11 border-2 focus:border-green-500 transition-colors"
                       />
+                      <p className="text-xs text-gray-500">Unique employee identifier</p>
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="department" className="text-sm font-medium text-gray-700">
+                      <Label htmlFor="department" className="text-sm font-semibold text-gray-800">
                         Department
                       </Label>
                       <Select 
                         value={employee.department} 
                         onValueChange={(value) => handleEmployeeChange("department", value)}
                       >
-                        <SelectTrigger className="h-10">
+                        <SelectTrigger className="h-11 border-2 focus:border-green-500 transition-colors">
                           <SelectValue placeholder="Select department" />
                         </SelectTrigger>
                         <SelectContent>
@@ -429,24 +463,26 @@ export default function EditEmployeePage() {
                           <SelectItem value="IT">IT</SelectItem>
                         </SelectContent>
                       </Select>
+                      <p className="text-xs text-gray-500">Employee's organizational department</p>
                     </div>
                   </div>
                   
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
-                      <Label htmlFor="position" className="text-sm font-medium text-gray-700">
-                        Position
+                      <Label htmlFor="position" className="text-sm font-semibold text-gray-800">
+                        Job Position
                       </Label>
                       <Input
                         id="position"
                         value={employee.position}
                         onChange={(e) => handleEmployeeChange("position", e.target.value)}
-                        placeholder="Enter position title"
-                        className="h-10"
+                        placeholder="e.g., Senior Worker, QC Specialist"
+                        className="h-11 border-2 focus:border-green-500 transition-colors"
                       />
+                      <p className="text-xs text-gray-500">Employee's job title or position</p>
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="joinDate" className="text-sm font-medium text-gray-700">
+                      <Label htmlFor="joinDate" className="text-sm font-semibold text-gray-800">
                         Join Date
                       </Label>
                       <Input
@@ -454,8 +490,9 @@ export default function EditEmployeePage() {
                         type="date"
                         value={employee.joinDate}
                         onChange={(e) => handleEmployeeChange("joinDate", e.target.value)}
-                        className="h-10"
+                        className="h-11 border-2 focus:border-green-500 transition-colors"
                       />
+                      <p className="text-xs text-gray-500">Date employee joined the company</p>
                     </div>
                   </div>
                   

@@ -6,15 +6,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, User, Save, X } from "lucide-react";
 import UserForm from "../../components/UserForm";
-import { useUsers } from "@/contexts/UsersContext";
 import { toast } from "sonner";
 import UserManagementLayout from "@/components/layout/UserManagementLayout";
 
 export default function EditUserPage() {
   const router = useRouter();
   const params = useParams();
-  const userId = parseInt(params.id);
-  const { getUserById, updateUser } = useUsers();
+  const userId = params.id;
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   
@@ -26,14 +24,27 @@ export default function EditUserPage() {
     const loadUser = async () => {
       setIsLoading(true);
       try {
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 500));
+        const token = localStorage.getItem("token");
+        if (!token) {
+          toast.error("Please log in to view user details");
+          router.push("/login");
+          return;
+        }
+
+        const response = await fetch(`/api/users/${userId}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        const result = await response.json();
         
-        const foundUser = getUserById(userId);
-        if (foundUser) {
-          setUser(foundUser);
+        if (result.success) {
+          setUser(result.data);
         } else {
-          toast.error("User not found");
+          toast.error(result.error || "User not found");
           router.push("/users");
         }
       } catch (error) {
@@ -48,7 +59,7 @@ export default function EditUserPage() {
     if (userId) {
       loadUser();
     }
-  }, [userId, router, getUserById]);
+  }, [userId, router]);
 
   // Handle user data changes
   const handleUserChange = (updatedUser) => {
@@ -78,16 +89,30 @@ export default function EditUserPage() {
     setIsSubmitting(true);
     
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const token = localStorage.getItem("token");
+      if (!token) {
+        toast.error("Please log in to update users");
+        router.push("/login");
+        return;
+      }
+
+      const response = await fetch(`/api/users/${userId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(user)
+      });
+
+      const result = await response.json();
       
-      // Update user in the context
-      updateUser(userId, user);
-      
-      console.log("User updated:", user);
-      
-      toast.success("User updated successfully!");
-      router.push("/users");
+      if (result.success) {
+        toast.success("User updated successfully!");
+        router.push("/users");
+      } else {
+        toast.error(result.error || "Failed to update user");
+      }
     } catch (error) {
       console.error("Error updating user:", error);
       toast.error("Failed to update user. Please try again.");

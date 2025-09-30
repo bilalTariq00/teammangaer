@@ -50,10 +50,13 @@ export default function LoginPage() {
         console.log('Stored user in localStorage:', JSON.parse(localStorage.getItem('user')));
         console.log('Cookie set:', document.cookie);
         
-        // Dispatch custom event to notify AuthContext of login
-        window.dispatchEvent(new CustomEvent('userLogin', { 
-          detail: { user: result.user, token: result.token } 
-        }));
+        // Small delay to ensure data is stored before AuthContext processes it
+        setTimeout(() => {
+          // Dispatch custom event to notify AuthContext of login
+          window.dispatchEvent(new CustomEvent('userLogin', { 
+            detail: { user: result.user, token: result.token } 
+          }));
+        }, 50);
         
         // Small delay to ensure localStorage is updated before redirect
         setTimeout(() => {

@@ -8,6 +8,7 @@ const AuthContext = createContext();
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   const loadUserFromStorage = () => {
     if (typeof window !== 'undefined') {
@@ -45,11 +46,14 @@ export function AuthProvider({ children }) {
         }
       } else {
         console.log('AuthContext loadUserFromStorage - no token or savedUser found');
-        // If no user data, clear any existing data
-        localStorage.removeItem("user");
-        localStorage.removeItem("token");
-        clearUserRoleCookie();
-        setUser(null);
+        // Don't clear data if we're in the middle of logging in
+        if (!isLoggingIn) {
+          console.log('AuthContext - not logging in, clearing user data');
+          clearUserRoleCookie();
+          setUser(null);
+        } else {
+          console.log('AuthContext - currently logging in, not clearing data');
+        }
       }
     }
   };

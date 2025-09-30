@@ -6,21 +6,19 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import UserForm from "../components/UserForm";
-import { useUsers } from "@/contexts/UsersContext";
 import { toast } from "sonner";
 import UserManagementLayout from "@/components/layout/UserManagementLayout";
 
 export default function CreateUserPage() {
   const router = useRouter();
-  const { addUser } = useUsers();
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   // Initial user state
   const [user, setUser] = useState({
     name: "",
     email: "",
-    role: "worker",
-    workerType: "",
+    role: "user",
+    workerType: "permanent",
     status: "trainee",
     taskRole: "viewer",
     password: "",
@@ -61,16 +59,34 @@ export default function CreateUserPage() {
     setIsSubmitting(true);
     
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Get auth token from localStorage
+      const token = localStorage.getItem("token");
+      if (!token) {
+        toast.error("Please log in to create users");
+        router.push("/login");
+        return;
+      }
+
+      // Call the user creation API
+      const response = await fetch('/api/users', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(user)
+      });
+
+      const result = await response.json();
       
-      // Add user to the context
-      const newUser = addUser(user);
-      
-      console.log("User created:", newUser);
-      
-      toast.success("User created successfully!");
-      router.push("/users");
+      if (result.success) {
+        console.log("User created:", result.data);
+        toast.success("User created successfully!");
+        router.push("/users");
+      } else {
+        console.error("API Error:", result.error);
+        toast.error(result.error || "Failed to create user. Please try again.");
+      }
     } catch (error) {
       console.error("Error creating user:", error);
       toast.error("Failed to create user. Please try again.");

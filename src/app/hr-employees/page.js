@@ -25,14 +25,13 @@ import {
   MapPin,
   User
 } from "lucide-react";
-import { useUsers } from "@/contexts/UsersContext";
 import { useAuth } from "@/contexts/AuthContext";
 import HRLayout from "@/components/layout/HRLayout";
 import { toast } from "sonner";
+import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 
 export default function HREmployeesPage() {
   const router = useRouter();
-  const { users, addUser, updateUser, deleteUser } = useUsers();
   const { user: currentUser } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -41,87 +40,56 @@ export default function HREmployeesPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
-  // Debug logging
-  console.log('HREmployeesPage Debug:', {
-    users: users ? `Array(${users.length})` : users,
-    addUser: typeof addUser,
-    updateUser: typeof updateUser,
-    deleteUser: typeof deleteUser,
-    currentUser: currentUser ? `User(${currentUser.id})` : currentUser
-  });
-
-  // Enhanced employee data with HR-specific fields
+  // Employee data from backend
   const [employees, setEmployees] = useState([]);
+  const [error, setError] = useState(null);
+  
+  // Confirmation dialog state
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [employeeToDelete, setEmployeeToDelete] = useState(null);
+
+  // Fetch employees from backend API
+  const fetchEmployees = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      const token = localStorage.getItem("token");
+      if (!token) {
+        toast.error("Please log in to view employees");
+        router.push("/login");
+        return;
+      }
+
+      const response = await fetch('/api/hr/employees', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      const result = await response.json();
+      
+      if (result.success) {
+        setEmployees(result.data || []);
+        console.log('Fetched employees from backend:', result.data?.length || 0);
+      } else {
+        setError(result.error || 'Failed to fetch employees');
+        toast.error(result.error || 'Failed to fetch employees');
+      }
+    } catch (error) {
+      console.error('Error fetching employees:', error);
+      setError('Failed to fetch employees');
+      toast.error('Failed to fetch employees');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    // Safety check for users array
-    if (!users || !Array.isArray(users)) {
-      console.log('Users not available yet:', users);
-      return;
-    }
-
-    // Convert users to employees with additional HR fields
-    // First, deduplicate users by ID to prevent duplicate keys
-    const uniqueUsers = users.reduce((acc, user) => {
-      if (!acc.find(u => u.id === user.id)) {
-        acc.push(user);
-      }
-      return acc;
-    }, []);
-    
-    const enhancedEmployees = uniqueUsers.map(user => ({
-      ...user,
-      // HR-specific fields
-      employeeId: `EMP${user.id.toString().padStart(4, '0')}`,
-      department: user.department || "Operations",
-      position: user.position || user.workerType?.replace('-', ' ') || "Worker",
-      salary: user.salary || 0,
-      joinDate: user.joinDate || user.created || new Date().toISOString().split('T')[0],
-      target: user.target || 0,
-      attendance: user.attendance || 0,
-      lastReview: user.lastReview || null,
-      phoneNumber: user.phoneNumber || "",
-      address: user.address || "",
-      emergencyContact: user.emergencyContact || "",
-      emergencyPhone: user.emergencyPhone || "",
-      dateOfBirth: user.dateOfBirth || "",
-      socialSecurityNumber: user.socialSecurityNumber || "",
-      bankAccount: user.bankAccount || "",
-      benefits: user.benefits || "",
-      notes: user.notes || "",
-      // Contact info (user can edit)
-      contactNumber: user.contactNumber || "",
-      emergencyNumber: user.emergencyNumber || "",
-      vacationDay: user.vacationDay || "Monday" // Include vacation day
-    }));
-    
-    // Debug: Check for duplicate IDs
-    const duplicateIds = enhancedEmployees.filter((emp, index) => 
-      enhancedEmployees.findIndex(e => e.id === emp.id) !== index
-    );
-    if (duplicateIds.length > 0) {
-      console.warn('Duplicate employee IDs found:', duplicateIds.map(emp => ({ id: emp.id, name: emp.name })));
-    }
-    
-    // Debug: Check employee data
-    console.log('Enhanced employees data:', enhancedEmployees.map(emp => ({
-      id: emp.id,
-      name: emp.name,
-      workerType: emp.workerType,
-      status: emp.status,
-      created: emp.created
-    })));
-    
-    // Sort employees by creation date (newest first)
-    const sortedEmployees = enhancedEmployees.sort((a, b) => {
-      const dateA = new Date(a.created || a.joinDate || 0);
-      const dateB = new Date(b.created || b.joinDate || 0);
-      return dateB - dateA; // Newest first
-    });
-    
-    setEmployees(sortedEmployees);
-    setIsLoading(false);
-  }, [users]);
+    fetchEmployees();
+  }, []);
 
   const filteredEmployees = employees.filter(employee => {
     // Safety check for employee object
@@ -191,21 +159,61 @@ export default function HREmployeesPage() {
     router.push(`/hr-employees/view/${employee.id}`);
   };
 
-  const handleDeleteEmployee = async (employee) => {
+  const handleDeleteEmployee = (employee) => {
     if (!employee || !employee.id) {
       toast.error("Invalid employee data");
       return;
     }
     
-    if (window.confirm(`Are you sure you want to delete ${employee.name || 'this employee'}?`)) {
-      try {
-        deleteUser(employee.id);
-        toast.success("Employee deleted successfully");
-      } catch (error) {
-        console.error("Delete error:", error);
-        toast.error("Failed to delete employee");
+    setEmployeeToDelete(employee);
+    setShowDeleteDialog(true);
+  };
+
+  const confirmDeleteEmployee = async () => {
+    if (!employeeToDelete) return;
+    
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        toast.error("Please log in to delete employees");
+        router.push("/login");
+        return;
       }
+
+      const response = await fetch(`/api/hr/employees/${employeeToDelete.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      const result = await response.json();
+      
+      if (result.success) {
+        // Remove from local state
+        setEmployees(prev => prev.filter(emp => emp.id !== employeeToDelete.id));
+        toast.success(`${employeeToDelete.name} has been deleted successfully`);
+      } else {
+        toast.error(result.error || 'Failed to delete employee');
+      }
+    } catch (error) {
+      console.error("Delete error:", error);
+      toast.error("Failed to delete employee");
+    } finally {
+      setShowDeleteDialog(false);
+      setEmployeeToDelete(null);
     }
+  };
+
+  const cancelDeleteEmployee = () => {
+    setShowDeleteDialog(false);
+    setEmployeeToDelete(null);
+  };
+
+  // Refresh employees from backend
+  const handleRefresh = () => {
+    fetchEmployees();
   };
 
   const getStatusBadgeVariant = (status) => {
@@ -228,6 +236,30 @@ export default function HREmployeesPage() {
       default: return "outline";
     }
   };
+
+  if (error) {
+    return (
+      <HRLayout>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="text-red-500 mb-4">
+              <svg className="h-12 w-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Error Loading Employees</h3>
+            <p className="text-gray-600 mb-4">{error}</p>
+            <Button onClick={handleRefresh} className="flex items-center gap-2">
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              Try Again
+            </Button>
+          </div>
+        </div>
+      </HRLayout>
+    );
+  }
 
   if (isLoading) {
     return (
@@ -257,10 +289,25 @@ export default function HREmployeesPage() {
               <p className="text-gray-600">Manage employee information, roles, and permissions</p>
             </div>
           </div>
-          <Button onClick={handleCreateEmployee} className="flex items-center gap-2">
-            <UserPlus className="h-4 w-4" />
-            Add Employee
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button 
+              onClick={handleRefresh} 
+              variant="outline" 
+              className="flex items-center gap-2"
+              disabled={isLoading}
+            >
+              <div className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`}>
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+              </div>
+              Refresh
+            </Button>
+            <Button onClick={handleCreateEmployee} className="flex items-center gap-2">
+              <UserPlus className="h-4 w-4" />
+              Add Employee
+            </Button>
+          </div>
         </div>
 
         {/* Stats Cards */}
@@ -270,8 +317,8 @@ export default function HREmployeesPage() {
               <div className="flex items-center gap-2">
                 <Users className="h-4 w-4 text-blue-600" />
                 <div>
-                  <p className="text-sm text-gray-600">Total Employees</p>
-                  <p className="text-2xl font-bold">{uniqueFilteredEmployees.length}</p>
+                  <p className="text-sm text-gray-600">Total QC & Workers</p>
+                  <p className="text-2xl font-bold">{employees.filter(e => e.role === 'qc' || e.role === 'user' || e.role === 'worker').length}</p>
                 </div>
               </div>
             </CardContent>
@@ -282,7 +329,7 @@ export default function HREmployeesPage() {
                 <Award className="h-4 w-4 text-green-600" />
                 <div>
                   <p className="text-sm text-gray-600">Permanent</p>
-                  <p className="text-2xl font-bold">{employees.filter(e => e.status === 'permanent').length}</p>
+                  <p className="text-2xl font-bold">{employees.filter(e => (e.role === 'qc' || e.role === 'user' || e.role === 'worker') && e.status === 'permanent').length}</p>
                 </div>
               </div>
             </CardContent>
@@ -293,31 +340,18 @@ export default function HREmployeesPage() {
                 <Calendar className="h-4 w-4 text-orange-600" />
                 <div>
                   <p className="text-sm text-gray-600">Trainees</p>
-                  <p className="text-2xl font-bold">{employees.filter(e => e.status === 'trainee').length}</p>
+                  <p className="text-2xl font-bold">{employees.filter(e => (e.role === 'qc' || e.role === 'user' || e.role === 'worker') && e.status === 'trainee').length}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
-          {/* <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <DollarSign className="h-4 w-4 text-green-600" />
-                <div>
-                  <p className="text-sm text-gray-600">Avg. Salary</p>
-                  <p className="text-2xl font-bold">
-                    ${employees.length > 0 ? Math.round(employees.reduce((sum, e) => sum + (e.salary || 0), 0) / employees.length).toLocaleString() : '0'}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card> */}
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-2">
                 <Building className="h-4 w-4 text-purple-600" />
                 <div>
                   <p className="text-sm text-gray-600">Departments</p>
-                  <p className="text-2xl font-bold">{new Set(employees.map(e => e.department)).size}</p>
+                  <p className="text-2xl font-bold">{new Set(employees.filter(e => e.role === 'qc' || e.role === 'user' || e.role === 'worker').map(e => e.department)).size}</p>
                 </div>
               </div>
             </CardContent>
@@ -371,7 +405,10 @@ export default function HREmployeesPage() {
         {/* Employees Table */}
         <Card>
           <CardHeader>
-            <CardTitle>Employees ({uniqueFilteredEmployees.length})</CardTitle>
+            <CardTitle>
+              Employees ({uniqueFilteredEmployees.length})
+            
+            </CardTitle>
             <CardDescription>
               Manage employee information, roles, and permissions
             </CardDescription>
@@ -593,6 +630,22 @@ export default function HREmployeesPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Confirmation Dialog */}
+      <ConfirmationDialog
+        isOpen={showDeleteDialog}
+        onClose={cancelDeleteEmployee}
+        onConfirm={confirmDeleteEmployee}
+        title="Delete Employee"
+        description={
+          employeeToDelete 
+            ? `Are you sure you want to delete "${employeeToDelete.name}"? This action cannot be undone.`
+            : "Are you sure you want to delete this employee?"
+        }
+        confirmText="Delete Employee"
+        cancelText="Cancel"
+        variant="destructive"
+      />
     </HRLayout>
   );
   } catch (error) {

@@ -22,26 +22,17 @@ import {
   TrendingUp,
   FileText
 } from "lucide-react";
-import { useUsers } from "@/contexts/UsersContext";
 import { toast } from "sonner";
 import HRLayout from "@/components/layout/HRLayout";
 
 export default function ViewEmployeePage() {
   const router = useRouter();
   const params = useParams();
-  const employeeId = params?.id ? parseInt(params.id) : null;
-  
-  // Safety check for context
-  let getUserById;
-  try {
-    const usersContext = useUsers();
-    getUserById = usersContext?.getUserById;
-  } catch (error) {
-    console.error('Error accessing UsersContext:', error);
-  }
+  const employeeId = params?.id;
   
   const [isLoading, setIsLoading] = useState(true);
   const [isClient, setIsClient] = useState(false);
+  const [error, setError] = useState(null);
   
   // Comprehensive employee state with all HR fields
   const [employee, setEmployee] = useState(null);
@@ -51,77 +42,52 @@ export default function ViewEmployeePage() {
     setIsClient(true);
   }, []);
 
-  // Load employee data
+  // Load employee data from backend API
   useEffect(() => {
-    if (!isClient) return;
+    if (!isClient || !employeeId) return;
+    
     const loadEmployee = async () => {
       setIsLoading(true);
+      setError(null);
+      
       try {
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        // Safety check for getUserById function
-        if (!getUserById || typeof getUserById !== 'function') {
-          console.error('getUserById function not available');
-          toast.error("Unable to load employee data");
-          router.push("/hr-employees");
+        const token = localStorage.getItem("token");
+        if (!token) {
+          toast.error("Please log in to view employee details");
+          router.push("/login");
           return;
         }
+
+        const response = await fetch(`/api/hr/employees/${employeeId}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        const result = await response.json();
         
-        const foundUser = getUserById(employeeId);
-        if (foundUser) {
-          // Convert user to employee with all HR fields
-          const employeeData = {
-            ...foundUser,
-            // Ensure all HR fields exist
-            employeeId: foundUser.employeeId || `EMP${foundUser.id.toString().padStart(4, '0')}`,
-            department: foundUser.department || "Operations",
-            position: foundUser.position || foundUser.workerType?.replace('-', ' ') || "Worker",
-            salary: foundUser.salary || 0,
-            joinDate: foundUser.joinDate || foundUser.created || new Date().toISOString().split('T')[0],
-            target: foundUser.target || 0,
-            // attendance: foundUser.attendance || 0,
-            lastReview: foundUser.lastReview || "",
-            phoneNumber: foundUser.phoneNumber || "",
-            address: foundUser.address || "",
-            emergencyContact: foundUser.emergencyContact || "",
-            emergencyPhone: foundUser.emergencyPhone || "",
-            contactNumber: foundUser.contactNumber || "",
-            emergencyNumber: foundUser.emergencyNumber || "",
-            dateOfBirth: foundUser.dateOfBirth || "",
-            socialSecurityNumber: foundUser.socialSecurityNumber || "",
-            bankAccount: foundUser.bankAccount || "",
-            benefits: foundUser.benefits || "",
-            notes: foundUser.notes || "",
-            assignedUsers: foundUser.assignedUsers || [],
-            defaultTasker: foundUser.defaultTasker || "none"
-          };
-          setEmployee(employeeData);
+        if (result.success) {
+          setEmployee(result.data);
         } else {
-          toast.error("Employee not found");
-          router.push("/hr-employees");
+          setError(result.error || 'Failed to load employee');
+          toast.error(result.error || 'Failed to load employee');
+          if (result.error === 'Employee not found') {
+            router.push("/hr-employees");
+          }
         }
       } catch (error) {
         console.error("Error loading employee:", error);
+        setError('Failed to load employee data');
         toast.error("Failed to load employee data");
-        router.push("/hr-employees");
       } finally {
         setIsLoading(false);
       }
     };
 
-    if (employeeId && getUserById) {
-      loadEmployee();
-    } else if (!employeeId) {
-      console.error('Invalid employee ID');
-      toast.error("Invalid employee ID");
-      router.push("/hr-employees");
-    } else if (!getUserById) {
-      console.error('Context not available');
-      toast.error("Unable to access employee data");
-      router.push("/hr-employees");
-    }
-  }, [employeeId, router, getUserById, isClient]);
+    loadEmployee();
+  }, [employeeId, router, isClient]);
 
   const handleEditEmployee = () => {
     router.push(`/hr-employees/edit/${employeeId}`);
@@ -155,6 +121,27 @@ export default function ViewEmployeePage() {
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
             <p className="text-gray-600">{!isClient ? 'Loading...' : 'Loading employee data...'}</p>
+          </div>
+        </div>
+      </HRLayout>
+    );
+  }
+
+  if (error) {
+    return (
+      <HRLayout>
+        <div className="min-h-screen bg-gray-50/50 flex items-center justify-center">
+          <div className="text-center">
+            <div className="text-red-500 mb-4">
+              <svg className="h-12 w-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Error Loading Employee</h3>
+            <p className="text-gray-600 mb-4">{error}</p>
+            <Button onClick={() => router.push("/hr-employees")} className="mt-4">
+              Back to Employees
+            </Button>
           </div>
         </div>
       </HRLayout>

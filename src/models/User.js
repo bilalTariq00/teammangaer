@@ -33,7 +33,7 @@ const UserSchema = new mongoose.Schema({
   },
   workerType: {
     type: String,
-    enum: ['permanent', 'trainee', 'manager', 'qc', 'hr'],
+    enum: ['permanent', 'trainee', 'manager', 'qc', 'hr', 'admin'],
     default: 'permanent'
   },
   status: {
@@ -130,6 +130,14 @@ const UserSchema = new mongoose.Schema({
   vacationDay: {
     type: String,
     default: 'Monday'
+  },
+  employeeId: {
+    type: String,
+    default: ''
+  },
+  target: {
+    type: Number,
+    default: 0
   },
   avatar: {
     type: String,

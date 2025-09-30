@@ -27,6 +27,7 @@ export default function CreateEmployeePage() {
     workerType: "",
     workCategory: "",
     status: "trainee",
+    taskRole: "viewer", // Default task role for workers
     password: "",
     
     // HR-specific fields
@@ -102,6 +103,12 @@ export default function CreateEmployeePage() {
       return;
     }
 
+    // Validate taskRole for workers
+    if (employee.role === "worker" && !employee.taskRole) {
+      toast.error("Please select a task role for the worker");
+      return;
+    }
+
     if (!employee.salary || employee.salary <= 0) {
       toast.error("Please enter a valid salary amount");
       return;
@@ -117,33 +124,45 @@ export default function CreateEmployeePage() {
     setIsSubmitting(true);
     
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Generate employee ID if not provided
-      const employeeId = employee.employeeId || `EMP${Date.now().toString().slice(-4)}`;
-      
-      // Set final worker type based on role and employment type
-      let finalWorkerType = employee.workerType;
-      if (employee.role === "worker") {
-        finalWorkerType = `${employee.workerType}-worker`;
+      // Get auth token from localStorage
+      const token = localStorage.getItem("token");
+      console.log('🔍 Token from localStorage:', token ? token.substring(0, 50) + '...' : 'null');
+      if (!token) {
+        toast.error("Please log in to create employees");
+        router.push("/login");
+        return;
       }
-      
-      // Add employee to the context
-      const newEmployee = addUser({
+
+      // Prepare employee data for API
+      const employeeData = {
         ...employee,
-        workerType: finalWorkerType,
-        employeeId,
-        id: Date.now(), // Generate unique ID
-        created: new Date().toISOString().slice(0, 19).replace('T', ' '),
-        locked: "unlocked",
-        links: 0
+        // Ensure role is set correctly
+        role: employee.role === "worker" ? "user" : employee.role,
+        // Set status based on workerType
+        status: employee.workerType === "trainee" ? "trainee" : "permanent"
+      };
+
+      // Call the HR employee creation API
+      console.log('🔍 Making API call with token:', `Bearer ${token.substring(0, 50)}...`);
+      const response = await fetch('/api/hr/employees', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(employeeData)
       });
+
+      const result = await response.json();
       
-      console.log("Employee created:", newEmployee);
-      
-      toast.success("Employee created successfully!");
-      router.push("/hr-employees");
+      if (result.success) {
+        console.log("Employee created:", result.data);
+        toast.success("Employee created successfully!");
+        router.push("/hr-employees");
+      } else {
+        console.error("API Error:", result.error);
+        toast.error(result.error || "Failed to create employee. Please try again.");
+      }
     } catch (error) {
       console.error("Error creating employee:", error);
       toast.error("Failed to create employee. Please try again.");
@@ -262,6 +281,31 @@ export default function CreateEmployeePage() {
                       </Select>
                     </div>
                   </div>
+                  
+                  {/* Task Role - Only show for workers */}
+                  {employee.role === 'worker' && (
+                    <div className="space-y-2">
+                      <Label htmlFor="taskRole" className="text-sm font-medium text-gray-700">
+                        Task Role <span className="text-red-500">*</span>
+                      </Label>
+                      <Select 
+                        value={employee.taskRole} 
+                        onValueChange={(value) => handleEmployeeChange("taskRole", value)}
+                      >
+                        <SelectTrigger className="h-10">
+                          <SelectValue placeholder="Select task role" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="viewer">Viewer - Can only view tasks</SelectItem>
+                          <SelectItem value="clicker">Clicker - Can perform click tasks</SelectItem>
+                          <SelectItem value="both">Both - Can view and perform tasks</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-gray-500">
+                        Choose the worker's task capabilities
+                      </p>
+                    </div>
+                  )}
                   
                   <div className="space-y-2">
                     <Label htmlFor="password" className="text-sm font-medium text-gray-700">

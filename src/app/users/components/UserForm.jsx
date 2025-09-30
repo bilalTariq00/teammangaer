@@ -7,7 +7,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Users, UserCheck, X, Search, Plus, Minus } from "lucide-react";
+import { Users, UserCheck, X, Search, Plus, Minus, Loader2 } from "lucide-react";
+import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
 
 const UserForm = ({ 
   user, 
@@ -16,20 +18,10 @@ const UserForm = ({
   onCancel, 
   isEdit = false 
 }) => {
-  // Available users for manager assignment (excluding admins and other managers)
-  const availableUsers = [
-    { id: 1, name: "Hasan Abbas", email: "abbas_hasan12@joysapps.com", role: "worker", workerType: "permanent-worker" },
-    { id: 2, name: "Muhammad Shahood", email: "Shahood1@joyapps.net", role: "worker", workerType: "permanent-worker" },
-    { id: 3, name: "Abid", email: "Abid1@joyapps.net", role: "worker", workerType: "permanent-worker" },
-    { id: 4, name: "Sarah Johnson", email: "sarah@joyapps.net", role: "worker", workerType: "trainee-worker" },
-    { id: 5, name: "John Doe", email: "john@joyapps.net", role: "worker", workerType: "trainee-worker" },
-    { id: 6, name: "Jane Smith", email: "jane@joyapps.net", role: "worker", workerType: "permanent-worker" },
-    { id: 7, name: "Mike Wilson", email: "mike@joyapps.net", role: "worker", workerType: "permanent-worker" },
-    { id: 8, name: "Lisa Brown", email: "lisa@joyapps.net", role: "worker", workerType: "trainee-worker" },
-    { id: 9, name: "David Lee", email: "david@joyapps.net", role: "worker", workerType: "trainee-worker" },
-    { id: 10, name: "Emma Davis", email: "emma@joyapps.net", role: "worker", workerType: "permanent-worker" }
-  ];
-
+  const { user: currentUser } = useAuth();
+  // State for available workers from database
+  const [availableUsers, setAvailableUsers] = useState([]);
+  const [isLoadingWorkers, setIsLoadingWorkers] = useState(false);
   const [selectedUsers, setSelectedUsers] = useState(user?.assignedUsers || []);
   const [searchTerm, setSearchTerm] = useState("");
   const [showUserList, setShowUserList] = useState(false);
@@ -41,6 +33,55 @@ const UserForm = ({
     }
     return value;
   };
+
+  // Function to fetch workers from database
+  const fetchWorkers = async () => {
+    try {
+      setIsLoadingWorkers(true);
+      const token = localStorage.getItem("token");
+      if (!token) {
+        toast.error("Please log in to fetch workers");
+        return;
+      }
+
+      // Use appropriate endpoint based on current user role
+      const endpoint = currentUser?.role === 'admin' ? '/api/users' : '/api/hr/employees';
+      
+      const response = await fetch(endpoint, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      const result = await response.json();
+      
+      if (result.success) {
+        // Filter to only show workers (role: 'user') and exclude admins, managers, hr, qc
+        const workers = result.data.filter(u => u.role === 'user');
+        setAvailableUsers(workers);
+      } else {
+        toast.error(result.error || 'Failed to fetch workers');
+        setAvailableUsers([]);
+      }
+    } catch (error) {
+      console.error("Error fetching workers:", error);
+      toast.error("Failed to fetch workers");
+      setAvailableUsers([]);
+    } finally {
+      setIsLoadingWorkers(false);
+    }
+  };
+
+  // Fetch workers when role changes to manager
+  useEffect(() => {
+    if (user?.role === 'manager') {
+      fetchWorkers();
+    } else {
+      setAvailableUsers([]);
+    }
+  }, [user?.role]);
 
   // Update selected users when user prop changes
   useEffect(() => {
@@ -158,46 +199,87 @@ const UserForm = ({
               Role <span className="text-red-500">*</span>
             </Label>
             <Select 
-              value={getSafeSelectValue(user?.role, "worker")} 
-              onValueChange={(value) => onUserChange({...user, role: getSafeSelectValue(value, "worker")})}
+              value={getSafeSelectValue(user?.role, "user")} 
+              onValueChange={(value) => {
+                const newRole = getSafeSelectValue(value, "user");
+                // Reset workerType when role changes
+                let newWorkerType = "";
+                if (newRole === "user") {
+                  newWorkerType = "permanent"; // Default for workers
+                } else if (newRole === "manager") {
+                  newWorkerType = "manager";
+                } else if (newRole === "qc") {
+                  newWorkerType = "qc";
+                } else if (newRole === "hr") {
+                  newWorkerType = "hr";
+                } else if (newRole === "admin") {
+                  newWorkerType = "admin";
+                }
+                onUserChange({...user, role: newRole, workerType: newWorkerType});
+              }}
             >
               <SelectTrigger className="h-10">
                 <SelectValue placeholder="Select role" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="admin">Admin</SelectItem>
-                <SelectItem value="manager">Manager</SelectItem>
-                <SelectItem value="qc">QC (Quality Control)</SelectItem>
-                <SelectItem value="hr">HR (Human Resources)</SelectItem>
-                <SelectItem value="worker">Worker</SelectItem>
+                {currentUser?.role === 'admin' && (
+                  <>
+                    <SelectItem value="admin">Admin</SelectItem>
+                    <SelectItem value="manager">Manager</SelectItem>
+                    <SelectItem value="hr">HR (Human Resources)</SelectItem>
+                  </>
+                )}
+                {(currentUser?.role === 'admin' || currentUser?.role === 'hr') && (
+                  <>
+                    <SelectItem value="qc">QC (Quality Control)</SelectItem>
+                    <SelectItem value="user">Worker</SelectItem>
+                  </>
+                )}
               </SelectContent>
             </Select>
           </div>
           
-          <div className="space-y-2">
-            <Label htmlFor={isEdit ? "edit-workerType" : "workerType"} className="text-sm font-medium text-gray-700">
-              Worker Type
-            </Label>
-            <Select 
-              value={getSafeSelectValue(user?.workerType, "")} 
-              onValueChange={(value) => onUserChange({...user, workerType: getSafeSelectValue(value, "")})}
-            >
-              <SelectTrigger className="h-10">
-                <SelectValue placeholder="Select worker type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="permanent-worker">Permanent Worker</SelectItem>
-                <SelectItem value="trainee-worker">Trainee Worker</SelectItem>
-                <SelectItem value="manager">Manager</SelectItem>
-                <SelectItem value="qc">QC (Quality Control)</SelectItem>
-                <SelectItem value="hr">HR (Human Resources)</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          {/* Worker Type - Show only for workers */}
+          {user?.role === "user" && (
+            <div className="space-y-2">
+              <Label htmlFor={isEdit ? "edit-workerType" : "workerType"} className="text-sm font-medium text-gray-700">
+                Worker Type <span className="text-red-500">*</span>
+              </Label>
+              <Select 
+                value={getSafeSelectValue(user?.workerType, "permanent")} 
+                onValueChange={(value) => onUserChange({...user, workerType: getSafeSelectValue(value, "permanent")})}
+              >
+                <SelectTrigger className="h-10">
+                  <SelectValue placeholder="Select worker type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="permanent">Permanent Worker</SelectItem>
+                  <SelectItem value="trainee">Trainee Worker</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {/* Role Type - Show for non-worker roles */}
+          {user?.role && user?.role !== "user" && (
+            <div className="space-y-2">
+              <Label htmlFor={isEdit ? "edit-workerType" : "workerType"} className="text-sm font-medium text-gray-700">
+                Role Type
+              </Label>
+              <div className="h-10 px-3 py-2 border border-gray-300 rounded-md bg-gray-50 flex items-center">
+                <span className="text-sm text-gray-600 capitalize">
+                  {user?.role === "admin" && "Admin"}
+                  {user?.role === "manager" && "Manager"}
+                  {user?.role === "qc" && "Quality Control"}
+                  {user?.role === "hr" && "Human Resources"}
+                </span>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Task Role (Viewer/Clicker/Both) - only for Worker role */}
-        {user?.role === "worker" && (
+        {user?.role === "user" && (
           <div className="space-y-2">
             <Label htmlFor={isEdit ? "edit-taskRole" : "taskRole"} className="text-sm font-medium text-gray-700">
               Task Role
@@ -324,10 +406,11 @@ const UserForm = ({
                 <div className="relative flex-1">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <Input
-                    placeholder="Search users by name or email..."
+                    placeholder="Search workers by name or email..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="pl-10 h-10"
+                    disabled={isLoadingWorkers}
                   />
                 </div>
                 <Button
@@ -336,8 +419,16 @@ const UserForm = ({
                   size="sm"
                   onClick={() => setShowUserList(!showUserList)}
                   className="h-10"
+                  disabled={isLoadingWorkers}
                 >
-                  {showUserList ? "Hide" : "Show"} List
+                  {isLoadingWorkers ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Loading...
+                    </>
+                  ) : (
+                    `${showUserList ? "Hide" : "Show"} List`
+                  )}
                 </Button>
               </div>
 
@@ -346,37 +437,48 @@ const UserForm = ({
                 <div className="border rounded-lg bg-white max-h-64 overflow-y-auto">
                   <div className="p-3 border-b bg-gray-50 flex items-center justify-between">
                     <span className="text-sm font-medium text-gray-600">
-                      Available Users ({getFilteredUsers().length})
+                      {isLoadingWorkers ? (
+                        "Loading workers..."
+                      ) : (
+                        `Available Workers (${getFilteredUsers().length})`
+                      )}
                     </span>
-                    <div className="flex gap-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={handleSelectAll}
-                        disabled={getFilteredUsers().length === 0}
-                        className="text-xs"
-                      >
-                        <Plus className="h-3 w-3 mr-1" />
-                        Select All
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={handleDeselectAll}
-                        disabled={getFilteredUsers().length === 0}
-                        className="text-xs"
-                      >
-                        <Minus className="h-3 w-3 mr-1" />
-                        Deselect All
-                      </Button>
-                    </div>
+                    {!isLoadingWorkers && (
+                      <div className="flex gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={handleSelectAll}
+                          disabled={getFilteredUsers().length === 0}
+                          className="text-xs"
+                        >
+                          <Plus className="h-3 w-3 mr-1" />
+                          Select All
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={handleDeselectAll}
+                          disabled={getFilteredUsers().length === 0}
+                          className="text-xs"
+                        >
+                          <Minus className="h-3 w-3 mr-1" />
+                          Deselect All
+                        </Button>
+                      </div>
+                    )}
                   </div>
                   
-                  {getFilteredUsers().length === 0 ? (
+                  {isLoadingWorkers ? (
+                    <div className="p-8 text-center">
+                      <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2 text-gray-400" />
+                      <p className="text-sm text-gray-500">Loading workers from database...</p>
+                    </div>
+                  ) : getFilteredUsers().length === 0 ? (
                     <div className="p-4 text-center text-sm text-gray-500">
-                      {searchTerm ? "No users found matching your search." : "All users have been selected."}
+                      {searchTerm ? "No workers found matching your search." : "No workers available to assign."}
                     </div>
                   ) : (
                     <div className="divide-y">
@@ -399,7 +501,13 @@ const UserForm = ({
                                 {availableUser.name}
                               </span>
                               <Badge variant="outline" className="text-xs">
-                                {availableUser.workerType.replace('-', ' ')}
+                                {availableUser.workerType || 'permanent'}
+                              </Badge>
+                              <Badge 
+                                variant={availableUser.status === 'permanent' ? 'default' : 'secondary'} 
+                                className="text-xs"
+                              >
+                                {availableUser.status}
                               </Badge>
                             </div>
                             <p className="text-xs text-gray-500 truncate">{availableUser.email}</p>
@@ -411,9 +519,9 @@ const UserForm = ({
                 </div>
               )}
 
-              {selectedUsers.length === 0 && !showUserList && (
+              {selectedUsers.length === 0 && !showUserList && !isLoadingWorkers && (
                 <p className="text-xs text-muted-foreground text-center py-2">
-                  Use the search box above to find and add team members.
+                  Click "Show List" to view available workers from the database.
                 </p>
               )}
             </div>
