@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useAuth } from './AuthContext';
 import { useAttendance } from './AttendanceContext';
 import { usePerformance } from './PerformanceContext';
@@ -52,7 +52,7 @@ export function ManagerWorkflowProvider({ children }) {
       console.error('Error checking attendance verification:', error);
       return false;
     }
-  }, [user, today, cleanupOldVerificationData]);
+  }, [user, today]);
 
   // Clean up old verification data (older than today)
   const cleanupOldVerificationData = useCallback(() => {
