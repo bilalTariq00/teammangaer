@@ -302,7 +302,7 @@ export default function CreateEmployeePage() {
                         </SelectContent>
                       </Select>
                       <p className="text-xs text-gray-500">
-                        Choose the worker's task capabilities
+                        Choose the worker&apos;s task capabilities
                       </p>
                     </div>
                   )}

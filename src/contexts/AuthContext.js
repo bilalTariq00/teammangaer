@@ -10,7 +10,7 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
 
-  const loadUserFromStorage = () => {
+  const loadUserFromStorage = useCallback(() => {
     if (typeof window !== 'undefined') {
       const token = localStorage.getItem("token");
       const savedUser = localStorage.getItem("user");
@@ -56,13 +56,13 @@ export function AuthProvider({ children }) {
         }
       }
     }
-  };
+  }, [isLoggingIn]);
 
   useEffect(() => {
     // Check if user is logged in on mount (only in browser)
     loadUserFromStorage();
     setLoading(false);
-  }, []);
+  }, [loadUserFromStorage]);
 
   useEffect(() => {
     // Listen for storage changes (when user logs in from another tab)
@@ -90,7 +90,7 @@ export function AuthProvider({ children }) {
         window.removeEventListener('userLogin', handleUserLogin);
       };
     }
-  }, []);
+  }, [loadUserFromStorage]);
 
   const login = async (email, password) => {
     // Simulate API call with different user types

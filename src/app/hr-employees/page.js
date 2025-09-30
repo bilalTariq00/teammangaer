@@ -49,7 +49,7 @@ export default function HREmployeesPage() {
   const [employeeToDelete, setEmployeeToDelete] = useState(null);
 
   // Fetch employees from backend API
-  const fetchEmployees = async () => {
+  const fetchEmployees = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
@@ -85,11 +85,11 @@ export default function HREmployeesPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [router]);
 
   useEffect(() => {
     fetchEmployees();
-  }, []);
+  }, [fetchEmployees]);
 
   const filteredEmployees = employees.filter(employee => {
     // Safety check for employee object

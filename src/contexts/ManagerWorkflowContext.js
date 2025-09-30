@@ -23,7 +23,7 @@ export function ManagerWorkflowProvider({ children }) {
   const today = new Date().toISOString().split('T')[0];
 
   // Check if manager has marked their own attendance
-  const checkManagerAttendance = () => {
+  const checkManagerAttendance = useCallback(() => {
     try {
       if (!user || user.role !== 'manager') return false;
       
@@ -34,10 +34,10 @@ export function ManagerWorkflowProvider({ children }) {
       console.error('Error checking manager attendance:', error);
       return false;
     }
-  };
+  }, [user, today]);
 
   // Check attendance verification status
-  const checkAttendanceVerification = () => {
+  const checkAttendanceVerification = useCallback(() => {
     try {
       if (!user || user.role !== 'manager') return false;
       
@@ -52,7 +52,7 @@ export function ManagerWorkflowProvider({ children }) {
       console.error('Error checking attendance verification:', error);
       return false;
     }
-  };
+  }, [user, today]);
 
   // Clean up old verification data (older than today)
   const cleanupOldVerificationData = () => {
@@ -86,7 +86,7 @@ export function ManagerWorkflowProvider({ children }) {
   };
 
   // Get verified users (users whose attendance has been verified)
-  const getVerifiedUsers = () => {
+  const getVerifiedUsers = useCallback(() => {
     try {
       if (!user || user.role !== 'manager') return [];
       
@@ -107,10 +107,10 @@ export function ManagerWorkflowProvider({ children }) {
       console.error('Error getting verified users:', error);
       return [];
     }
-  };
+  }, [user, today]);
 
   // Check if all verified users have performance marked
-  const checkPerformanceCompletion = () => {
+  const checkPerformanceCompletion = useCallback(() => {
     if (!user || user.role !== 'manager') return true;
     
     const verifiedUsersList = getVerifiedUsers();
@@ -132,7 +132,7 @@ export function ManagerWorkflowProvider({ children }) {
     
     console.log('All performance marked:', allMarked);
     return allMarked;
-  };
+  }, [user, today, getVerifiedUsers]);
 
   // Alternative check based on actual team members (for when verification is not used)
   const checkTeamPerformanceCompletion = (teamMembers) => {
@@ -277,7 +277,7 @@ export function ManagerWorkflowProvider({ children }) {
       // Block navigation if team attendance not verified (but allow manager attendance page and dashboard)
       setNavigationBlocked(!attendanceVerifiedStatus);
     }
-  }, [user, today]);
+  }, [user, today, checkAttendanceVerification, checkManagerAttendance, checkPerformanceCompletion, getVerifiedUsers]);
 
   // Update performance completion status when performance changes
   useEffect(() => {
@@ -285,7 +285,7 @@ export function ManagerWorkflowProvider({ children }) {
       const performanceCompleted = checkPerformanceCompletion();
       setPerformanceMarked(performanceCompleted);
     }
-  }, [user, today, attendanceVerified]);
+  }, [user, today, attendanceVerified, checkPerformanceCompletion]);
 
   const value = {
     // State

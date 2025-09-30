@@ -309,10 +309,10 @@ export default function EditEmployeePage() {
                         id="name"
                         value={employee.name}
                         onChange={(e) => handleEmployeeChange("name", e.target.value)}
-                        placeholder="Enter employee's full name"
+                        placeholder="Enter employee&apos;s full name"
                         className="h-11 border-2 focus:border-blue-500 transition-colors"
                       />
-                      <p className="text-xs text-gray-500">Employee's complete legal name</p>
+                      <p className="text-xs text-gray-500">Employee&apos;s complete legal name</p>
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="email" className="text-sm font-semibold text-gray-800">
@@ -347,7 +347,7 @@ export default function EditEmployeePage() {
                           <SelectItem value="worker">Worker</SelectItem>
                         </SelectContent>
                       </Select>
-                      <p className="text-xs text-gray-500">Employee's primary job function</p>
+                      <p className="text-xs text-gray-500">Employee&apos;s primary job function</p>
                     </div>
                     
                     <div className="space-y-2">
@@ -411,7 +411,7 @@ export default function EditEmployeePage() {
                             <SelectItem value="both">Both - Can view and perform tasks</SelectItem>
                           </SelectContent>
                         </Select>
-                        <p className="text-xs text-gray-500">Worker's task capabilities</p>
+                        <p className="text-xs text-gray-500">Worker&apos;s task capabilities</p>
                       </div>
                     )}
                   </div>
@@ -463,7 +463,7 @@ export default function EditEmployeePage() {
                           <SelectItem value="IT">IT</SelectItem>
                         </SelectContent>
                       </Select>
-                      <p className="text-xs text-gray-500">Employee's organizational department</p>
+                      <p className="text-xs text-gray-500">Employee&apos;s organizational department</p>
                     </div>
                   </div>
                   
@@ -479,7 +479,7 @@ export default function EditEmployeePage() {
                         placeholder="e.g., Senior Worker, QC Specialist"
                         className="h-11 border-2 focus:border-green-500 transition-colors"
                       />
-                      <p className="text-xs text-gray-500">Employee's job title or position</p>
+                      <p className="text-xs text-gray-500">Employee&apos;s job title or position</p>
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="joinDate" className="text-sm font-semibold text-gray-800">

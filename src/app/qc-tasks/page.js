@@ -371,7 +371,7 @@ export default function QCTasks() {
   };
 
   // Task Timer functions
-  const startTaskTimer = (taskId) => {
+  const startTaskTimer = useCallback((taskId) => {
     if (isTaskLocked) return;
     
     setCurrentTaskId(taskId);
@@ -384,7 +384,7 @@ export default function QCTasks() {
     if (task) {
       console.log(`Starting task: ${task.workerName} - ${task.taskName}`);
     }
-  };
+  }, [isTaskLocked, filteredTasks]);
 
   const pauseTaskTimer = () => {
     if (!isTaskTimerActive) return;
@@ -399,14 +399,14 @@ export default function QCTasks() {
     setIsTaskTimerActive(true);
   };
 
-  const stopTaskTimer = () => {
+  const stopTaskTimer = useCallback(() => {
     setIsTaskTimerActive(false);
     setTaskTimeElapsed(0);
     setCurrentTaskId(null);
     if (taskIntervalRef.current) {
       clearInterval(taskIntervalRef.current);
     }
-  };
+  }, []);
 
   const startNextTask = useCallback(() => {
     console.log('startNextTask called');

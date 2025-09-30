@@ -36,7 +36,7 @@ export default function UsersPage() {
   const [isInitialized, setIsInitialized] = useState(false);
 
   // Load users from backend
-  const loadUsers = async () => {
+  const loadUsers = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
@@ -71,12 +71,12 @@ export default function UsersPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [router]);
 
   // Load users on component mount
   useEffect(() => {
     loadUsers();
-  }, []);
+  }, [loadUsers]);
 
   // Ensure state is properly initialized before rendering Select components
   React.useEffect(() => {
