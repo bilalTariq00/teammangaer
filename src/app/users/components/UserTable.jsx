@@ -38,12 +38,18 @@ const UserTable = ({
           {users.map((user) => (
             <TableRow key={user.id} className="hover:bg-muted/50 border-b">
               <TableCell className="w-[150px] px-4 py-3 font-medium text-left">
-                <span 
-                  className="text-blue-600 hover:text-blue-800 cursor-pointer"
-                  onClick={() => onWorkerClick(user.id)}
-                >
-                  {user.name}
-                </span>
+                {user.role === 'user' ? (
+                  <span 
+                    className="text-blue-600 hover:text-blue-800 cursor-pointer"
+                    onClick={() => onWorkerClick(user.id)}
+                  >
+                    {user.name}
+                  </span>
+                ) : (
+                  <span className="text-gray-900">
+                    {user.name}
+                  </span>
+                )}
               </TableCell>
               <TableCell className="w-[200px] px-4 py-3 text-left text-sm">
                 {user.email}

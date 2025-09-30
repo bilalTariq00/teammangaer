@@ -11,279 +11,49 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ArrowLeft, CalendarIcon, Search, TrendingUp, Users, MousePointer, CheckCircle, AlertTriangle } from "lucide-react";
+import { ArrowLeft, CalendarIcon, Search, TrendingUp, Users, MousePointer, CheckCircle, AlertTriangle, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
-
-// Mock data for worker details - includes all users from users page
-const workerData = {
-  1: {
-    id: 1,
-    name: "Muhammad Shahood",
-    email: "Shahood1@joyapps.net",
-    workerId: "#1",
-    type: "Permanent Viewer",
-    status: "Active",
-    totalClicks: 139,
-    success: 123,
-    formFills: 0,
-    badClicks: 19,
-    failedSubmissions: 19,
-    duplicates: 0,
-    networkRTC: 0
-  },
-  2: {
-    id: 2,
-    name: "Sarah Johnson",
-    email: "sarah.johnson@joyapps.net",
-    workerId: "#2",
-    type: "Permanent Viewer",
-    status: "Active",
-    totalClicks: 45,
-    success: 38,
-    formFills: 0,
-    badClicks: 7,
-    failedSubmissions: 7,
-    duplicates: 0,
-    networkRTC: 1
-  },
-  3: {
-    id: 3,
-    name: "Emma Wilson",
-    email: "emma.wilson@joyapps.net",
-    workerId: "#3",
-    type: "Permanent Viewer",
-    status: "Active",
-    totalClicks: 92,
-    success: 78,
-    formFills: 0,
-    badClicks: 14,
-    failedSubmissions: 14,
-    duplicates: 0,
-    networkRTC: 0
-  },
-  4: {
-    id: 4,
-    name: "Hasan Abbas",
-    email: "hasan.abbas@joyapps.net",
-    workerId: "#4",
-    type: "Permanent Clicker",
-    status: "Active",
-    totalClicks: 156,
-    success: 142,
-    formFills: 28,
-    badClicks: 14,
-    failedSubmissions: 14,
-    duplicates: 0,
-    networkRTC: 0
-  },
-  5: {
-    id: 5,
-    name: "Alex Rodriguez",
-    email: "alex.rodriguez@joyapps.net",
-    workerId: "#5",
-    type: "Permanent Clicker",
-    status: "Active",
-    totalClicks: 134,
-    success: 118,
-    formFills: 32,
-    badClicks: 16,
-    failedSubmissions: 16,
-    duplicates: 0,
-    networkRTC: 0
-  },
-  6: {
-    id: 6,
-    name: "James Brown",
-    email: "james.brown@joyapps.net",
-    workerId: "#6",
-    type: "Permanent Clicker",
-    status: "Active",
-    totalClicks: 142,
-    success: 125,
-    formFills: 25,
-    badClicks: 17,
-    failedSubmissions: 17,
-    duplicates: 0,
-    networkRTC: 0
-  },
-  7: {
-    id: 7,
-    name: "Lisa Thompson",
-    email: "lisa.thompson@joyapps.net",
-    workerId: "#7",
-    type: "Trainee Viewer",
-    status: "Active",
-    totalClicks: 28,
-    success: 22,
-    formFills: 0,
-    badClicks: 6,
-    failedSubmissions: 6,
-    duplicates: 0,
-    networkRTC: 0
-  },
-  8: {
-    id: 8,
-    name: "Abid",
-    email: "abid1@joyapps.net",
-    workerId: "#8",
-    type: "Trainee Clicker",
-    status: "Active",
-    totalClicks: 45,
-    success: 38,
-    formFills: 28,
-    badClicks: 7,
-    failedSubmissions: 7,
-    duplicates: 0,
-    networkRTC: 0
-  },
-  9: {
-    id: 9,
-    name: "Mike Chen",
-    email: "mike.chen@joyapps.net",
-    workerId: "#9",
-    type: "Trainee Clicker",
-    status: "Active",
-    totalClicks: 32,
-    success: 26,
-    formFills: 18,
-    badClicks: 6,
-    failedSubmissions: 6,
-    duplicates: 0,
-    networkRTC: 0
-  },
-  10: {
-    id: 10,
-    name: "David Kim",
-    email: "david.kim@joyapps.net",
-    workerId: "#10",
-    type: "Trainee Clicker",
-    status: "Active",
-    totalClicks: 38,
-    success: 31,
-    formFills: 15,
-    badClicks: 7,
-    failedSubmissions: 7,
-    duplicates: 0,
-    networkRTC: 0
-  }
-};
+import { toast } from "sonner";
 
 // Mock chart data - different data for different workers
 const getChartData = (workerId, workerType) => {
   const baseData = [
     { date: "2025-09-10", clicks: 0, success: 0, formFills: 0, badClicks: 0, failedSubmissions: 0, duplicates: 0, networkRTC: 0 },
-  { date: "2025-09-11", clicks: 0, success: 0, formFills: 0, badClicks: 0, failedSubmissions: 0, duplicates: 0, networkRTC: 0 },
+    { date: "2025-09-11", clicks: 0, success: 0, formFills: 0, badClicks: 0, failedSubmissions: 0, duplicates: 0, networkRTC: 0 },
     { date: "2025-09-12", clicks: 0, success: 0, formFills: 0, badClicks: 0, failedSubmissions: 0, duplicates: 0, networkRTC: 0 },
-  { date: "2025-09-13", clicks: 0, success: 0, formFills: 0, badClicks: 0, failedSubmissions: 0, duplicates: 0, networkRTC: 0 },
-  { date: "2025-09-14", clicks: 0, success: 0, formFills: 0, badClicks: 0, failedSubmissions: 0, duplicates: 0, networkRTC: 0 },
-  { date: "2025-09-15", clicks: 0, success: 0, formFills: 0, badClicks: 0, failedSubmissions: 0, duplicates: 0, networkRTC: 0 },
-  { date: "2025-09-16", clicks: 0, success: 0, formFills: 0, badClicks: 0, failedSubmissions: 0, duplicates: 0, networkRTC: 0 }
-];
+    { date: "2025-09-13", clicks: 0, success: 0, formFills: 0, badClicks: 0, failedSubmissions: 0, duplicates: 0, networkRTC: 0 },
+    { date: "2025-09-14", clicks: 0, success: 0, formFills: 0, badClicks: 0, failedSubmissions: 0, duplicates: 0, networkRTC: 0 },
+    { date: "2025-09-15", clicks: 0, success: 0, formFills: 0, badClicks: 0, failedSubmissions: 0, duplicates: 0, networkRTC: 0 },
+    { date: "2025-09-16", clicks: 0, success: 0, formFills: 0, badClicks: 0, failedSubmissions: 0, duplicates: 0, networkRTC: 0 }
+  ];
 
-  // Different data patterns for different workers
-  const workerChartData = {
-    1: [ // Hasan Abbas - Permanent Clicker
-      { date: "2025-09-10", clicks: 15, success: 12, formFills: 8, badClicks: 3, failedSubmissions: 3, duplicates: 0, networkRTC: 0 },
-      { date: "2025-09-11", clicks: 8, success: 6, formFills: 4, badClicks: 2, failedSubmissions: 2, duplicates: 0, networkRTC: 0 },
-      { date: "2025-09-12", clicks: 12, success: 10, formFills: 6, badClicks: 2, failedSubmissions: 2, duplicates: 0, networkRTC: 0 },
-      { date: "2025-09-13", clicks: 6, success: 5, formFills: 3, badClicks: 1, failedSubmissions: 1, duplicates: 0, networkRTC: 0 },
-      { date: "2025-09-14", clicks: 10, success: 8, formFills: 5, badClicks: 2, failedSubmissions: 2, duplicates: 0, networkRTC: 0 },
-      { date: "2025-09-15", clicks: 7, success: 6, formFills: 4, badClicks: 1, failedSubmissions: 1, duplicates: 0, networkRTC: 0 },
-      { date: "2025-09-16", clicks: 9, success: 7, formFills: 5, badClicks: 2, failedSubmissions: 2, duplicates: 0, networkRTC: 0 }
-    ],
-    2: [ // Muhammad Shahood - Permanent Viewer
-      { date: "2025-09-10", clicks: 25, success: 20, formFills: 0, badClicks: 5, failedSubmissions: 5, duplicates: 0, networkRTC: 0 },
-      { date: "2025-09-11", clicks: 18, success: 15, formFills: 0, badClicks: 3, failedSubmissions: 3, duplicates: 0, networkRTC: 0 },
-      { date: "2025-09-12", clicks: 22, success: 18, formFills: 0, badClicks: 4, failedSubmissions: 4, duplicates: 0, networkRTC: 0 },
-      { date: "2025-09-13", clicks: 16, success: 13, formFills: 0, badClicks: 3, failedSubmissions: 3, duplicates: 0, networkRTC: 0 },
-      { date: "2025-09-14", clicks: 20, success: 16, formFills: 0, badClicks: 4, failedSubmissions: 4, duplicates: 0, networkRTC: 0 },
-      { date: "2025-09-15", clicks: 14, success: 11, formFills: 0, badClicks: 3, failedSubmissions: 3, duplicates: 0, networkRTC: 0 },
-      { date: "2025-09-16", clicks: 19, success: 15, formFills: 0, badClicks: 4, failedSubmissions: 4, duplicates: 0, networkRTC: 0 }
-    ],
-    3: [ // Abid - Trainee Clicker
-      { date: "2025-09-10", clicks: 8, success: 6, formFills: 4, badClicks: 2, failedSubmissions: 2, duplicates: 0, networkRTC: 1 },
-      { date: "2025-09-11", clicks: 5, success: 4, formFills: 3, badClicks: 1, failedSubmissions: 1, duplicates: 0, networkRTC: 0 },
-      { date: "2025-09-12", clicks: 6, success: 5, formFills: 3, badClicks: 1, failedSubmissions: 1, duplicates: 0, networkRTC: 1 },
-      { date: "2025-09-13", clicks: 3, success: 2, formFills: 2, badClicks: 1, failedSubmissions: 1, duplicates: 0, networkRTC: 0 },
-      { date: "2025-09-14", clicks: 4, success: 3, formFills: 2, badClicks: 1, failedSubmissions: 1, duplicates: 0, networkRTC: 0 },
-      { date: "2025-09-15", clicks: 2, success: 1, formFills: 1, badClicks: 1, failedSubmissions: 1, duplicates: 0, networkRTC: 0 },
-      { date: "2025-09-16", clicks: 3, success: 2, formFills: 2, badClicks: 1, failedSubmissions: 1, duplicates: 0, networkRTC: 0 }
-    ],
-    4: [ // Sarah Johnson - Permanent Viewer
-      { date: "2025-09-10", clicks: 12, success: 10, formFills: 0, badClicks: 2, failedSubmissions: 2, duplicates: 0, networkRTC: 0 },
-      { date: "2025-09-11", clicks: 8, success: 6, formFills: 0, badClicks: 2, failedSubmissions: 2, duplicates: 0, networkRTC: 0 },
-      { date: "2025-09-12", clicks: 10, success: 8, formFills: 0, badClicks: 2, failedSubmissions: 2, duplicates: 0, networkRTC: 1 },
-      { date: "2025-09-13", clicks: 6, success: 5, formFills: 0, badClicks: 1, failedSubmissions: 1, duplicates: 0, networkRTC: 0 },
-      { date: "2025-09-14", clicks: 9, success: 7, formFills: 0, badClicks: 2, failedSubmissions: 2, duplicates: 0, networkRTC: 0 },
-      { date: "2025-09-15", clicks: 5, success: 4, formFills: 0, badClicks: 1, failedSubmissions: 1, duplicates: 0, networkRTC: 0 },
-      { date: "2025-09-16", clicks: 7, success: 6, formFills: 0, badClicks: 1, failedSubmissions: 1, duplicates: 0, networkRTC: 0 }
-    ],
-    5: [ // Mike Chen - Trainee Clicker
-      { date: "2025-09-10", clicks: 4, success: 3, formFills: 2, badClicks: 1, failedSubmissions: 1, duplicates: 0, networkRTC: 0 },
-      { date: "2025-09-11", clicks: 3, success: 2, formFills: 1, badClicks: 1, failedSubmissions: 1, duplicates: 0, networkRTC: 0 },
-      { date: "2025-09-12", clicks: 2, success: 2, formFills: 1, badClicks: 0, failedSubmissions: 0, duplicates: 0, networkRTC: 0 },
-      { date: "2025-09-13", clicks: 1, success: 1, formFills: 1, badClicks: 0, failedSubmissions: 0, duplicates: 0, networkRTC: 0 },
-      { date: "2025-09-14", clicks: 3, success: 2, formFills: 1, badClicks: 1, failedSubmissions: 1, duplicates: 0, networkRTC: 0 },
-      { date: "2025-09-15", clicks: 2, success: 1, formFills: 1, badClicks: 1, failedSubmissions: 1, duplicates: 0, networkRTC: 0 },
-      { date: "2025-09-16", clicks: 1, success: 1, formFills: 1, badClicks: 0, failedSubmissions: 0, duplicates: 0, networkRTC: 0 }
-    ],
-    6: [ // Alex Rodriguez - Permanent Clicker
-      { date: "2025-09-10", clicks: 12, success: 10, formFills: 3, badClicks: 2, failedSubmissions: 2, duplicates: 0, networkRTC: 0 },
-      { date: "2025-09-11", clicks: 8, success: 7, formFills: 2, badClicks: 1, failedSubmissions: 1, duplicates: 0, networkRTC: 0 },
-      { date: "2025-09-12", clicks: 10, success: 8, formFills: 2, badClicks: 2, failedSubmissions: 2, duplicates: 0, networkRTC: 1 },
-      { date: "2025-09-13", clicks: 6, success: 5, formFills: 1, badClicks: 1, failedSubmissions: 1, duplicates: 0, networkRTC: 0 },
-      { date: "2025-09-14", clicks: 9, success: 7, formFills: 2, badClicks: 2, failedSubmissions: 2, duplicates: 0, networkRTC: 0 },
-      { date: "2025-09-15", clicks: 7, success: 6, formFills: 1, badClicks: 1, failedSubmissions: 1, duplicates: 0, networkRTC: 0 },
-      { date: "2025-09-16", clicks: 8, success: 6, formFills: 2, badClicks: 2, failedSubmissions: 2, duplicates: 0, networkRTC: 0 }
-    ],
-    7: [ // Emma Wilson - Permanent Viewer
-      { date: "2025-09-10", clicks: 18, success: 15, formFills: 0, badClicks: 3, failedSubmissions: 3, duplicates: 0, networkRTC: 0 },
-      { date: "2025-09-11", clicks: 12, success: 10, formFills: 0, badClicks: 2, failedSubmissions: 2, duplicates: 0, networkRTC: 1 },
-      { date: "2025-09-12", clicks: 15, success: 12, formFills: 0, badClicks: 3, failedSubmissions: 3, duplicates: 0, networkRTC: 0 },
-      { date: "2025-09-13", clicks: 10, success: 8, formFills: 0, badClicks: 2, failedSubmissions: 2, duplicates: 0, networkRTC: 0 },
-      { date: "2025-09-14", clicks: 14, success: 11, formFills: 0, badClicks: 3, failedSubmissions: 3, duplicates: 0, networkRTC: 1 },
-      { date: "2025-09-15", clicks: 9, success: 7, formFills: 0, badClicks: 2, failedSubmissions: 2, duplicates: 0, networkRTC: 0 },
-      { date: "2025-09-16", clicks: 11, success: 9, formFills: 0, badClicks: 2, failedSubmissions: 2, duplicates: 0, networkRTC: 0 }
-    ],
-    8: [ // David Kim - Trainee Clicker
-      { date: "2025-09-10", clicks: 5, success: 4, formFills: 2, badClicks: 1, failedSubmissions: 1, duplicates: 0, networkRTC: 0 },
-      { date: "2025-09-11", clicks: 3, success: 2, formFills: 1, badClicks: 1, failedSubmissions: 1, duplicates: 0, networkRTC: 0 },
-      { date: "2025-09-12", clicks: 4, success: 3, formFills: 1, badClicks: 1, failedSubmissions: 1, duplicates: 0, networkRTC: 1 },
-      { date: "2025-09-13", clicks: 2, success: 1, formFills: 1, badClicks: 1, failedSubmissions: 1, duplicates: 0, networkRTC: 0 },
-      { date: "2025-09-14", clicks: 3, success: 2, formFills: 1, badClicks: 1, failedSubmissions: 1, duplicates: 0, networkRTC: 0 },
-      { date: "2025-09-15", clicks: 1, success: 1, formFills: 0, badClicks: 0, failedSubmissions: 0, duplicates: 0, networkRTC: 0 },
-      { date: "2025-09-16", clicks: 2, success: 1, formFills: 1, badClicks: 1, failedSubmissions: 1, duplicates: 0, networkRTC: 0 }
-    ],
-    9: [ // Lisa Thompson - Trainee Viewer
-      { date: "2025-09-10", clicks: 3, success: 2, formFills: 0, badClicks: 1, failedSubmissions: 1, duplicates: 0, networkRTC: 0 },
-      { date: "2025-09-11", clicks: 2, success: 2, formFills: 0, badClicks: 0, failedSubmissions: 0, duplicates: 0, networkRTC: 0 },
-      { date: "2025-09-12", clicks: 1, success: 1, formFills: 0, badClicks: 0, failedSubmissions: 0, duplicates: 0, networkRTC: 0 },
-      { date: "2025-09-13", clicks: 2, success: 1, formFills: 0, badClicks: 1, failedSubmissions: 1, duplicates: 0, networkRTC: 0 },
-      { date: "2025-09-14", clicks: 1, success: 1, formFills: 0, badClicks: 0, failedSubmissions: 0, duplicates: 0, networkRTC: 0 },
-      { date: "2025-09-15", clicks: 2, success: 1, formFills: 0, badClicks: 1, failedSubmissions: 1, duplicates: 0, networkRTC: 0 },
-      { date: "2025-09-16", clicks: 1, success: 1, formFills: 0, badClicks: 0, failedSubmissions: 0, duplicates: 0, networkRTC: 0 }
-    ],
-    10: [ // James Brown - Permanent Clicker
-      { date: "2025-09-10", clicks: 25, success: 22, formFills: 5, badClicks: 3, failedSubmissions: 3, duplicates: 0, networkRTC: 0 },
-      { date: "2025-09-11", clicks: 18, success: 15, formFills: 4, badClicks: 3, failedSubmissions: 3, duplicates: 0, networkRTC: 1 },
-      { date: "2025-09-12", clicks: 22, success: 19, formFills: 4, badClicks: 3, failedSubmissions: 3, duplicates: 0, networkRTC: 0 },
-      { date: "2025-09-13", clicks: 16, success: 13, formFills: 3, badClicks: 3, failedSubmissions: 3, duplicates: 0, networkRTC: 1 },
-      { date: "2025-09-14", clicks: 20, success: 17, formFills: 4, badClicks: 3, failedSubmissions: 3, duplicates: 0, networkRTC: 0 },
-      { date: "2025-09-15", clicks: 14, success: 12, formFills: 3, badClicks: 2, failedSubmissions: 2, duplicates: 0, networkRTC: 1 },
-      { date: "2025-09-16", clicks: 17, success: 14, formFills: 3, badClicks: 3, failedSubmissions: 3, duplicates: 0, networkRTC: 0 }
-    ]
-  };
-
-  return workerChartData[workerId] || baseData;
+  // Generate random data based on worker type
+  const isClicker = workerType?.toLowerCase().includes('clicker');
+  const isPermanent = workerType?.toLowerCase().includes('permanent');
+  
+  const baseClicks = isPermanent ? 15 : 8;
+  const baseSuccess = isPermanent ? 12 : 6;
+  const baseFormFills = isClicker ? (isPermanent ? 5 : 3) : 0;
+  
+  return baseData.map((item, index) => ({
+    ...item,
+    clicks: Math.floor(Math.random() * baseClicks) + (isPermanent ? 5 : 2),
+    success: Math.floor(Math.random() * baseSuccess) + (isPermanent ? 4 : 2),
+    formFills: Math.floor(Math.random() * baseFormFills),
+    badClicks: Math.floor(Math.random() * 3) + 1,
+    failedSubmissions: Math.floor(Math.random() * 3) + 1,
+    duplicates: Math.floor(Math.random() * 2),
+    networkRTC: Math.floor(Math.random() * 2)
+  }));
 };
 
 // Mock task data - different data for different workers
 const getTaskData = (workerId) => {
   const baseTaskData = [
-  {
-    id: 1,
+    {
+      id: 1,
       ip: "192.168.1.100",
       device: "Android",
       region: "US California",
@@ -292,310 +62,41 @@ const getTaskData = (workerId) => {
       submission: "Success",
       deltaTime: "2m 15s",
       redirectLogged: "14:30:15",
-    submissionTime: "2025-09-12"
+      submissionTime: "2025-09-12"
     }
   ];
 
-  const workerTaskData = {
-    1: [ // Hasan Abbas - Permanent Clicker
-      {
-        id: 1,
-    ip: "192.168.1.100",
-    device: "Android",
-    region: "US California",
-    allowed: true,
-    reason: "",
-    submission: "Success",
-    deltaTime: "2m 15s",
-    redirectLogged: "14:30:15",
-    submissionTime: "2025-09-12"
-  },
-  {
-        id: 2,
-    ip: "10.0.0.50",
-    device: "Desktop",
-    region: "US Texas",
-    allowed: true,
-    reason: "",
-    submission: "Success",
-    deltaTime: "1m 45s",
-    redirectLogged: "15:45:30",
-    submissionTime: "2025-09-12"
-      },
-      {
-        id: 3,
-        ip: "172.16.0.25",
-        device: "iPhone",
-        region: "US Florida",
-        allowed: false,
-        reason: "distance_not_close:1200.5km",
-        submission: "",
-        deltaTime: "",
-        redirectLogged: "16:20:10",
-        submissionTime: "2025-09-12"
-      }
-    ],
-    2: [ // Muhammad Shahood - Permanent Viewer
-      {
-        id: 1,
-        ip: "192.168.1.101",
-        device: "Android",
-        region: "US New York",
-        allowed: true,
-        reason: "",
-        submission: "Success",
-        deltaTime: "1m 30s",
-        redirectLogged: "10:15:20",
-        submissionTime: "2025-09-12"
-      },
-      {
-        id: 2,
-        ip: "10.0.0.51",
-        device: "Desktop",
-        region: "US California",
-        allowed: true,
-        reason: "",
-        submission: "Success",
-        deltaTime: "2m 10s",
-        redirectLogged: "11:30:45",
-        submissionTime: "2025-09-12"
-      }
-    ],
-    3: [ // Abid - Trainee Clicker
-      {
-        id: 1,
-        ip: "192.168.1.102",
-        device: "Android",
-        region: "US Texas",
-        allowed: true,
-        reason: "",
-        submission: "Success",
-        deltaTime: "3m 20s",
-        redirectLogged: "09:45:30",
-        submissionTime: "2025-09-12"
-      },
-      {
-        id: 2,
-        ip: "10.0.0.52",
-        device: "iPhone",
-        region: "US Florida",
-        allowed: false,
-        reason: "distance_not_close:800.2km",
-        submission: "",
-        deltaTime: "",
-        redirectLogged: "10:20:15",
-        submissionTime: "2025-09-12"
-      }
-    ],
-    4: [ // Sarah Johnson - Permanent Viewer
-      {
-        id: 1,
-        ip: "192.168.1.103",
-        device: "Desktop",
-        region: "US Washington",
-        allowed: true,
-        reason: "",
-        submission: "Success",
-        deltaTime: "1m 50s",
-        redirectLogged: "13:15:20",
-        submissionTime: "2025-09-12"
-      }
-    ],
-    5: [ // Mike Chen - Trainee Clicker
-      {
-        id: 1,
-        ip: "192.168.1.104",
-        device: "Android",
-        region: "US Oregon",
-        allowed: true,
-        reason: "",
-        submission: "Success",
-        deltaTime: "4m 10s",
-        redirectLogged: "08:30:45",
-        submissionTime: "2025-09-12"
-      },
-      {
-        id: 2,
-        ip: "10.0.0.53",
-        device: "iPhone",
-        region: "US Nevada",
-        allowed: false,
-        reason: "distance_not_close:1500.8km",
-        submission: "",
-        deltaTime: "",
-        redirectLogged: "09:10:30",
-        submissionTime: "2025-09-12"
-      }
-    ],
-    6: [ // Alex Rodriguez - Permanent Clicker
-      {
-        id: 1,
-        ip: "192.168.1.105",
-        device: "Desktop",
-        region: "US Colorado",
-        allowed: true,
-        reason: "",
-        submission: "Success",
-        deltaTime: "2m 30s",
-        redirectLogged: "11:15:20",
-        submissionTime: "2025-09-12"
-      },
-      {
-        id: 2,
-        ip: "10.0.0.54",
-        device: "Android",
-        region: "US Arizona",
-        allowed: true,
-        reason: "",
-        submission: "Success",
-        deltaTime: "1m 45s",
-        redirectLogged: "12:30:15",
-        submissionTime: "2025-09-12"
-      },
-      {
-        id: 3,
-        ip: "172.16.0.26",
-        device: "iPhone",
-        region: "US Utah",
-        allowed: false,
-        reason: "distance_not_close:900.3km",
-        submission: "",
-        deltaTime: "",
-        redirectLogged: "13:45:30",
-        submissionTime: "2025-09-12"
-      }
-    ],
-    7: [ // Emma Wilson - Permanent Viewer
-      {
-        id: 1,
-        ip: "192.168.1.106",
-        device: "Desktop",
-        region: "US Washington",
-        allowed: true,
-        reason: "",
-        submission: "Success",
-        deltaTime: "1m 20s",
-        redirectLogged: "14:20:10",
-        submissionTime: "2025-09-12"
-      },
-      {
-        id: 2,
-        ip: "10.0.0.55",
-        device: "Android",
-        region: "US Oregon",
-        allowed: true,
-        reason: "",
-        submission: "Success",
-        deltaTime: "2m 15s",
-        redirectLogged: "15:35:25",
-        submissionTime: "2025-09-12"
-      }
-    ],
-    8: [ // David Kim - Trainee Clicker
-      {
-        id: 1,
-        ip: "192.168.1.107",
-        device: "Android",
-        region: "US Nevada",
-        allowed: true,
-        reason: "",
-        submission: "Success",
-        deltaTime: "3m 45s",
-        redirectLogged: "09:15:30",
-        submissionTime: "2025-09-12"
-      },
-      {
-        id: 2,
-        ip: "10.0.0.56",
-        device: "iPhone",
-        region: "US Idaho",
-        allowed: false,
-        reason: "distance_not_close:1200.7km",
-        submission: "",
-        deltaTime: "",
-        redirectLogged: "10:25:45",
-        submissionTime: "2025-09-12"
-      }
-    ],
-    9: [ // Lisa Thompson - Trainee Viewer
-      {
-        id: 1,
-        ip: "192.168.1.108",
-        device: "Desktop",
-        region: "US Montana",
-        allowed: true,
-        reason: "",
-        submission: "Success",
-        deltaTime: "2m 10s",
-        redirectLogged: "16:40:20",
-        submissionTime: "2025-09-12"
-      }
-    ],
-    10: [ // James Brown - Permanent Clicker
-      {
-        id: 1,
-        ip: "192.168.1.109",
-        device: "Desktop",
-        region: "US California",
-        allowed: true,
-        reason: "",
-        submission: "Success",
-        deltaTime: "1m 30s",
-        redirectLogged: "08:45:15",
-        submissionTime: "2025-09-12"
-      },
-      {
-        id: 2,
-        ip: "10.0.0.57",
-        device: "Android",
-        region: "US Texas",
-        allowed: true,
-        reason: "",
-        submission: "Success",
-        deltaTime: "2m 45s",
-        redirectLogged: "09:55:30",
-        submissionTime: "2025-09-12"
-      },
-      {
-        id: 3,
-        ip: "172.16.0.27",
-        device: "iPhone",
-        region: "US Florida",
-        allowed: false,
-        reason: "distance_not_close:2000.5km",
-        submission: "",
-        deltaTime: "",
-        redirectLogged: "10:15:45",
-        submissionTime: "2025-09-12"
-      },
-      {
-        id: 4,
-        ip: "192.168.1.110",
-        device: "Desktop",
-        region: "US New York",
-        allowed: true,
-        reason: "",
-        submission: "Success",
-        deltaTime: "1m 55s",
-        redirectLogged: "11:30:20",
-        submissionTime: "2025-09-12"
-      }
-    ]
-  };
-
-  return workerTaskData[workerId] || baseTaskData;
+  // Generate random task data
+  const devices = ["Android", "iPhone", "Desktop"];
+  const regions = ["US California", "US Texas", "US New York", "US Florida", "US Washington"];
+  
+  const taskCount = Math.floor(Math.random() * 5) + 2;
+  const tasks = [];
+  
+  for (let i = 0; i < taskCount; i++) {
+    const allowed = Math.random() > 0.2; // 80% success rate
+    tasks.push({
+      id: i + 1,
+      ip: `192.168.1.${100 + i}`,
+      device: devices[Math.floor(Math.random() * devices.length)],
+      region: regions[Math.floor(Math.random() * regions.length)],
+      allowed,
+      reason: allowed ? "" : "distance_not_close:1200.5km",
+      submission: allowed ? "Success" : "",
+      deltaTime: allowed ? `${Math.floor(Math.random() * 3) + 1}m ${Math.floor(Math.random() * 60)}s` : "",
+      redirectLogged: `${Math.floor(Math.random() * 12) + 8}:${Math.floor(Math.random() * 60).toString().padStart(2, '0')}:${Math.floor(Math.random() * 60).toString().padStart(2, '0')}`,
+      submissionTime: "2025-09-12"
+    });
+  }
+  
+  return tasks;
 };
 
 const quickDateRanges = [
   "Today",
   "Yesterday",
   "Last 7 Days",
-  // "Last 14 Days",
   "Last 30 Days",
-  // "Last 60 Days",
-  // "Last 90 Days",
-  // "This Month",
-  // "Last Month",
   "All Time"
 ];
 
@@ -614,6 +115,9 @@ export default function WorkerDetailPage() {
   const router = useRouter();
   const workerId = params.id;
   
+  const [worker, setWorker] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [fromDate, setFromDate] = useState(new Date("2025-09-10"));
   const [toDate, setToDate] = useState(new Date("2025-09-16"));
   const [selectedRange, setSelectedRange] = useState("Last 7 Days");
@@ -622,17 +126,70 @@ export default function WorkerDetailPage() {
     chartLines.reduce((acc, line) => ({ ...acc, [line.key]: line.checked }), {})
   );
 
-  const worker = workerData[workerId];
-  const chartData = getChartData(parseInt(workerId), worker?.type);
-  const taskData = getTaskData(parseInt(workerId));
+  // Fetch worker data
+  useEffect(() => {
+    const fetchWorkerData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        const token = localStorage.getItem("token");
+        if (!token) {
+          toast.error("Please log in to view worker details");
+          router.push("/login");
+          return;
+        }
 
-  if (!worker) {
+        const response = await fetch(`/api/workers/${workerId}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        const result = await response.json();
+        
+        if (result.success) {
+          setWorker(result.data);
+        } else {
+          setError(result.error || 'Failed to load worker data');
+          toast.error(result.error || 'Failed to load worker data');
+        }
+      } catch (error) {
+        console.error("Error loading worker data:", error);
+        setError('Failed to load worker data');
+        toast.error("Failed to load worker data");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (workerId) {
+      fetchWorkerData();
+    }
+  }, [workerId, router]);
+
+  if (loading) {
+    return (
+      <MainLayout>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+            <p className="text-gray-600">Loading worker data...</p>
+          </div>
+        </div>
+      </MainLayout>
+    );
+  }
+
+  if (error || !worker) {
     return (
       <MainLayout>
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
             <h2 className="text-2xl font-bold text-gray-900">Worker not found</h2>
-            <p className="text-gray-600 mt-2">The requested worker does not exist.</p>
+            <p className="text-gray-600 mt-2">{error || "The requested worker does not exist."}</p>
             <Button onClick={() => router.back()} className="mt-4">
               Go Back
             </Button>
@@ -641,6 +198,9 @@ export default function WorkerDetailPage() {
       </MainLayout>
     );
   }
+
+  const chartData = getChartData(workerId, worker.type);
+  const taskData = getTaskData(workerId);
 
   const handleLineToggle = (key) => {
     setEnabledLines(prev => ({
@@ -683,6 +243,42 @@ export default function WorkerDetailPage() {
             </div>
           </div>
         </div>
+
+        {/* Worker Info Card */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Worker Information</CardTitle>
+            <CardDescription>Basic details and contact information</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div>
+                <Label className="text-sm font-medium text-gray-500">Name</Label>
+                <p className="text-lg font-semibold">{worker.name}</p>
+              </div>
+              <div>
+                <Label className="text-sm font-medium text-gray-500">Email</Label>
+                <p className="text-lg">{worker.email}</p>
+              </div>
+              <div>
+                <Label className="text-sm font-medium text-gray-500">Worker ID</Label>
+                <p className="text-lg font-mono">{worker.workerId}</p>
+              </div>
+              <div>
+                <Label className="text-sm font-medium text-gray-500">Type</Label>
+                <p className="text-lg">{worker.type}</p>
+              </div>
+              <div>
+                <Label className="text-sm font-medium text-gray-500">Status</Label>
+                <p className="text-lg">{worker.status}</p>
+              </div>
+              <div>
+                <Label className="text-sm font-medium text-gray-500">Department</Label>
+                <p className="text-lg">{worker.department || 'N/A'}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Activity Overview */}
         <Card>
