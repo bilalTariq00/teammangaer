@@ -52,10 +52,10 @@ export function ManagerWorkflowProvider({ children }) {
       console.error('Error checking attendance verification:', error);
       return false;
     }
-  }, [user, today]);
+  }, [user, today, cleanupOldVerificationData]);
 
   // Clean up old verification data (older than today)
-  const cleanupOldVerificationData = () => {
+  const cleanupOldVerificationData = useCallback(() => {
     try {
       if (!user || user.role !== 'manager') return;
       
@@ -83,7 +83,7 @@ export function ManagerWorkflowProvider({ children }) {
     } catch (error) {
       console.error('Error cleaning up verification data:', error);
     }
-  };
+  }, [user, today]);
 
   // Get verified users (users whose attendance has been verified)
   const getVerifiedUsers = useCallback(() => {
@@ -132,7 +132,7 @@ export function ManagerWorkflowProvider({ children }) {
     
     console.log('All performance marked:', allMarked);
     return allMarked;
-  }, [user, today, getVerifiedUsers]);
+  }, [user, today, getVerifiedUsers, getTeamPerformance]);
 
   // Alternative check based on actual team members (for when verification is not used)
   const checkTeamPerformanceCompletion = (teamMembers) => {
