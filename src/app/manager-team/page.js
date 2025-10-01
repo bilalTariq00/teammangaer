@@ -39,18 +39,19 @@ import {
 } from "lucide-react";
 import { useUsers } from "@/contexts/UsersContext";
 import { useAuth } from "@/contexts/AuthContext";
-import { useAttendance } from "@/contexts/AttendanceContext";
+import { useAttendance } from "@/hooks/useAttendance";
 import { ManagerWorkflowProvider } from "@/contexts/ManagerWorkflowContext";
 import { toast } from "sonner";
 
 function ManagerTeamPageContent() {
   const { users, updateUser } = useUsers() || {};
   const { user: currentUser, checkUserLockStatus } = useAuth() || {};
-  const { getTeamAttendance, approveAttendance, getAttendanceForDate } = useAttendance() || {};
+  const { getAttendanceRecords, verifyAttendance } = useAttendance() || {};
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [isLoading, setIsLoading] = useState(true);
   const [teamMembers, setTeamMembers] = useState([]);
+  const [teamAttendance, setTeamAttendance] = useState([]);
   const [pendingChanges, setPendingChanges] = useState({});
   const [selectedMember, setSelectedMember] = useState(null);
   const [showMemberModal, setShowMemberModal] = useState(false);
@@ -59,52 +60,112 @@ function ManagerTeamPageContent() {
   const [confirmAction, setConfirmAction] = useState(null);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
 
-  // Get team members assigned to this manager
+  // Get team members assigned to this manager from backend
   useEffect(() => {
-    if (currentUser && users && users.length > 0) {
-      // Find users assigned to this manager
-      const assignedUserIds = currentUser.assignedUsers || [];
-      const teamMembersData = users.filter(user => 
-        assignedUserIds.includes(user.id) && user.role === "worker"
-      ).map(user => {
-        // Generate consistent mock data based on user ID
-        const seed = user.id;
-        const phoneNumbers = [
-          "+1-555-0123",
-          "+1-555-0456", 
-          "+1-555-0789",
-          "+1-555-0321",
-          "+1-555-0654",
-          "+1-555-0987",
-          "+1-555-0135"
-        ];
-        
-        return {
-          ...user,
-          // Add phone number
-          phone: phoneNumbers[seed % phoneNumbers.length] || "+1-555-0000",
-          // Add performance and task data (mock for now)
-          performance: user.performance || Math.floor(Math.random() * 30) + 70,
-          tasksCompleted: Math.floor(Math.random() * 20) + 10,
-          totalTasks: Math.floor(Math.random() * 10) + 25,
-          lastActive: user.lastActive || new Date().toISOString().split('T')[0],
-          skills: user.skills || ["Click Quality", "Form Analysis", "Bot Detection"],
-          currentCampaign: user.currentCampaign || "Active Campaign",
-          // Add performance targets and actuals
-          dailyTarget: Math.floor(Math.random() * 20) + 80, // 80-100
-          actualDone: Math.floor(Math.random() * 30) + 60, // 60-90
-          goodClicks: Math.floor(Math.random() * 50) + 20, // 20-70
-          badClicks: Math.floor(Math.random() * 10) + 1, // 1-11
-          // Add activity status
-          isActive: Math.random() > 0.3, // 70% chance of being active
-          lastInteraction: new Date(Date.now() - Math.random() * 600000).toISOString() // Random time within last 10 minutes
-        };
-      });
+    const fetchTeamMembers = async () => {
+      if (currentUser && currentUser.role === 'manager') {
+        setIsLoading(true);
+        try {
+          const token = localStorage.getItem('token');
+          if (!token) {
+            throw new Error('No authentication token found');
+          }
+
+          const response = await fetch('/api/manager/team', {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            }
+          });
+
+          const result = await response.json();
+          if (result.success) {
+            // Transform the data to match the expected format
+            const teamMembersData = result.data.map(user => {
+              // Calculate performance based on good vs bad clicks ratio
+              const goodClicks = user.goodClicks || 0;
+              const badClicks = user.badClicks || 0;
+              const totalClicks = goodClicks + badClicks;
+              const performance = totalClicks > 0 ? Math.round((goodClicks / totalClicks) * 100) : 0;
+              
+              return {
+                ...user,
+                // Use real phone number from user data
+                phone: user.phoneNumber || user.contactNumber || user.phone || "+1-555-0000",
+                // Calculate real performance based on click ratio
+                performance: performance,
+                // Use real task data if available
+                tasksCompleted: user.tasksCompleted || 0,
+                totalTasks: user.totalTasks || 0,
+                // Use real activity data
+                lastActive: user.lastActive || user.updatedAt || new Date().toISOString().split('T')[0],
+                skills: user.skills || ["Click Quality", "Form Analysis", "Bot Detection"],
+                currentCampaign: user.currentCampaign || "Active Campaign",
+                // Use real performance targets and actuals
+                dailyTarget: user.dailyTarget || 80,
+                actualDone: user.actualDone || totalClicks,
+                goodClicks: goodClicks,
+                badClicks: badClicks,
+                // Determine activity status based on recent activity
+                isActive: user.isActive !== undefined ? user.isActive : true,
+                lastInteraction: user.lastActivity || user.updatedAt || new Date().toISOString()
+              };
+            });
       
       setTeamMembers(teamMembersData);
+          } else {
+            console.error('Failed to fetch team members:', result.error);
+            setTeamMembers([]);
+          }
+        } catch (error) {
+          console.error('Error fetching team members:', error);
+          setTeamMembers([]);
+        } finally {
       setIsLoading(false);
     }
-  }, [currentUser, users]);
+      }
+    };
+
+    fetchTeamMembers();
+  }, [currentUser]);
+
+  // Fetch attendance data for team members
+  useEffect(() => {
+    const fetchTeamAttendance = async () => {
+      if (teamMembers.length > 0 && currentUser) {
+        try {
+          const token = localStorage.getItem('token');
+          if (!token) return;
+
+          const response = await fetch(`/api/attendance?date=${selectedDate}`, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            }
+          });
+
+          const result = await response.json();
+          if (result.success) {
+            // Filter to only team members' attendance
+            const teamAttendanceRecords = result.data.filter(record => 
+              record.userId && teamMembers.some(member => member.id === record.userId._id)
+            );
+            setTeamAttendance(teamAttendanceRecords);
+          } else {
+            console.error('Failed to fetch team attendance:', result.error);
+            setTeamAttendance([]);
+          }
+        } catch (error) {
+          console.error('Error fetching team attendance:', error);
+          setTeamAttendance([]);
+        }
+      }
+    };
+
+    fetchTeamAttendance();
+  }, [teamMembers, selectedDate, currentUser]);
 
   const filteredMembers = (teamMembers || []).filter(member => {
     const matchesSearch = member.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -173,13 +234,10 @@ function ManagerTeamPageContent() {
     setSelectedMember(member);
     setShowMemberModal(true);
   };
-
-  // Get attendance data for today
-  const teamAttendance = getTeamAttendance ? getTeamAttendance(teamMembers.map(m => m.id), selectedDate) : [];
   
   // Get attendance status for a member
   const getAttendanceStatus = (memberId) => {
-    const attendance = teamAttendance.find(a => a.userId === memberId);
+    const attendance = teamAttendance.find(a => a.userId && a.userId._id === memberId);
     if (!attendance) {
       return { 
         status: 'not_marked', 
@@ -226,9 +284,46 @@ function ManagerTeamPageContent() {
   // Verify attendance (approve or reject)
   const handleVerifyAttendance = async (memberId, action) => {
     try {
-      if (approveAttendance) {
-        await approveAttendance(memberId, selectedDate, action);
-        toast.success(`Attendance ${action} for ${teamMembers.find(m => m.id === memberId)?.name}`);
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+
+      // Find the attendance record for this user
+      const attendanceRecord = teamAttendance.find(record => 
+        record.userId && record.userId._id === memberId
+      );
+
+      if (!attendanceRecord) {
+        throw new Error('No attendance record found for this user');
+      }
+
+      // Call the verification API
+      const response = await fetch(`/api/attendance/${attendanceRecord._id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          action: action === 'approve' ? 'approve' : 'reject',
+          verificationNotes: `Attendance ${action}d by manager on ${new Date().toLocaleDateString()}`
+        })
+      });
+
+      const result = await response.json();
+      if (result.success) {
+        // Update local state
+        setTeamAttendance(prev => 
+          prev.map(record => 
+            record._id === attendanceRecord._id 
+              ? { ...record, status: action === 'approve' ? 'approved' : 'rejected', isVerified: action === 'approve' }
+              : record
+          )
+        );
+        toast.success(`Attendance ${action}d for ${teamMembers.find(m => m.id === memberId)?.name}`);
+      } else {
+        throw new Error(result.error || `Failed to ${action} attendance`);
       }
     } catch (error) {
       toast.error(`Failed to ${action} attendance`);
@@ -258,10 +353,37 @@ function ManagerTeamPageContent() {
       isLocked,
       action: async () => {
         try {
-          // Update user's locked status
-          const updatedMember = { ...member, locked: isLocked ? "locked" : "unlocked" };
-          if (updateUser && typeof updateUser === 'function') {
-            updateUser(memberId, updatedMember);
+          const token = localStorage.getItem('token');
+          if (!token) {
+            throw new Error('No authentication token found');
+          }
+
+          // Update user's locked status in the database
+          const response = await fetch(`/api/users/${memberId}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+              locked: isLocked ? "locked" : "unlocked"
+            })
+          });
+
+          const result = await response.json();
+          if (result.success) {
+            // Update local state
+            setTeamMembers(prev => 
+              prev.map(m => 
+                m.id === memberId 
+                  ? { ...m, locked: isLocked ? "locked" : "unlocked" }
+                  : m
+              )
+            );
+
+            toast.success(`User ${isLocked ? 'locked' : 'unlocked'} successfully`);
+          } else {
+            throw new Error(result.error || `Failed to ${isLocked ? 'lock' : 'unlock'} user`);
           }
 
           // If locking, check if the user is currently logged in and log them out
@@ -594,7 +716,7 @@ function ManagerTeamPageContent() {
                             );
                           })()}
                           {(() => {
-                            const attendance = teamAttendance.find(a => a.userId === member.id);
+                            const attendance = teamAttendance.find(a => a.userId && a.userId._id === member.id);
                             if (attendance && attendance.status === 'marked') {
                               return (
                                 <div className="flex gap-1">
@@ -786,7 +908,7 @@ function ManagerTeamPageContent() {
                     {(() => {
                       const attendance = getAttendanceStatus(selectedMember.id);
                       const IconComponent = attendance.icon;
-                      const attendanceRecord = teamAttendance.find(a => a.userId === selectedMember.id);
+                      const attendanceRecord = teamAttendance.find(a => a.userId && a.userId._id === selectedMember.id);
                       
                       return (
                         <div className="space-y-3">

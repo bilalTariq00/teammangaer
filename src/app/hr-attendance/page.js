@@ -26,7 +26,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUsers } from "@/contexts/UsersContext";
-import { useAttendance } from "@/contexts/AttendanceContext";
+import { useAttendance } from "@/hooks/useAttendance";
 import { toast } from "sonner";
 
 // Generate mock previous month data
@@ -58,7 +58,18 @@ function generateMockPreviousMonthData() {
 export default function HRAttendancePage() {
   const { user } = useAuth();
   const { users: contextUsers } = useUsers();
-  const { getAttendanceForDate, getAttendanceStats, markAttendance, isAttendanceMarkedToday } = useAttendance();
+  const { 
+    attendance, 
+    isLoading: attendanceLoading, 
+    markAttendance, 
+    getAttendanceStatus, 
+    checkout, 
+    checkin,
+    getAttendanceRecords,
+    verifyAttendance,
+    getAttendanceStats,
+    isAttendanceMarkedToday 
+  } = useAttendance();
   
   // State for filters and data
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
@@ -81,6 +92,27 @@ export default function HRAttendancePage() {
     return () => clearInterval(timer);
   }, []);
 
+  // Load attendance data
+  useEffect(() => {
+    const loadAttendanceData = async () => {
+      if (user) {
+        try {
+          setIsLoading(true);
+          // Get attendance records for the selected date
+          const records = await getAttendanceRecords(selectedDate);
+          setAttendanceData(records || []);
+        } catch (error) {
+          console.error('Error loading attendance data:', error);
+          toast.error('Failed to load attendance data');
+        } finally {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    loadAttendanceData();
+  }, [user, selectedDate]);
+
   // Check if attendance is already marked
   const attendanceMarked = user ? isAttendanceMarkedToday(user.id) : false;
 
@@ -93,13 +125,11 @@ export default function HRAttendancePage() {
       const now = new Date();
       const timeString = now.toTimeString().slice(0, 5); // HH:MM format
 
-      markAttendance(user.id, user, {
-        checkIn: timeString,
-        checkOut: null,
-        hours: 0,
-        notes: `Attendance marked at ${now.toLocaleString()}`,
-        status: "present",
-      });
+      await markAttendance(timeString, null, `Attendance marked at ${now.toLocaleString()}`);
+      
+      // Reload attendance data
+      const records = await getAttendanceRecords(selectedDate);
+      setAttendanceData(records || []);
 
       toast.success("Attendance marked successfully!");
       setShowDashboard(true);

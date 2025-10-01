@@ -29,13 +29,13 @@ import {
   Square,
   CheckCircle2,
   XCircle,
-  UserCheck
+  UserCheck,
+  Save
 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUsers } from "@/contexts/UsersContext";
-import { usePerformance } from "@/contexts/PerformanceContext";
-import { useAttendance } from "@/contexts/AttendanceContext";
+import { useAttendance } from "@/hooks/useAttendance";
 import { ManagerWorkflowProvider, useManagerWorkflow } from "@/contexts/ManagerWorkflowContext";
 import AttendanceVerification from "@/components/AttendanceVerification";
 import PerformanceMarking from "@/components/PerformanceMarking";
@@ -85,10 +85,152 @@ function ManagerDashboardContent() {
   const searchParams = useSearchParams();
   const { user } = useAuth();
   const { users } = useUsers();
-  const { getTeamPerformance, isPerformanceMarkedToday, getPerformanceLevelDetails } = usePerformance();
-  const { getTeamAttendance, getAttendanceStats, approveAttendance, isAttendanceMarkedToday } = useAttendance();
+  const { 
+    attendance, 
+    isLoading: attendanceLoading, 
+    getAttendanceStatus,
+    getAttendanceRecords, 
+    verifyAttendance, 
+    getAttendanceStats 
+  } = useAttendance();
   const { verifiedUsers, clearVerificationData, refreshVerificationData, updateTrigger } = useManagerWorkflow();
   const today = new Date().toISOString().split('T')[0];
+  
+  // State for real data
+  const [teamMembers, setTeamMembers] = useState([]);
+  const [teamAttendance, setTeamAttendance] = useState([]);
+  const [isLoadingTeam, setIsLoadingTeam] = useState(false);
+  const [attendanceStats, setAttendanceStats] = useState({
+    total: 0,
+    present: 0,
+    absent: 0,
+    pending: 0,
+    approved: 0,
+    rejected: 0,
+    notMarked: 0
+  });
+  
+  // Function to fetch team members from backend
+  const fetchTeamMembers = async () => {
+    if (!user?.assignedUsers || user.assignedUsers.length === 0) {
+      setTeamMembers([]);
+      return;
+    }
+
+    setIsLoadingTeam(true);
+    try {
+      // Check if we're on the client side
+      if (typeof window === 'undefined') {
+        setIsLoadingTeam(false);
+        return;
+      }
+      
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+
+      // Use the new manager team API endpoint
+      const response = await fetch('/api/manager/team', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      const result = await response.json();
+      if (result.success) {
+        setTeamMembers(result.data);
+      } else {
+        console.error('Failed to fetch team members:', result.error);
+        setTeamMembers([]);
+      }
+    } catch (error) {
+      console.error('Error fetching team members:', error);
+      setTeamMembers([]);
+    } finally {
+      setIsLoadingTeam(false);
+    }
+  };
+
+  // Function to fetch team attendance data
+  const fetchTeamAttendance = async (currentTeamMembers = teamMembers) => {
+    if (!user?.assignedUsers || user.assignedUsers.length === 0) {
+      setTeamAttendance([]);
+      return;
+    }
+
+    try {
+      // Check if we're on the client side
+      if (typeof window === 'undefined') {
+        return;
+      }
+      
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+
+      // Fetch attendance records for today
+      const response = await fetch(`/api/attendance?date=${today}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      const result = await response.json();
+      if (result.success) {
+        // Filter to only team members' attendance
+        const teamAttendanceRecords = result.data.filter(record => 
+          record.userId && user.assignedUsers.includes(record.userId._id)
+        );
+        setTeamAttendance(teamAttendanceRecords);
+        
+        // Calculate attendance stats
+        const stats = {
+          total: currentTeamMembers.length,
+          present: teamAttendanceRecords.filter(r => r.status === 'marked' || r.status === 'approved').length,
+          absent: teamAttendanceRecords.filter(r => r.status === 'absent' || r.status === 'rejected').length,
+          pending: teamAttendanceRecords.filter(r => r.status === 'marked').length,
+          approved: teamAttendanceRecords.filter(r => r.status === 'approved').length,
+          rejected: teamAttendanceRecords.filter(r => r.status === 'rejected').length,
+          notMarked: currentTeamMembers.length - teamAttendanceRecords.length
+        };
+        setAttendanceStats(stats);
+      } else {
+        console.error('Failed to fetch team attendance:', result.error);
+        setTeamAttendance([]);
+      }
+    } catch (error) {
+      console.error('Error fetching team attendance:', error);
+      setTeamAttendance([]);
+    }
+  };
+
+
+  // Load data when component mounts or user changes
+  useEffect(() => {
+    // Only run on client side
+    if (typeof window === 'undefined') return;
+    
+    if (user) {
+      fetchTeamMembers();
+      // Load manager's own attendance status
+      getAttendanceStatus();
+    }
+  }, [user]);
+
+  useEffect(() => {
+    // Only run on client side
+    if (typeof window === 'undefined') return;
+    
+    if (teamMembers.length > 0) {
+      fetchTeamAttendance(teamMembers);
+    }
+  }, [teamMembers, today]);
   
   // All hooks must be called before any early returns
   const [activeTab, setActiveTab] = useState("overview");
@@ -111,8 +253,8 @@ function ManagerDashboardContent() {
   // Callback for when attendance verification is complete
   const handleVerificationComplete = (verifiedUserIds) => {
     console.log('Verification complete callback:', verifiedUserIds);
-    // Force refresh to update all components
-    forceRefresh();
+    // Refresh real attendance data
+    fetchTeamAttendance(teamMembers);
     // Also refresh verification data from context
     refreshVerificationData();
   };
@@ -161,19 +303,20 @@ function ManagerDashboardContent() {
   }, [searchParams]);
 
   useEffect(() => {
-    if (user && (user.role === 'manager' || user.role === 'admin')) {
-      const attendanceMarked = isAttendanceMarkedToday(user.id);
+    if (user && !attendanceLoading && attendance !== undefined) {
+      // Check if attendance is marked using the real attendance data
+      // This applies to ALL user roles (manager, HR, QC, user, admin)
+      const attendanceMarked = attendance && attendance.hasAttendance && attendance.status !== 'not_marked';
       if (!attendanceMarked) {
         setShowAttendanceModal(true);
+      } else {
+        // Hide modal if attendance is marked
+        setShowAttendanceModal(false);
       }
     }
-  }, [user, isAttendanceMarkedToday]);
+  }, [user, attendance, attendanceLoading]);
 
-  useEffect(() => {
-    if (user && user.role === 'manager') {
-      markAbsentUsers();
-    }
-  }, [user]);
+  // markAbsentUsers function removed - now handled by real backend data
 
   useEffect(() => {
     const handleKeyPress = (e) => {
@@ -196,19 +339,7 @@ function ManagerDashboardContent() {
     return (user.role === 'worker' || user.role === 'user') && user.role !== 'manager';
   };
 
-  // Get team members for this manager
-  let teamMembers = users?.filter(u => 
-    isTeamMember(u) && user?.assignedUsers?.includes(u.id)
-  ) || [];
-
-  // If no team members assigned, use mock team members for demonstration
-  if (teamMembers.length === 0) {
-    teamMembers = [
-      { id: 5, name: "Hasan Abbas", email: "hasan.abbas@joyapps.net", role: "worker", workerType: "Permanent Clicker" },
-      { id: 6, name: "Adnan Amir", email: "adnan.amir@joyapps.net", role: "worker", workerType: "Permanent Viewer" },
-      { id: 7, name: "Waleed Bin Shakeel", email: "waleed.shakeel@joyapps.net", role: "worker", workerType: "Trainee Clicker" }
-    ];
-  }
+  // Team members are now fetched from backend in fetchTeamMembers()
 
   // Debug logging
   console.log('ManagerDashboard - verifiedUsers:', verifiedUsers);
@@ -242,129 +373,41 @@ function ManagerDashboardContent() {
 
 
   
-  // Get attendance data for today
-  const teamAttendance = getTeamAttendance(teamMembers.map(m => m.id), today);
-  
-  // Generate consistent mock attendance data
-  const generateMockAttendanceData = () => {
-    // Use a simple hash of user ID to ensure consistent results
-    const getConsistentRandom = (userId) => {
-      let hash = 0;
-      for (let i = 0; i < userId.toString().length; i++) {
-        const char = userId.toString().charCodeAt(i);
-        hash = ((hash << 5) - hash) + char;
-        hash = hash & hash; // Convert to 32-bit integer
-      }
-      return Math.abs(hash) / 2147483647; // Normalize to 0-1
-    };
+  // Attendance data is now fetched from backend in fetchTeamAttendance()
 
-    return teamMembers.map((member) => {
-      const randomValue = getConsistentRandom(member.id);
-      let status, markedBy, markedAt, checkIn, checkOut, hours, notes;
-      
-      if (randomValue < 0.4) {
-        // 40% chance of being present (approved)
-        status = 'present';
-        markedBy = 'self';
-        markedAt = new Date().toISOString();
-        checkIn = '09:00';
-        checkOut = '17:00';
-        hours = 8;
-        notes = 'Present for work';
-      } else if (randomValue < 0.7) {
-        // 30% chance of being marked (pending approval)
-        status = 'marked';
-        markedBy = 'self';
-        markedAt = new Date().toISOString();
-        checkIn = '09:00';
-        checkOut = null;
-        hours = 0;
-        notes = 'Attendance marked, waiting for manager approval';
-      } else {
-        // 30% chance of being absent
-        status = 'absent';
-        markedBy = 'system';
-        markedAt = null;
-        checkIn = null;
-        checkOut = null;
-        hours = 0;
-        notes = 'Automatically marked absent - no attendance marked';
+  // Function to verify attendance using real backend API
+  const handleVerifyAttendance = async (recordId, action, notes = '') => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('No authentication token found');
       }
-      
-      return {
-        userId: member.id,
-        name: member.name,
-        role: member.role,
-        workerType: member.workerType,
-        status: status,
-        markedBy: markedBy,
-        markedAt: markedAt,
-        checkIn: checkIn,
-        checkOut: checkOut,
-        hours: hours,
+
+      const response = await fetch(`/api/attendance/${recordId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          action: action, // 'approve' or 'reject'
         notes: notes
-      };
-    });
-  };
+        })
+      });
 
-  // Get or generate mock attendance data
-  const getMockAttendanceData = () => {
-    // Check if we're in the browser environment
-    if (typeof window === 'undefined') {
-      return generateMockAttendanceData();
-    }
-    
-    const storageKey = `mockAttendance_${today}`;
-    const stored = localStorage.getItem(storageKey);
-    
-    if (stored) {
-      try {
-        return JSON.parse(stored);
-      } catch (e) {
-        console.error('Error parsing stored attendance data:', e);
+      const result = await response.json();
+      if (result.success) {
+        toast.success(`Attendance ${action}d successfully`);
+        // Refresh attendance data
+        fetchTeamAttendance(teamMembers);
+      } else {
+        toast.error(result.error || `Failed to ${action} attendance`);
       }
-    }
-    
-    const mockData = generateMockAttendanceData();
-    localStorage.setItem(storageKey, JSON.stringify(mockData));
-    return mockData;
-  };
-
-  const mockAttendanceData = getMockAttendanceData();
-
-  // Function to automatically mark absent users (for future real-time implementation)
-  const markAbsentUsers = () => {
-    const currentTime = new Date();
-    const cutoffTime = new Date();
-    cutoffTime.setHours(10, 0, 0, 0); // 10:00 AM cutoff
-    
-    // In a real implementation, this would check actual attendance records
-    // and mark users as absent if they haven't marked attendance by cutoff time
-    console.log('Checking for absent users...', { currentTime, cutoffTime });
-  };
-
-  // Function to reset mock data
-  const resetMockData = () => {
-    if (typeof window !== 'undefined') {
-      const storageKey = `mockAttendance_${today}`;
-      localStorage.removeItem(storageKey);
-      window.location.reload();
+    } catch (error) {
+      console.error(`Error ${action}ing attendance:`, error);
+      toast.error(`Failed to ${action} attendance`);
     }
   };
-  
-  // Use real data if available, otherwise use mock data
-  const finalAttendance = teamAttendance.length > 0 ? teamAttendance : mockAttendanceData;
-  
-  const attendanceStats = {
-    total: teamMembers.length,
-    present: finalAttendance.filter(r => r.status === 'present' || r.status === 'marked' || r.status === 'approved').length,
-    absent: finalAttendance.filter(r => r.status === 'absent' || r.status === 'rejected').length,
-    pending: finalAttendance.filter(r => r.status === 'marked').length,
-    approved: finalAttendance.filter(r => r.status === 'approved').length,
-    rejected: finalAttendance.filter(r => r.status === 'rejected').length,
-    notMarked: finalAttendance.filter(r => r.status === 'not_marked').length
-  };
-
 
   // Task management functions
   const updateTaskStatus = (taskId, newStatus) => {
@@ -466,8 +509,8 @@ function ManagerDashboardContent() {
   };
 
   // Get attendance status for a member
-  const getAttendanceStatus = (memberId) => {
-    const attendance = finalAttendance.find(a => a.userId === memberId);
+  const getMemberAttendanceStatus = (memberId) => {
+    const attendance = teamAttendance.find(a => a.userId._id === memberId);
     if (!attendance) {
       return { 
         status: 'not_marked', 
@@ -511,43 +554,21 @@ function ManagerDashboardContent() {
     }
   };
 
-  // Verify attendance (approve or reject)
-  const handleVerifyAttendance = async (memberId, action) => {
-    try {
-      if (approveAttendance) {
-        await approveAttendance(memberId, today, action);
-        
-        // Update the mock data in localStorage
-        if (typeof window !== 'undefined') {
-          const storageKey = `mockAttendance_${today}`;
-          const stored = localStorage.getItem(storageKey);
-          if (stored) {
-            try {
-              const mockData = JSON.parse(stored);
-              const updatedData = mockData.map(record => 
-                record.userId === memberId 
-                  ? { ...record, status: action === 'approved' ? 'present' : 'rejected' }
-                  : record
-              );
-              localStorage.setItem(storageKey, JSON.stringify(updatedData));
-            } catch (e) {
-              console.error('Error updating mock data:', e);
-            }
-          }
-        }
-        
-        toast.success(`Attendance ${action} for ${teamMembers.find(m => m.id === memberId)?.name}`);
-        
-        // Force a re-render by updating a state variable
-        if (typeof window !== 'undefined') {
-          window.location.reload();
-        }
-      }
-    } catch (error) {
-      toast.error(`Failed to ${action} attendance`);
-      console.error('Error verifying attendance:', error);
-    }
-  };
+  // This function is now handled by the real backend API in the first handleVerifyAttendance function
+
+  // Show loading state while attendance data is being loaded
+  if (attendanceLoading) {
+    return (
+      <ManagerMainLayout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading attendance data...</p>
+          </div>
+        </div>
+      </ManagerMainLayout>
+    );
+  }
 
   // Show attendance modal if attendance is not marked for today
   if (showAttendanceModal) {
@@ -603,8 +624,18 @@ function ManagerDashboardContent() {
           </div>
         </div>
 
+        {/* Loading State */}
+        {isLoadingTeam && (
+          <div className="flex items-center justify-center p-8">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <p className="text-gray-600">Loading team data...</p>
+            </div>
+          </div>
+        )}
+
         {/* Content based on active tab */}
-        {activeTab === "overview" && (
+        {activeTab === "overview" && !isLoadingTeam && (
           <div className="space-y-6">
         {/* Key Metrics Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -615,9 +646,9 @@ function ManagerDashboardContent() {
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{mockTeamStats.totalMembers}</div>
+              <div className="text-2xl font-bold">{teamMembers.length}</div>
               <p className="text-xs text-muted-foreground">
-                <span className="text-green-600 font-medium">{mockTeamStats.activeMembers} active</span>
+                <span className="text-green-600 font-medium">{teamMembers.filter(m => m.status === 'permanent' || m.status === 'active').length} active</span>
               </p>
             </CardContent>
           </Card>
@@ -795,7 +826,7 @@ function ManagerDashboardContent() {
               <h4 className="font-semibold text-sm text-gray-700">Individual Status</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                 {teamMembers.map((member) => {
-                  const attendance = finalAttendance.find(a => a.userId === member.id);
+                  const attendance = teamAttendance.find(a => a.userId._id === member.id);
                   const status = attendance?.status || 'not_marked';
                   
                   const getStatusInfo = (status) => {
@@ -856,21 +887,21 @@ function ManagerDashboardContent() {
           <CardContent>
             <div className="space-y-4">
            
-              {finalAttendance.filter(a => a.status === 'marked').length > 0 && (
+              {teamAttendance.filter(a => a.status === 'marked').length > 0 && (
                 <div className="space-y-3">
                   <h4 className="font-semibold text-sm text-gray-700 flex items-center gap-2">
                     <AlertTriangle className="h-4 w-4 text-yellow-600" />
-                    Pending Verification ({finalAttendance.filter(a => a.status === 'marked').length})
+                    Pending Verification ({teamAttendance.filter(a => a.status === 'marked').length})
                   </h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {finalAttendance
+                    {teamAttendance
                       .filter(a => a.status === 'marked')
                       .map((attendance) => {
-                        const member = teamMembers.find(m => m.id === attendance.userId);
+                        const member = teamMembers.find(m => m.id === attendance.userId._id);
                         if (!member) return null;
                         
                         return (
-                          <div key={attendance.userId} className="flex items-center justify-between p-3 border rounded-lg bg-yellow-50">
+                          <div key={attendance.userId._id} className="flex items-center justify-between p-3 border rounded-lg bg-yellow-50">
                             <div className="flex items-center gap-3">
                               <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
                                 <span className="text-gray-600 font-bold text-sm">
@@ -919,8 +950,8 @@ function ManagerDashboardContent() {
                 </h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                   {teamMembers.map((member) => {
-                    const attendance = finalAttendance.find(a => a.userId === member.id);
-                    const status = getAttendanceStatus(member.id);
+                    const attendance = teamAttendance.find(a => a.userId._id === member.id);
+                    const status = getMemberAttendanceStatus(member.id);
                     const IconComponent = status.icon;
                     
                     return (
@@ -1312,65 +1343,6 @@ function ManagerDashboardContent() {
           <TaskAssignment />
         )}
 
-        {/* Performance Tab */}
-        {activeTab === "performance" && (
-          <div className="space-y-6">
-            <PerformanceMarking />
-            {/* Assigned Team Members (for this manager) */}
-            {/* <Card>
-              <CardHeader>
-                <CardTitle>Assigned Team Members</CardTitle>
-                <CardDescription>Members assigned to you and today\s status</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {(() => {
-                  const manager = users.find(u => u.id === user?.id);
-                  const teamIds = manager?.assignedUsers || [];
-                  const teamMembers = teamIds.map(id => users.find(u => u.id === id)).filter(Boolean);
-                  const teamToday = getTeamPerformance(user?.id, today);
-                  if (teamMembers.length === 0) {
-                    return <div className="text-sm text-muted-foreground">No team members assigned.</div>;
-                  }
-                  return (
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-sm">
-                        <thead className="border-b">
-                          <tr>
-                            <th className="text-left p-3">Name</th>
-                            <th className="text-left p-3">Email</th>
-                            <th className="text-left p-3">Type</th>
-                            <th className="text-left p-3">Today</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {teamMembers.map(m => {
-                            const marked = isPerformanceMarkedToday(m.id);
-                            const rec = (teamToday || []).find(t => t.user?.id === m.id)?.performance;
-                            const label = rec ? getPerformanceLevelDetails(rec.rating).label : null;
-                            return (
-                              <tr key={m.id} className="border-b">
-                                <td className="p-3 font-medium">{m.name}</td>
-                                <td className="p-3 text-gray-600">{m.email}</td>
-                                <td className="p-3 text-gray-600">{m.workerType?.replace('-', ' ') || '—'}</td>
-                                <td className="p-3">
-                                  {marked ? (
-                                    <Badge className="bg-green-100 text-green-800">{label || 'Marked'}</Badge>
-                                  ) : (
-                                    <Badge variant="outline">Not Marked</Badge>
-                                  )}
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-                  );
-                })()}
-              </CardContent>
-            </Card> */}
-          </div>
-        )}
 
         {/* Attendance Tab */}
         {activeTab === "attendance" && (
@@ -1387,6 +1359,13 @@ function ManagerDashboardContent() {
               </Button>
             </div>
             <AttendanceVerification />
+          </div>
+        )}
+
+        {/* Performance Tab */}
+        {activeTab === "performance" && (
+          <div className="space-y-6">
+            <PerformanceMarking />
           </div>
         )}
       </div>

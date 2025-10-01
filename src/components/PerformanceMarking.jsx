@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -22,26 +22,25 @@ import {
   Save,
   UserCheck
 } from "lucide-react";
-import { usePerformance } from "@/contexts/PerformanceContext";
+import { usePerformance } from "@/hooks/usePerformance";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUsers } from "@/contexts/UsersContext";
 import { useManagerWorkflow } from "@/contexts/ManagerWorkflowContext";
-import { useAttendance } from "@/contexts/AttendanceContext";
+import { useAttendance } from "@/hooks/useAttendance";
 import { toast } from "sonner";
 
 export default function PerformanceMarking() {
   const { 
-    performanceRecords,
-    performanceLevels, 
-    markDailyPerformance, 
-    getTeamPerformance, 
-    isPerformanceMarkedToday,
-    getPerformanceLevelDetails 
+    getPerformanceRecords,
+    recordPerformance,
+    verifyPerformance,
+    getPerformanceStats,
+    isLoading: performanceLoading
   } = usePerformance();
   const { user: currentUser } = useAuth();
   const { users } = useUsers();
   const { verifiedUsers, attendanceVerified, markPerformanceCompleted } = useManagerWorkflow();
-  const { getAttendanceForDate } = useAttendance();
+  const { getAttendanceRecords } = useAttendance();
   
   const [userRatings, setUserRatings] = useState({});
   const [performanceRatings, setPerformanceRatings] = useState({});
@@ -55,6 +54,13 @@ export default function PerformanceMarking() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [ratingFilter, setRatingFilter] = useState('all');
+  
+  // Backend data states
+  const [teamMembers, setTeamMembers] = useState([]);
+  const [attendanceData, setAttendanceData] = useState([]);
+  const [performanceRecords, setPerformanceRecords] = useState([]);
+  const [backendPerformanceStats, setBackendPerformanceStats] = useState(null);
+  const [isLoadingData, setIsLoadingData] = useState(true);
 
   // Get today's date
   const today = new Date().toISOString().split('T')[0];
@@ -65,230 +71,139 @@ export default function PerformanceMarking() {
     day: 'numeric' 
   });
 
+  // Fetch team members from backend
+  const fetchTeamMembers = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+
+      const response = await fetch('/api/manager/team', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      const result = await response.json();
+      if (result.success) {
+        setTeamMembers(result.data);
+      } else {
+        console.error('Failed to fetch team members:', result.error);
+        setTeamMembers([]);
+      }
+    } catch (error) {
+      console.error('Error fetching team members:', error);
+      setTeamMembers([]);
+    }
+  };
+
+  // Fetch attendance data
+  const fetchAttendanceData = async () => {
+    try {
+      const attendanceRecords = await getAttendanceRecords(today);
+      setAttendanceData(attendanceRecords);
+    } catch (error) {
+      console.error('Error fetching attendance data:', error);
+      setAttendanceData([]);
+    }
+  };
+
+  // Fetch performance data
+  const fetchPerformanceData = async () => {
+    try {
+      const records = await getPerformanceRecords(today);
+      const stats = await getPerformanceStats(today);
+      setPerformanceRecords(records);
+      setBackendPerformanceStats(stats);
+    } catch (error) {
+      console.error('Error fetching performance data:', error);
+      setPerformanceRecords([]);
+      setBackendPerformanceStats(null);
+    }
+  };
+
+  // Load all data
+  const loadData = async () => {
+    setIsLoadingData(true);
+    try {
+      await Promise.all([
+        fetchTeamMembers(),
+        fetchAttendanceData(),
+        fetchPerformanceData()
+      ]);
+    } catch (error) {
+      console.error('Error loading data:', error);
+    } finally {
+      setIsLoadingData(false);
+    }
+  };
+
+  // Load data on component mount
+  useEffect(() => {
+    if (currentUser) {
+      loadData();
+    }
+  }, [currentUser?.id, today]);
+
   // Helper function to check if a user is a team member (worker/user, but not manager)
   const isTeamMember = (user) => {
     return (user.role === 'worker' || user.role === 'user') && user.role !== 'manager';
   };
 
-  // Get team members assigned to this manager
-  let allTeamMembers = users?.filter(u => 
-    isTeamMember(u) && currentUser?.assignedUsers?.includes(u.id)
-  ) || [];
+  // Get verified team members (those with approved attendance)
+  const verifiedTeamMembers = useMemo(() => {
+    if (teamMembers.length === 0) return [];
+    
+    // Get users with approved attendance
+    const approvedAttendance = attendanceData.filter(record => 
+      record.status === 'approved' || record.status === 'verified'
+    );
+    const approvedUserIds = approvedAttendance.map(record => record.userId._id);
+    
+    // Filter team members to only include those with approved attendance
+    return teamMembers.filter(member => approvedUserIds.includes(member.id));
+  }, [teamMembers, attendanceData]);
 
   // Debug logging
   console.log('PerformanceMarking Debug:', {
     currentUser: currentUser ? { id: currentUser.id, name: currentUser.name, role: currentUser.role } : null,
-    assignedUsers: currentUser?.assignedUsers,
-    allUsers: users?.map(u => ({ id: u.id, name: u.name, role: u.role })),
-    filteredTeamMembers: allTeamMembers.map(m => ({ id: m.id, name: m.name, role: m.role }))
+    teamMembers: teamMembers.map(m => ({ id: m.id, name: m.name, role: m.role })),
+    verifiedTeamMembers: verifiedTeamMembers.map(m => ({ id: m.id, name: m.name })),
+    attendanceData: attendanceData.length,
+    performanceRecords: performanceRecords.length
   });
-
-
-  // Enhance team members with additional fields
-  const enhanceTeamMembersWithTargets = (members) => {
-    const getConsistentValue = (userId, baseValue, range = 20) => {
-      let hash = 0;
-      for (let i = 0; i < userId.toString().length; i++) {
-        const char = userId.toString().charCodeAt(i);
-        hash = ((hash << 5) - hash) + char;
-        hash = hash & hash; // Convert to 32-bit integer
-      }
-      return baseValue + (Math.abs(hash) % range);
-    };
-
-    return members.map(member => {
-      // Only generate values if they don't already exist
-      const goodClicks = member.goodClicks !== undefined ? member.goodClicks : getConsistentValue(member.id, 10, 15);
-      const badClicks = member.badClicks !== undefined ? member.badClicks : getConsistentValue(member.id, 2, 8);
-      
-      console.log(`Enhancing member ${member.name} (${member.id}):`, {
-        originalGoodClicks: member.goodClicks,
-        originalBadClicks: member.badClicks,
-        finalGoodClicks: goodClicks,
-        finalBadClicks: badClicks,
-        goodClicksUndefined: member.goodClicks === undefined,
-        badClicksUndefined: member.badClicks === undefined
-      });
-      
-      return {
-        ...member,
-        dailyTarget: member.dailyTarget || (member.workerType?.includes('Clicker') ? 120 : 100),
-        targetAchievement: member.targetAchievement || (goodClicks + badClicks),
-        lockCount: member.lockCount || (getConsistentValue(member.id, 0, 3) % 3),
-        goodClicks: goodClicks,
-        badClicks: badClicks,
-        phone: member.phone || `+92 30${getConsistentValue(member.id, 0, 9)} ${getConsistentValue(member.id, 1000000, 9999999)}`
-      };
-    });
-  };
-
-  // If no team members assigned, use mock team members for demonstration
-  if (allTeamMembers.length === 0) {
-    allTeamMembers = [
-      { 
-        id: 5, 
-        name: "Hasan Abbas", 
-        email: "hasan.abbas@joyapps.net", 
-        role: "worker", 
-        workerType: "Permanent Clicker",
-        phone: "+92 300 1234567",
-        dailyTarget: 120,
-        targetAchievement: 115,
-        lockCount: 1,
-        goodClicks: 90,
-        badClicks: 3
-      },
-      { 
-        id: 6, 
-        name: "Adnan Amir", 
-        email: "adnan.amir@joyapps.net", 
-        role: "worker", 
-        workerType: "Permanent Viewer",
-        phone: "+92 301 2345678",
-        dailyTarget: 100,
-        targetAchievement: 95,
-        lockCount: 0,
-        goodClicks: 80,
-        badClicks: 2
-      },
-      { 
-        id: 7, 
-        name: "Waleed Bin Shakeel", 
-        email: "waleed.shakeel@joyapps.net", 
-        role: "worker", 
-        workerType: "Trainee Clicker",
-        phone: "+92 302 3456789",
-        dailyTarget: 80,
-        targetAchievement: 75,
-        lockCount: 2,
-        goodClicks: 8,
-        badClicks: 5
-      }
-    ];
-    
-    console.log('Mock data set:', allTeamMembers.map(m => ({ 
-      id: m.id, 
-      name: m.name, 
-      goodClicks: m.goodClicks, 
-      badClicks: m.badClicks 
-    })));
-  }
-
-  // Enhance the team members with target data (after mock data is set)
-  allTeamMembers = enhanceTeamMembersWithTargets(allTeamMembers);
-  
-  console.log('After enhancement:', allTeamMembers.map(m => ({ 
-    id: m.id, 
-    name: m.name, 
-    goodClicks: m.goodClicks, 
-    badClicks: m.badClicks 
-  })));
-  
-  // Force the correct values for testing
-  allTeamMembers = allTeamMembers.map(member => {
-    if (member.id === 5) { // Hasan Abbas
-      return { ...member, goodClicks: 90, badClicks: 3 };
-    } else if (member.id === 6) { // Adnan Amir
-      return { ...member, goodClicks: 80, badClicks: 2 };
-    } else if (member.id === 7) { // Waleed Bin Shakeel
-      return { ...member, goodClicks: 8, badClicks: 5 };
-    }
-    return member;
-  });
-  
-  console.log('After force update:', allTeamMembers.map(m => ({ 
-    id: m.id, 
-    name: m.name, 
-    goodClicks: m.goodClicks, 
-    badClicks: m.badClicks 
-  })));
-
-  // Generate mock attendance data for team members (same as dashboard)
-  const generateMockAttendanceForMembers = () => {
-    const getConsistentRandom = (userId) => {
-      let hash = 0;
-      for (let i = 0; i < userId.toString().length; i++) {
-        const char = userId.toString().charCodeAt(i);
-        hash = ((hash << 5) - hash) + char;
-        hash = hash & hash; // Convert to 32-bit integer
-      }
-      return Math.abs(hash) / 2147483647; // Normalize to 0-1
-    };
-
-    return allTeamMembers.map((member) => {
-      const randomValue = getConsistentRandom(member.id);
-      let status;
-      
-      if (randomValue < 0.4) {
-        status = 'present';
-      } else if (randomValue < 0.7) {
-        status = 'marked';
-      } else {
-        status = 'absent';
-      }
-      
-      return {
-        ...member,
-        attendanceStatus: status
-      };
-    });
-  };
-
-  // Filter team members based on attendance status and verification
-  const getTeamMembersByAttendance = () => {
-    // First filter to only verified users
-    const verifiedTeamMembers = allTeamMembers.filter(member => 
-      verifiedUsers && verifiedUsers.includes(member.id)
-    );
-    
-    console.log('Verified team members:', verifiedTeamMembers);
-    
-    // If no verified users, return empty array
-    if (verifiedTeamMembers.length === 0) {
-      return [];
-    }
-    
-    // Use mock data for consistency with dashboard
-    const membersWithAttendance = generateMockAttendanceForMembers();
-    
-    console.log('All members with attendance:', membersWithAttendance);
-    
-    // Filter based on attendance status
-    const presentMembers = membersWithAttendance.filter(member => 
-      member.attendanceStatus === 'present' || 
-      member.attendanceStatus === 'approved' ||
-      member.attendanceStatus === 'marked'
-    );
-    
-    console.log('Present members:', presentMembers);
-    
-    // Filter present members to only include verified users
-    const verifiedPresentMembers = presentMembers.filter(member => 
-      verifiedUsers && verifiedUsers.includes(member.id)
-    );
-    
-    console.log('Verified present members:', verifiedPresentMembers);
-    
-    // Return verified present members, or all verified members if none are present
-    return verifiedPresentMembers.length > 0 ? verifiedPresentMembers : verifiedTeamMembers;
-  };
-
-  const teamMembers = getTeamMembersByAttendance();
 
   // Update team performance when performance records change
   useEffect(() => {
-    if (currentUser?.id && teamMembers.length > 0) {
-      // Always start with empty array and build from scratch
+    if (verifiedTeamMembers.length > 0) {
+      // Build performance data from backend records
       let currentPerformance = [];
       let markedUserIds = new Set();
       
-      // Check each team member for existing performance
-      teamMembers.forEach((member, index) => {
-        const existingPerformance = getTeamPerformance(currentUser.id, today).find(p => p.user.id === member.id);
+      verifiedTeamMembers.forEach((member) => {
+        const existingPerformance = performanceRecords.find(p => p.userId._id === member.id);
         
         if (existingPerformance) {
-          // Use existing performance
-          currentPerformance.push(existingPerformance);
+          // Debug logging
+          console.log(`Performance record for ${member.name}:`, {
+            performanceStatus: existingPerformance.performanceStatus,
+            status: existingPerformance.status,
+            fullRecord: existingPerformance
+          });
+          
+          // Use existing performance from backend
+          currentPerformance.push({
+            user: { 
+              id: member.id, 
+              name: member.name,
+              workerType: member.workerType 
+            }, 
+            performance: {
+              rating: existingPerformance.performanceStatus || 'average',
+              markedAt: existingPerformance.createdAt
+            }
+          });
           markedUserIds.add(member.id);
         } else {
           // Add empty performance entry for unmarked members
@@ -305,44 +220,27 @@ export default function PerformanceMarking() {
       
       setTeamPerformance(currentPerformance);
       setMarkedUsers(markedUserIds);
+    } else {
+      // Clear performance data if no verified team members
+      setTeamPerformance([]);
+      setMarkedUsers(new Set());
     }
-  }, [currentUser?.id, today, teamMembers.length]);
+  }, [verifiedTeamMembers, performanceRecords]);
 
-  // Reload performance data when performanceRecords changes (but only if no local changes)
-  useEffect(() => {
-    if (currentUser?.id && teamMembers.length > 0) {
-      const currentPerformance = getTeamPerformance(currentUser.id, today);
-      console.log('Reloading performance data from context:', currentPerformance);
-      
-      // Only reload if we don't have any local performance data
-      if (teamPerformance.length === 0) {
-        setTeamPerformance(currentPerformance);
-      }
-    }
-  }, [performanceRecords, currentUser?.id, today, teamMembers.length, getTeamPerformance]);
-
-  // Force reload when refresh trigger changes (disabled to prevent overriding user selections)
-  // useEffect(() => {
-  //   if (currentUser?.id && teamMembers.length > 0) {
-  //     const currentPerformance = getTeamPerformance(currentUser.id, today);
-  //     console.log('Force reloading performance data due to refresh trigger:', currentPerformance);
-  //     setTeamPerformance(currentPerformance);
-  //   }
-  // }, [refreshTrigger, currentUser?.id, today, teamMembers.length, getTeamPerformance]);
 
   // Check if all team members have performance marked
   useEffect(() => {
-    if (teamMembers.length > 0 && teamPerformance.length > 0) {
-      const allTeamMembersHavePerformance = teamMembers.every(member => {
+    if (verifiedTeamMembers.length > 0 && teamPerformance.length > 0) {
+      const allTeamMembersHavePerformance = verifiedTeamMembers.every(member => {
         const hasPerformance = teamPerformance.some(p => p.user.id === member.id);
         return hasPerformance;
       });
       
       console.log('Team members performance check:', {
-        teamMembers: teamMembers.map(m => ({ id: m.id, name: m.name })),
+        verifiedTeamMembers: verifiedTeamMembers.map(m => ({ id: m.id, name: m.name })),
         teamPerformance: teamPerformance.map(p => ({ id: p.user.id, name: p.user.name })),
         allTeamMembersHavePerformance,
-        teamMembersCount: teamMembers.length,
+        verifiedTeamMembersCount: verifiedTeamMembers.length,
         teamPerformanceCount: teamPerformance.length
       });
       
@@ -351,7 +249,7 @@ export default function PerformanceMarking() {
         markPerformanceCompleted();
       }
     }
-  }, [teamMembers, teamPerformance, markPerformanceCompleted]);
+  }, [verifiedTeamMembers, teamPerformance, markPerformanceCompleted]);
 
   // Auto-clear just marked performance after 5 seconds
   useEffect(() => {
@@ -389,9 +287,7 @@ export default function PerformanceMarking() {
     setSubmittingUsers(prev => new Set(prev).add(userId));
     
     try {
-      await new Promise(resolve => setTimeout(resolve, 500)); // Simulate API call
-      
-      const user = teamMembers.find(member => member.id === userId);
+      const user = verifiedTeamMembers.find(member => member.id === userId);
       console.log('Found user for ID', userId, ':', user);
       
       if (!user) {
@@ -400,63 +296,35 @@ export default function PerformanceMarking() {
         return;
       }
       
-      // Update local teamPerformance state to reflect the new performance
-      const newPerformance = {
-        user: { 
-          id: user.id, 
-          name: user.name,
-          workerType: user.workerType 
-        },
-        performance: { 
-          rating: performanceRating, 
-          markedAt: new Date().toISOString() 
-        }
+      // Convert performance rating to backend format
+      let backendRating = 'good';
+      if (performanceRating === 'excellent') backendRating = 'excellent';
+      else if (performanceRating === 'good') backendRating = 'good';
+      else if (performanceRating === 'average') backendRating = 'average';
+      else if (performanceRating === 'bad') backendRating = 'bad';
+      else if (performanceRating === 'worst') backendRating = 'worst';
+      
+      // Record performance using backend API
+      const performanceData = {
+        userId: userId,
+        date: today,
+        totalClicks: user.goodClicks + user.badClicks || 0,
+        goodClicks: user.goodClicks || 0,
+        badClicks: user.badClicks || 0,
+        dailyTarget: user.dailyTarget || 80,
+        performanceStatus: backendRating,
+        notes: performanceInput || `Performance rated as ${performanceRating}`
       };
       
-      console.log('Saving performance for:', user.name, 'ID:', userId, 'Rating:', performanceRating);
-      console.log('Current teamPerformance before save:', teamPerformance);
-      
-      // Call markDailyPerformance first
-      markDailyPerformance(
-        userId,
-        currentUser.id,
-        currentUser.name,
-        performanceRating,
-        notes,
-        performanceRating,
-        performanceInput
-      );
-      console.log('Performance saved to localStorage for user:', userId);
-
-      // Update teamPerformance state after saving to localStorage
-      setTeamPerformance(prev => {
-        console.log('Previous teamPerformance in setState:', prev);
-        const existingIndex = prev.findIndex(p => p.user.id === userId);
-        console.log('Existing index for user', userId, ':', existingIndex);
-        
-        let updated;
-        if (existingIndex >= 0) {
-          // Update existing performance
-          updated = [...prev];
-          updated[existingIndex] = newPerformance;
-          console.log('Updated existing performance for:', user.name, 'New array:', updated);
-        } else {
-          // Add new performance
-          updated = [...prev, newPerformance];
-          console.log('Added new performance for:', user.name, 'New array:', updated);
-        }
-        
-        // Force immediate update by logging the new state
-        console.log('Setting new teamPerformance state:', updated);
-        
-        return updated;
-      });
+      console.log('Saving performance data:', performanceData);
+      await recordPerformance(performanceData);
+      console.log('Performance saved to backend for user:', userId);
 
       // Store the just marked performance for display
       setJustMarkedPerformance({
         worker: user,
-        rating: rating,
-        notes: notes,
+        rating: performanceRating,
+        notes: performanceInput,
         timestamp: new Date().toISOString()
       });
 
@@ -464,11 +332,11 @@ export default function PerformanceMarking() {
       toast.success(`Performance marked for ${user.name}`);
       
       // Clear the form for this user
-      setUserRatings(prev => ({ ...prev, [userId]: '' }));
-      setUserNotes(prev => ({ ...prev, [userId]: '' }));
+      setPerformanceRatings(prev => ({ ...prev, [userId]: '' }));
+      setPerformanceInputs(prev => ({ ...prev, [userId]: '' }));
       
-      // Force refresh to update the table immediately (disabled to prevent data override)
-      // setRefreshTrigger(prev => prev + 1);
+      // Reload performance data
+      await fetchPerformanceData();
       
       // Immediately mark user as completed for instant UI update
       setMarkedUsers(prev => new Set(prev).add(userId));
@@ -490,7 +358,6 @@ export default function PerformanceMarking() {
     setUserRatings(prev => ({ ...prev, [userId]: rating }));
   };
 
-
   // Handle performance rating dropdown change
   const handlePerformanceRatingChange = (userId, rating) => {
     setPerformanceRatings(prev => ({ ...prev, [userId]: rating }));
@@ -503,6 +370,16 @@ export default function PerformanceMarking() {
     setPerformanceInputs(prev => ({ ...prev, [userId]: input }));
   };
 
+
+  // Performance rating options
+  const performanceLevels = [
+    { value: 'excellent', label: 'Excellent', color: 'text-green-600', bgColor: 'bg-green-100' },
+    { value: 'good', label: 'Good', color: 'text-blue-600', bgColor: 'bg-blue-100' },
+    { value: 'average', label: 'Average', color: 'text-yellow-600', bgColor: 'bg-yellow-100' },
+    { value: 'bad', label: 'Bad', color: 'text-orange-600', bgColor: 'bg-orange-100' },
+    { value: 'worst', label: 'Worst', color: 'text-red-600', bgColor: 'bg-red-100' }
+  ];
+
   // Emoji mapping for performance levels
   const performanceEmojis = {
     excellent: '🌟',
@@ -510,6 +387,11 @@ export default function PerformanceMarking() {
     average: '😐',
     bad: '👎',
     worst: '💔'
+  };
+
+  // Get performance level details
+  const getPerformanceLevelDetails = (rating) => {
+    return performanceLevels.find(level => level.value === rating) || performanceLevels[2]; // Default to average
   };
 
   // Debug: Log current filter values
@@ -524,59 +406,71 @@ export default function PerformanceMarking() {
   });
 
   // Filter team members based on search and filters
-  const filteredTeamMembers = teamMembers.filter(member => {
-    const performance = teamPerformance.find(p => p.user.id === member.id)?.performance;
-    const currentRating = userRatings[member.id] || '';
-    const isMarked = !!performance; // Use teamPerformance data instead of isPerformanceMarkedToday
-    
-    // Search filter
-    const matchesSearch = searchTerm === '' || 
-      member.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      member.workerType?.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    // Status filter
-    let matchesStatus = true;
-    if (statusFilter === 'marked') {
-      matchesStatus = isMarked;
-    } else if (statusFilter === 'not_marked') {
-      matchesStatus = !isMarked;
-    }
-    
-    // Rating filter
-    let matchesRating = true;
-    if (ratingFilter !== 'all') {
-      // Check both saved performance and current form rating
-      const hasRating = performance?.rating || currentRating;
-      matchesRating = hasRating === ratingFilter;
-    }
-    
-    const result = matchesSearch && matchesStatus && matchesRating;
-    
-    // Debug logging
-    if (ratingFilter !== 'all' || statusFilter !== 'all') {
-      console.log(`Member: ${member.name}, Status: ${isMarked ? 'marked' : 'not_marked'}, Rating Filter: ${ratingFilter}, Performance: ${performance?.rating}, Current: ${currentRating}, Matches: ${result}`);
-    }
-    
-    return result;
-  });
+  const filteredTeamMembers = useMemo(() => {
+    return verifiedTeamMembers.filter(member => {
+      const performance = teamPerformance.find(p => p.user.id === member.id)?.performance;
+      const currentRating = performanceRatings[member.id] || '';
+      const isMarked = !!performance || markedUsers.has(member.id);
+      
+      // Search filter
+      const matchesSearch = searchTerm === '' || 
+        member.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        member.workerType?.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      // Status filter
+      let matchesStatus = true;
+      if (statusFilter === 'marked') {
+        matchesStatus = isMarked;
+      } else if (statusFilter === 'not_marked') {
+        matchesStatus = !isMarked;
+      }
+      
+      // Rating filter
+      let matchesRating = true;
+      if (ratingFilter !== 'all') {
+        // Check both saved performance and current form rating
+        const hasRating = performance?.rating || currentRating;
+        matchesRating = hasRating === ratingFilter;
+      }
+      
+      const result = matchesSearch && matchesStatus && matchesRating;
+      
+      return result;
+    });
+  }, [verifiedTeamMembers, teamPerformance, performanceRatings, markedUsers, searchTerm, statusFilter, ratingFilter]);
 
   // Get performance stats for today
-  const performanceStats = teamPerformance.reduce((stats, member) => {
-    if (member.performance) {
-      stats.total++;
-      stats[member.performance.rating]++;
-    }
-    return stats;
-  }, { total: 0, excellent: 0, good: 0, average: 0, bad: 0, worst: 0 });
+  const performanceStats = useMemo(() => {
+    return teamPerformance.reduce((stats, member) => {
+      if (member.performance) {
+        stats.total++;
+        stats[member.performance.rating]++;
+      }
+      return stats;
+    }, { total: 0, excellent: 0, good: 0, average: 0, bad: 0, worst: 0 });
+  }, [teamPerformance]);
 
   // Calculate marked count for display
   const markedCount = teamPerformance.length;
 
-  // Note: We removed the attendance verification check here because we want to show
-  // team members based on their actual attendance status, not verification status
+  // Show loading state
+  if (isLoadingData) {
+    return (
+      <div className="space-y-6">
+        <Card>
+          <CardContent className="flex items-center justify-center p-8">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <p className="text-gray-600">Loading performance data...</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
-  // Show message if no present team members
-  if (teamMembers.length === 0) {
+  // Show message if no verified team members
+  if (verifiedTeamMembers.length === 0) {
     return (
       <div className="space-y-6">
         <Card className="border-yellow-200 bg-yellow-50">
@@ -607,7 +501,7 @@ export default function PerformanceMarking() {
           <h2 className="text-2xl font-bold text-gray-900">Daily Performance Marking</h2>
           <p className="text-gray-600">{todayFormatted}</p>
           <p className="text-sm text-gray-500 mt-1">
-            Showing {filteredTeamMembers.length} of {teamMembers.length} present team members
+            Showing {filteredTeamMembers.length} of {verifiedTeamMembers.length} verified team members
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -616,9 +510,7 @@ export default function PerformanceMarking() {
             size="sm" 
             onClick={() => {
               console.log('Manual refresh triggered');
-              const currentPerformance = getTeamPerformance(currentUser.id, today);
-              console.log('Refreshed performance data:', currentPerformance);
-              setTeamPerformance(currentPerformance);
+              loadData();
             }}
           >
             Refresh Data
@@ -670,22 +562,6 @@ export default function PerformanceMarking() {
       <Card>
         <CardContent className="p-6">
           <div className="space-y-4">
-            {/* Quick Stats */}
-            {/* <div className="flex flex-wrap gap-4 text-sm">
-            <div className="flex items-center gap-2">
-              <Users className="h-4 w-4 text-blue-600" />
-                <span className="text-gray-600">Total: <span className="font-medium">{teamMembers.length}</span></span>
-              </div>
-            <div className="flex items-center gap-2">
-              <CheckCircle className="h-4 w-4 text-green-600" />
-                <span className="text-gray-600">Marked: <span className="font-medium">{performanceStats.total}</span></span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Clock className="h-4 w-4 text-orange-600" />
-                <span className="text-gray-600">Remaining: <span className="font-medium">{teamMembers.length - performanceStats.total}</span></span>
-              </div>
-            </div> */}
-
             <div className="flex flex-col sm:flex-row gap-4">
               {/* Search Bar */}
               <div className="flex-1">
@@ -756,7 +632,7 @@ export default function PerformanceMarking() {
                   <TableHead>Daily Target</TableHead>
                   <TableHead>Target Achievement</TableHead>
                   <TableHead>Account Locks</TableHead>
-                  <TableHead>Current Status</TableHead>
+                  <TableHead>Performance Status</TableHead>
                   <TableHead>Performance Rating</TableHead>
                   <TableHead>Action</TableHead>
                 </TableRow>
@@ -840,9 +716,9 @@ export default function PerformanceMarking() {
                       <TableCell>
                         <div className="text-center">
                           <div className="text-lg font-semibold text-blue-600">
-                            {member.dailyTarget || 100}
+                            {member.dailyTarget || 80}
                           </div>
-                          <div className="text-xs text-gray-500">tasks</div>
+                          <div className="text-xs text-gray-500">target</div>
                         </div>
                       </TableCell>
 
@@ -850,30 +726,30 @@ export default function PerformanceMarking() {
                       <TableCell>
                         <div className="text-center space-y-1">
                           <div className={`text-lg font-semibold ${
-                            (member.goodClicks / member.dailyTarget) >= 1 
+                            (member.goodClicks || 0) >= (member.dailyTarget || 80)
                               ? 'text-green-600' 
-                              : (member.goodClicks / member.dailyTarget) >= 0.8 
+                              : (member.goodClicks || 0) >= ((member.dailyTarget || 80) * 0.8)
                                 ? 'text-yellow-600' 
                                 : 'text-red-600'
                           }`}>
-                            {member.goodClicks}
+                            {member.goodClicks || 0}
                           </div>
                           <div className={`text-xs ${
-                            (member.goodClicks / member.dailyTarget) >= 1 
+                            (member.goodClicks || 0) >= (member.dailyTarget || 80)
                               ? 'text-green-500' 
-                              : (member.goodClicks / member.dailyTarget) >= 0.8 
+                              : (member.goodClicks || 0) >= ((member.dailyTarget || 80) * 0.8)
                                 ? 'text-yellow-500' 
                                 : 'text-red-500'
                           }`}>
-                            {Math.round((member.goodClicks / member.dailyTarget) * 100)}%
+                            {Math.round(((member.goodClicks || 0) / (member.dailyTarget || 80)) * 100)}%
                           </div>
                           <div className="text-xs text-gray-600 border-t pt-1">
                             <div className="flex justify-center gap-2">
-                              <span className="text-green-600">✓{member.goodClicks}</span>
+                              <span className="text-green-600">✓{member.goodClicks || 0}</span>
                               <span className="text-gray-400">+</span>
-                              <span className="text-red-600">✗{member.badClicks}</span>
+                              <span className="text-red-600">✗{member.badClicks || 0}</span>
                               <span className="text-gray-400">=</span>
-                              <span className="font-medium">{member.goodClicks + member.badClicks}</span>
+                              <span className="font-medium">{(member.goodClicks || 0) + (member.badClicks || 0)}</span>
                             </div>
                           </div>
                         </div>
@@ -883,31 +759,29 @@ export default function PerformanceMarking() {
                       <TableCell>
                         <div className="text-center">
                           <div className={`text-lg font-semibold ${
-                            member.lockCount === 0 
+                            member.locked === 'unlocked' 
                               ? 'text-green-600' 
-                              : member.lockCount <= 2 
-                                ? 'text-yellow-600' 
-                                : 'text-red-600'
+                              : 'text-red-600'
                           }`}>
-                            {member.lockCount}
+                            {member.locked === 'unlocked' ? '0' : '1'}
                           </div>
                           <div className="text-xs text-gray-500">times</div>
                         </div>
                       </TableCell>
 
-                      {/* Current Status */}
+                      {/* Performance Status */}
                       <TableCell>
                         {isMarked && displayPerformance ? (
-                      <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2">
                             <CheckCircle className="h-4 w-4 text-green-600" />
-                        <Badge 
-                          variant="outline" 
-                          className={`${getPerformanceLevelDetails(displayPerformance.rating).bgColor} ${getPerformanceLevelDetails(displayPerformance.rating).color}`}
-                        >
+                            <Badge 
+                              variant="outline" 
+                              className={`${getPerformanceLevelDetails(displayPerformance.rating).bgColor} ${getPerformanceLevelDetails(displayPerformance.rating).color}`}
+                            >
                               {performanceEmojis[displayPerformance.rating]} {getPerformanceLevelDetails(displayPerformance.rating).label}
-                        </Badge>
-                        {isJustMarked && (
-                              <Badge variant="outline" className="bg-green-100 text-green-800 border-green-300 animate-pulse">
+                            </Badge>
+                            {isJustMarked && (
+                              <Badge variant="outline" className="bg-green-100 text-green-800 border-green-300 animate-pulse text-xs">
                                 Just Saved
                               </Badge>
                             )}
@@ -932,7 +806,7 @@ export default function PerformanceMarking() {
                               <SelectValue placeholder="Select rating" />
                             </SelectTrigger>
                             <SelectContent>
-                {performanceLevels.map((level) => (
+                              {performanceLevels.map((level) => (
                                 <SelectItem key={level.value} value={level.value}>
                                   <div className="flex items-center gap-2">
                                     <span className="text-lg">{performanceEmojis[level.value]}</span>
@@ -953,7 +827,7 @@ export default function PerformanceMarking() {
                               disabled={isMarked}
                             />
                           )}
-              </div>
+                        </div>
                       </TableCell>
 
 

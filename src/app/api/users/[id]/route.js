@@ -98,7 +98,7 @@ export async function GET(request, { params }) {
   }
 }
 
-// PUT /api/users/[id] - Update user by ID (Admin only)
+// PUT /api/users/[id] - Update user by ID (Admin or Manager only)
 export async function PUT(request, { params }) {
   try {
     // Verify authentication
@@ -112,10 +112,10 @@ export async function PUT(request, { params }) {
 
     const currentUser = authResult.user;
 
-    // Check if user has admin permissions
-    if (currentUser.role !== 'admin') {
+    // Check if user has admin or manager permissions
+    if (!['admin', 'manager'].includes(currentUser.role)) {
       return NextResponse.json(
-        { success: false, error: 'Access denied. Admin role required.' },
+        { success: false, error: 'Access denied. Admin or Manager role required.' },
         { status: 403 }
       );
     }
@@ -158,29 +158,19 @@ export async function PUT(request, { params }) {
       performance,
       attendance,
       lastReview,
-      vacationDay
+      vacationDay,
+      locked
     } = body;
 
-    // Validation
-    if (!name || !email || !role) {
-      return NextResponse.json(
-        { success: false, error: 'Name, email, and role are required' },
-        { status: 400 }
-      );
-    }
-
-    // Email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
+    // Validation - only validate fields that are provided
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return NextResponse.json(
         { success: false, error: 'Please provide a valid email address' },
         { status: 400 }
       );
     }
 
-    // Role validation
-    const validRoles = ['admin', 'manager', 'hr', 'qc', 'worker', 'user'];
-    if (!validRoles.includes(role)) {
+    if (role && !['admin', 'manager', 'hr', 'qc', 'worker', 'user'].includes(role)) {
       return NextResponse.json(
         { success: false, error: 'Invalid role. Must be one of: admin, manager, hr, qc, worker, user' },
         { status: 400 }
@@ -199,6 +189,17 @@ export async function PUT(request, { params }) {
       );
     }
 
+    // If current user is a manager, check if they can update this user
+    if (currentUser.role === 'manager') {
+      // Managers can only update their assigned team members
+      if (!currentUser.assignedUsers || !currentUser.assignedUsers.includes(id)) {
+        return NextResponse.json(
+          { success: false, error: 'Access denied. You can only update your assigned team members.' },
+          { status: 403 }
+        );
+      }
+    }
+
     // Check if email is already taken by another user
     if (email !== user.email) {
       const existingUser = await User.findOne({ email });
@@ -210,36 +211,37 @@ export async function PUT(request, { params }) {
       }
     }
 
-    // Prepare update data
-    const updateData = {
-      name,
-      email,
-      role,
-      workerType: workerType || '',
-      status: status || 'trainee',
-      taskRole: taskRole || 'viewer',
-      assignedUsers: assignedUsers || [],
-      defaultTasker: defaultTasker || 'none',
-      contactNumber: contactNumber || '',
-      emergencyNumber: emergencyNumber || '',
-      phoneNumber: phoneNumber || '',
-      address: address || '',
-      emergencyContact: emergencyContact || '',
-      emergencyPhone: emergencyPhone || '',
-      dateOfBirth: dateOfBirth || '',
-      socialSecurityNumber: socialSecurityNumber || '',
-      bankAccount: bankAccount || '',
-      benefits: benefits || '',
-      notes: notes || '',
-      department: department || '',
-      position: position || '',
-      salary: salary || 0,
-      joinDate: joinDate || new Date().toISOString().split('T')[0],
-      performance: performance || 0,
-      attendance: attendance || 0,
-      lastReview: lastReview || '',
-      vacationDay: vacationDay || ''
-    };
+    // Prepare update data - only include fields that are provided
+    const updateData = {};
+    
+    if (name !== undefined) updateData.name = name;
+    if (email !== undefined) updateData.email = email;
+    if (role !== undefined) updateData.role = role;
+    if (workerType !== undefined) updateData.workerType = workerType;
+    if (status !== undefined) updateData.status = status;
+    if (taskRole !== undefined) updateData.taskRole = taskRole;
+    if (assignedUsers !== undefined) updateData.assignedUsers = assignedUsers;
+    if (defaultTasker !== undefined) updateData.defaultTasker = defaultTasker;
+    if (contactNumber !== undefined) updateData.contactNumber = contactNumber;
+    if (emergencyNumber !== undefined) updateData.emergencyNumber = emergencyNumber;
+    if (phoneNumber !== undefined) updateData.phoneNumber = phoneNumber;
+    if (address !== undefined) updateData.address = address;
+    if (emergencyContact !== undefined) updateData.emergencyContact = emergencyContact;
+    if (emergencyPhone !== undefined) updateData.emergencyPhone = emergencyPhone;
+    if (dateOfBirth !== undefined) updateData.dateOfBirth = dateOfBirth;
+    if (socialSecurityNumber !== undefined) updateData.socialSecurityNumber = socialSecurityNumber;
+    if (bankAccount !== undefined) updateData.bankAccount = bankAccount;
+    if (benefits !== undefined) updateData.benefits = benefits;
+    if (notes !== undefined) updateData.notes = notes;
+    if (department !== undefined) updateData.department = department;
+    if (position !== undefined) updateData.position = position;
+    if (salary !== undefined) updateData.salary = salary;
+    if (joinDate !== undefined) updateData.joinDate = joinDate;
+    if (performance !== undefined) updateData.performance = performance;
+    if (attendance !== undefined) updateData.attendance = attendance;
+    if (lastReview !== undefined) updateData.lastReview = lastReview;
+    if (vacationDay !== undefined) updateData.vacationDay = vacationDay;
+    if (locked !== undefined) updateData.locked = locked;
 
     // Update password if provided
     if (password && password.trim() !== '') {

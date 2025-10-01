@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { useManagerWorkflow } from "@/contexts/ManagerWorkflowContext";
 import { useUsers } from "@/contexts/UsersContext";
-import { useAttendance } from "@/contexts/AttendanceContext";
+import { useAttendance } from "@/hooks/useAttendance";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
@@ -29,11 +29,12 @@ export default function AttendanceVerification({ onVerificationComplete }) {
     verifiedUsers
   } = useManagerWorkflow();
   const { users } = useUsers();
-  const { getAttendanceForDate } = useAttendance();
+  const { getAttendanceRecords } = useAttendance();
   const { user: currentUser } = useAuth();
   
   const [selectedUsers, setSelectedUsers] = useState([]);
   const [teamMembers, setTeamMembers] = useState([]);
+  const [attendanceStatuses, setAttendanceStatuses] = useState({});
   const [isVerifying, setIsVerifying] = useState(false);
   const [justVerified, setJustVerified] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -46,27 +47,59 @@ export default function AttendanceVerification({ onVerificationComplete }) {
     return (user.role === 'worker' || user.role === 'user') && user.role !== 'manager';
   };
 
-  // Load team members and their attendance status
+  // Load team members from backend
   useEffect(() => {
-    if (users && currentUser && currentUser.role === 'manager') {
-      // Get team members assigned to the current logged-in manager
-      const teamMembersList = users.filter(u => 
-        isTeamMember(u) && currentUser.assignedUsers?.includes(u.id)
-  ) || [];
+    const fetchTeamMembers = async () => {
+      if (currentUser && currentUser.role === 'manager') {
+        try {
+          const token = localStorage.getItem('token');
+          if (!token) return;
 
-      // If no assigned users, use mock data
-      if (teamMembersList.length === 0) {
-        const mockTeamMembers = [
-          { id: 5, name: "Hasan Abbas", email: "hasan.abbas@joyapps.net", role: "worker", workerType: "Permanent Clicker" },
-          { id: 6, name: "Adnan Amir", email: "adnan.amir@joyapps.net", role: "worker", workerType: "Permanent Viewer" },
-          { id: 7, name: "Waleed Bin Shakeel", email: "waleed.shakeel@joyapps.net", role: "worker", workerType: "Trainee Clicker" }
-        ];
-        setTeamMembers(mockTeamMembers);
-      } else {
-        setTeamMembers(teamMembersList);
+          const response = await fetch('/api/manager/team', {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            }
+          });
+
+          const result = await response.json();
+          if (result.success) {
+            setTeamMembers(result.data);
+          } else {
+            console.error('Failed to fetch team members:', result.error);
+            setTeamMembers([]);
+          }
+        } catch (error) {
+          console.error('Error fetching team members:', error);
+          setTeamMembers([]);
+        }
       }
-    }
-  }, [users, currentUser]);
+    };
+
+    fetchTeamMembers();
+  }, [currentUser]);
+
+  // Load attendance statuses for team members
+  useEffect(() => {
+    const loadAttendanceStatuses = async () => {
+      if (teamMembers.length === 0) return;
+
+      const statusPromises = teamMembers.map(async (member) => {
+        const status = await getAttendanceStatus(member.id);
+        return { userId: member.id, status };
+      });
+
+      const statuses = await Promise.all(statusPromises);
+      const statusMap = {};
+      statuses.forEach(({ userId, status }) => {
+        statusMap[userId] = status;
+      });
+      setAttendanceStatuses(statusMap);
+    };
+
+    loadAttendanceStatuses();
+  }, [teamMembers]);
 
   // Filter team members to only show verified users
   const verifiedTeamMembers = teamMembers.filter(member => 
@@ -81,16 +114,35 @@ export default function AttendanceVerification({ onVerificationComplete }) {
   });
 
   // Get attendance status for each team member
-  const getAttendanceStatus = (userId) => {
+  const getAttendanceStatus = async (userId) => {
     try {
-      const attendance = getAttendanceForDate(userId, today);
-      if (!attendance) return 'not_marked';
-      
-      if (attendance.status === 'present') return 'present';
-      if (attendance.status === 'marked') return 'marked';
-      if (attendance.status === 'approved') return 'approved';
-      if (attendance.status === 'rejected') return 'rejected';
-      if (attendance.status === 'absent') return 'absent';
+      const token = localStorage.getItem('token');
+      if (!token) return 'not_marked';
+
+      const response = await fetch(`/api/attendance?date=${today}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      const result = await response.json();
+      if (result.success) {
+        const userAttendance = result.data.find(record => 
+          record.userId && record.userId._id === userId
+        );
+        
+        if (!userAttendance) return 'not_marked';
+        
+        if (userAttendance.status === 'present') return 'present';
+        if (userAttendance.status === 'marked') return 'marked';
+        if (userAttendance.status === 'approved') return 'approved';
+        if (userAttendance.status === 'rejected') return 'rejected';
+        if (userAttendance.status === 'absent') return 'absent';
+        
+        return 'not_marked';
+      }
       
       return 'not_marked';
     } catch (error) {
@@ -146,10 +198,58 @@ export default function AttendanceVerification({ onVerificationComplete }) {
     setIsVerifying(true);
     
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+
+      // Verify attendance for each selected user
+      const verificationPromises = selectedUsers.map(async (userId) => {
+        // First, get the attendance record ID for this user
+        const attendanceResponse = await fetch(`/api/attendance?date=${today}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        const attendanceResult = await attendanceResponse.json();
+        if (!attendanceResult.success) {
+          throw new Error('Failed to fetch attendance records');
+        }
+
+        const userAttendance = attendanceResult.data.find(record => 
+          record.userId && record.userId._id === userId
+        );
+
+        if (!userAttendance) {
+          throw new Error('No attendance record found for this user');
+        }
+
+        // Now verify the attendance record
+        const response = await fetch(`/api/attendance/${userAttendance._id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            action: 'approve',
+            verificationNotes: `Verified by manager on ${new Date().toLocaleDateString()}`
+          })
+        });
+
+        const result = await response.json();
+        if (!result.success) {
+          throw new Error(result.error || 'Failed to verify attendance');
+        }
+        return result.data;
+      });
+
+      await Promise.all(verificationPromises);
       
-      // Verify attendance
+      // Verify attendance in context
       verifyAttendance(selectedUsers);
       
       // Set just verified state to show success message
@@ -225,7 +325,7 @@ export default function AttendanceVerification({ onVerificationComplete }) {
             {/* Team Members List */}
             <div className="space-y-3">
               {teamMembers.map((member) => {
-                const attendanceStatus = getAttendanceStatus(member.id);
+                const attendanceStatus = attendanceStatuses[member.id] || 'not_marked';
                 const isSelected = selectedUsers.includes(member.id);
                 
                 return (

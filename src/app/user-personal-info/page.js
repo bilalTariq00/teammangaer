@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
-import { useAttendance } from "@/contexts/AttendanceContext";
+import { useAttendance } from "@/hooks/useAttendance";
 import { 
   User, 
   Phone, 
@@ -28,19 +28,30 @@ import { toast } from "sonner";
 
 export default function UserPersonalInfoPage() {
   const { user } = useAuth();
-  const { isAttendanceMarkedToday } = useAttendance();
+  const { attendance, getAttendanceStatus } = useAttendance();
   const router = useRouter();
   const [showAttendanceModal, setShowAttendanceModal] = useState(false);
 
   // Check if attendance is marked for today
   useEffect(() => {
-    if (user && (user.role === 'worker' || user.role === 'user')) {
-      const attendanceMarked = isAttendanceMarkedToday(user.id);
+    if (user) {
+      // Load attendance status
+      getAttendanceStatus();
+    }
+  }, [user, getAttendanceStatus]);
+
+  useEffect(() => {
+    if (user && attendance) {
+      // Check if attendance is marked using the real attendance data
+      const attendanceMarked = attendance.hasAttendance && attendance.status !== 'not_marked';
       if (!attendanceMarked) {
         setShowAttendanceModal(true);
+      } else {
+        // Hide modal if attendance is marked
+        setShowAttendanceModal(false);
       }
     }
-  }, [user, isAttendanceMarkedToday]);
+  }, [user, attendance]);
 
   if (!user) {
     return (

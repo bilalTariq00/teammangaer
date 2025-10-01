@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Clock, CheckCircle, User, Calendar, TrendingUp } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useAttendance } from "@/contexts/AttendanceContext";
+import { useAttendance } from "@/hooks/useAttendance";
 import { toast } from "sonner";
 
 // Mock data for previous month attendance

@@ -24,13 +24,24 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUsers } from "@/contexts/UsersContext";
-import { useAttendance } from "@/contexts/AttendanceContext";
+import { useAttendance } from "@/hooks/useAttendance";
 import { toast } from "sonner";
 
 export default function HRAllAttendancePage() {
   const { user } = useAuth();
   const { users: contextUsers } = useUsers();
-  const { getAttendanceForDate, getAttendanceStats } = useAttendance();
+  const { 
+    attendance, 
+    isLoading: attendanceLoading, 
+    markAttendance, 
+    getAttendanceStatus, 
+    checkout, 
+    checkin,
+    getAttendanceRecords,
+    verifyAttendance,
+    getAttendanceStats,
+    isAttendanceMarkedToday 
+  } = useAttendance();
   
   // State for filters and data
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
@@ -41,71 +52,62 @@ export default function HRAllAttendancePage() {
   const [isLoading, setIsLoading] = useState(false);
 
   // Get all users from both AuthContext and UsersContext
+  const [allUsers, setAllUsers] = useState([]);
+  const [isLoadingUsers, setIsLoadingUsers] = useState(false);
+
   const getAllUsers = useCallback(() => {
-    // Users from AuthContext (demo users for login)
-    const authUsers = [
-      {
-        id: 2,
-        name: "Muhammad Shahood",
-        email: "Shahood1@joyapps.net",
-        role: "manager",
-        workerType: "manager"
-      },
-      {
-        id: 8,
-        name: "Sarah Manager",
-        email: "manager@joyapps.com",
-        role: "manager",
-        workerType: "manager"
-      },
-      {
-        id: 3,
-        name: "John QC",
-        email: "qc@joyapps.com",
-        role: "qc",
-        workerType: "qc"
-      },
-      {
-        id: 4,
-        name: "Sarah HR",
-        email: "hr@joyapps.com",
-        role: "hr",
-        workerType: "hr"
+    return allUsers;
+  }, [allUsers]);
+
+  // Fetch users from database
+  const fetchUsers = useCallback(async () => {
+    setIsLoadingUsers(true);
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        console.error("No token found");
+        return;
       }
-    ];
 
-    // Users from UsersContext (dynamically created users)
-    const contextUsersList = contextUsers || [];
-
-    // Combine both sources
-    const allUsers = [...authUsers, ...contextUsersList];
-    
-    // Deduplicate by email (prefer AuthContext users as they have more complete data)
-    const uniqueUsers = allUsers.reduce((acc, current) => {
-      const existingUser = acc.find(u => u.email === current.email);
-      if (!existingUser) {
-        acc.push(current);
-      } else {
-        // Prefer AuthContext users (they have more complete data)
-        const currentIsAuth = authUsers.some(au => au.email === current.email);
-        const existingIsAuth = authUsers.some(au => au.email === existingUser.email);
-        
-        if (currentIsAuth && !existingIsAuth) {
-          const index = acc.findIndex(u => u.email === current.email);
-          acc[index] = current;
+      const response = await fetch('/api/hr/employees', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         }
-      }
-      return acc;
-    }, []);
+      });
 
-    // Filter out admin users and current HR user (don't show HR their own attendance)
-    const filteredUsers = uniqueUsers.filter(u => u.role !== 'admin' && u.email !== user?.email);
-    
-    console.log('All users for HR attendance:', filteredUsers.map(u => ({ id: u.id, name: u.name, role: u.role, email: u.email })));
-    console.log('Total users:', filteredUsers.length);
-    
-    return filteredUsers;
-  }, [contextUsers, user]);
+      const result = await response.json();
+      
+      if (result.success) {
+        // Convert database users to the expected format
+        const users = result.data.map(user => ({
+          id: user.id || user._id, // Use id field from API response
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          workerType: user.workerType,
+          assignedUsers: user.assignedUsers || []
+        }));
+        
+        // Filter out admin users and current HR user (don't show HR their own attendance)
+        const filteredUsers = users.filter(u => u.role !== 'admin' && u.email !== user?.email);
+        
+        console.log('All users for HR attendance:', filteredUsers.map(u => ({ id: u.id, name: u.name, role: u.role, email: u.email })));
+        console.log('Total users:', filteredUsers.length);
+        
+        setAllUsers(filteredUsers);
+      } else {
+        console.error('Failed to fetch users:', result.error);
+        toast.error('Failed to fetch users');
+      }
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      toast.error('Failed to fetch users');
+    } finally {
+      setIsLoadingUsers(false);
+    }
+  }, [user]);
 
   // Check if a user's attendance is verified by their manager (only for workers)
   const isUserVerified = useCallback((userId) => {
@@ -177,10 +179,30 @@ export default function HRAllAttendancePage() {
       
       console.log('Processing unique users:', uniqueUsers.length, 'out of', allUsers.length);
       
+      // Get attendance records for the selected date
+      const attendanceRecords = await getAttendanceRecords(date);
+      
+      // Create a map of attendance records by user ID
+      const attendanceMap = {};
+      if (attendanceRecords) {
+        attendanceRecords.forEach(record => {
+          // Skip records with null userId
+          if (!record.userId) {
+            console.warn('Skipping attendance record with null userId:', record._id);
+            return;
+          }
+          const userId = record.userId._id || record.userId;
+          if (userId) {
+            attendanceMap[userId] = record;
+          }
+        });
+      }
+      
       // Get all users and their attendance data
       for (const user of uniqueUsers) {
         try {
-          const attendance = getAttendanceForDate(user.id, date);
+          // Get attendance from the records map (will be set up before the loop)
+          const attendance = attendanceMap[user.id];
           const isVerified = isUserVerified(user.id);
           const managerName = getManagerName(user.id);
           
@@ -193,7 +215,7 @@ export default function HRAllAttendancePage() {
             status: attendance?.status || 'not_marked',
             checkIn: attendance?.checkIn || null,
             checkOut: attendance?.checkOut || null,
-            hours: attendance?.hours || 0,
+            hours: attendance?.totalHours || 0,
             markedAt: attendance?.markedAt || null,
             markedBy: attendance?.markedBy || null,
             notes: attendance?.notes || null,
@@ -253,12 +275,17 @@ export default function HRAllAttendancePage() {
     } finally {
       setIsLoading(false);
     }
-  }, [selectedDate, getAllUsers, getAttendanceForDate, isUserVerified, getManagerName]);
+  }, [selectedDate]);
+
+  // Fetch users when component mounts
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
 
   // Load attendance data for selected date
   useEffect(() => {
     loadAttendanceData();
-  }, [loadAttendanceData]);
+  }, [selectedDate]);
 
   // Filter data based on selected filters
   const filteredData = attendanceData.filter(item => {
@@ -612,10 +639,10 @@ export default function HRAllAttendancePage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {isLoading ? (
+            {isLoading || isLoadingUsers ? (
               <div className="flex items-center justify-center py-8">
                 <RefreshCw className="h-6 w-6 animate-spin mr-2" />
-                Loading attendance data...
+                {isLoadingUsers ? 'Loading users...' : 'Loading attendance data...'}
               </div>
             ) : (
               <div className="overflow-x-auto">

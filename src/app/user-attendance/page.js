@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Clock, CheckCircle, User, Calendar, TrendingUp } from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext"
-import { useAttendance } from "@/contexts/AttendanceContext"
+import { useAttendance } from "@/hooks/useAttendance"
 import { toast } from "sonner"
 
 // Mock data for previous month attendance
@@ -45,11 +45,21 @@ const generateMockPreviousMonthData = () => {
 
 export default function AttendancePage() {
   const { user } = useAuth()
-  const { markAttendance, isAttendanceMarkedToday } = useAttendance()
+  const { 
+    attendance, 
+    isLoading, 
+    markAttendance, 
+    getAttendanceStatus, 
+    checkout, 
+    checkin,
+    getAttendanceRecords,
+    isAttendanceMarkedToday 
+  } = useAttendance()
   const [currentTime, setCurrentTime] = useState(new Date())
   const [isMarking, setIsMarking] = useState(false)
   const [showDashboard, setShowDashboard] = useState(false)
-  const [previousMonthData] = useState(generateMockPreviousMonthData())
+  const [attendanceRecords, setAttendanceRecords] = useState([])
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0])
 
   // Update current time every second
   useEffect(() => {
@@ -60,8 +70,30 @@ export default function AttendancePage() {
     return () => clearInterval(timer)
   }, [])
 
+  // Load attendance data
+  useEffect(() => {
+    const loadAttendanceData = async () => {
+      if (user) {
+        try {
+          // Get current attendance status
+          await getAttendanceStatus()
+          
+          // Get attendance records for the last 30 days
+          const endDate = new Date().toISOString().split("T")[0]
+          const startDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0]
+          const records = await getAttendanceRecords(startDate, endDate)
+          setAttendanceRecords(records || [])
+        } catch (error) {
+          console.error('Error loading attendance data:', error)
+        }
+      }
+    }
+
+    loadAttendanceData()
+  }, [user])
+
   // Check if attendance is already marked
-  const attendanceMarked = user ? isAttendanceMarkedToday(user.id) : false
+  const attendanceMarked = user ? isAttendanceMarkedToday() : false
 
   const handleMarkAttendance = async () => {
     if (!user) return
@@ -72,13 +104,14 @@ export default function AttendancePage() {
       const now = new Date()
       const timeString = now.toTimeString().slice(0, 5) // HH:MM format
 
-      markAttendance(user.id, user, {
-        checkIn: timeString,
-        checkOut: null,
-        hours: 0,
-        notes: `Attendance marked at ${now.toLocaleString()}`,
-        status: "present",
-      })
+      await markAttendance(timeString, null, `Attendance marked at ${now.toLocaleString()}`)
+      
+      // Reload attendance data
+      await getAttendanceStatus()
+      const endDate = new Date().toISOString().split("T")[0]
+      const startDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0]
+      const records = await getAttendanceRecords(startDate, endDate)
+      setAttendanceRecords(records || [])
 
       toast.success("Attendance marked successfully!")
       setShowDashboard(true)
@@ -104,10 +137,14 @@ export default function AttendancePage() {
   }
 
   if (showDashboard || attendanceMarked) {
-    const presentDays = previousMonthData.filter((day) => day.status === "present").length
-    const absentDays = previousMonthData.filter((day) => day.status === "absent").length
-    const totalWorkingDays = previousMonthData.length
-    const attendancePercentage = Math.round((presentDays / totalWorkingDays) * 100)
+    const presentDays = attendanceRecords.filter((record) => 
+      ['present', 'marked', 'approved'].includes(record.status)
+    ).length
+    const absentDays = attendanceRecords.filter((record) => 
+      ['absent', 'rejected'].includes(record.status)
+    ).length
+    const totalWorkingDays = attendanceRecords.length
+    const attendancePercentage = totalWorkingDays > 0 ? Math.round((presentDays / totalWorkingDays) * 100) : 0
 
     return (
       <UserMainLayout>
@@ -169,8 +206,8 @@ export default function AttendancePage() {
                 Previous Month Summary
               </CardTitle>
               <CardDescription>
-                {previousMonthData[0] &&
-                  new Date(previousMonthData[0].date).toLocaleDateString("en-US", {
+                {attendanceRecords[0] &&
+                  new Date(attendanceRecords[0].date).toLocaleDateString("en-US", {
                     month: "long",
                     year: "numeric",
                   })}{" "}
@@ -195,22 +232,46 @@ export default function AttendancePage() {
                 </div>
 
                 <div className="space-y-2 max-h-64 overflow-y-auto">
-                  {previousMonthData.map((day, index) => (
-                    <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <div className="text-sm font-medium">
-                          {day.dayName}, {day.day}
-                        </div>
-                        <Badge
-                          variant={day.status === "present" ? "default" : "destructive"}
-                          className={day.status === "present" ? "bg-green-100 text-green-700 border-green-200" : ""}
-                        >
-                          {day.status === "present" ? "Present" : "Absent"}
-                        </Badge>
-                      </div>
-                      <div className="text-sm text-muted-foreground">{day.checkIn || "--:--"}</div>
+                  {attendanceRecords.length === 0 ? (
+                    <div className="text-center py-4 text-muted-foreground">
+                      No attendance records found
                     </div>
-                  ))}
+                  ) : (
+                    attendanceRecords.map((record, index) => {
+                      const recordDate = new Date(record.date)
+                      const dayName = recordDate.toLocaleDateString("en-US", { weekday: "short" })
+                      const day = recordDate.getDate()
+                      const status = ['present', 'marked', 'approved'].includes(record.status) ? 'present' : 'absent'
+                      const checkIn = record.sessions && record.sessions.length > 0 ? record.sessions[0].checkIn : record.checkIn
+                      
+                      return (
+                        <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <div className="text-sm font-medium">
+                              {dayName}, {day}
+                            </div>
+                            <Badge
+                              variant={status === "present" ? "default" : "destructive"}
+                              className={status === "present" ? "bg-green-100 text-green-700 border-green-200" : ""}
+                            >
+                              {status === "present" ? "Present" : "Absent"}
+                            </Badge>
+                            {record.isVerified && (
+                              <Badge variant="outline" className="bg-blue-100 text-blue-700 border-blue-200">
+                                Verified
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="text-sm text-muted-foreground">
+                            {checkIn || "--:--"}
+                            {record.totalHours > 0 && (
+                              <span className="ml-2 text-xs">({record.totalHours}h)</span>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    })
+                  )}
                 </div>
               </div>
             </CardContent>

@@ -11,7 +11,7 @@ import {
   Clock
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useAttendance } from "@/contexts/AttendanceContext";
+import { useAttendance } from "@/hooks/useAttendance";
 
 const quickDateRanges = [
   "Today",
@@ -61,7 +61,7 @@ const getQCStats = (selectedRange) => {
 
 export default function QCDashboard() {
   const { user } = useAuth();
-  const { isAttendanceMarkedToday } = useAttendance();
+  const { attendance, getAttendanceStatus } = useAttendance();
   const router = useRouter();
   const [selectedRange, setSelectedRange] = useState("Today");
   const [isLoading, setIsLoading] = useState(false);
@@ -69,14 +69,24 @@ export default function QCDashboard() {
 
   // Check if attendance is marked for today
   useEffect(() => {
-    if (user && (user.role === 'qc' || user.role === 'manager')) {
-      const attendanceMarked = isAttendanceMarkedToday(user.id);
-      
+    if (user) {
+      // Load attendance status
+      getAttendanceStatus();
+    }
+  }, [user, getAttendanceStatus]);
+
+  useEffect(() => {
+    if (user && attendance) {
+      // Check if attendance is marked using the real attendance data
+      const attendanceMarked = attendance.hasAttendance && attendance.status !== 'not_marked';
       if (!attendanceMarked) {
         setShowAttendanceModal(true);
+      } else {
+        // Hide modal if attendance is marked
+        setShowAttendanceModal(false);
       }
     }
-  }, [user, isAttendanceMarkedToday]);
+  }, [user, attendance]);
 
   // Get QC stats based on selected range
   const qcStats = getQCStats(selectedRange);

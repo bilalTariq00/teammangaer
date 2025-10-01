@@ -35,7 +35,7 @@ import {
 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
-import { useAttendance } from "@/contexts/AttendanceContext";
+import { useAttendance } from "@/hooks/useAttendance";
 import { useUsers } from "@/contexts/UsersContext";
 
 // Mock data for HR dashboard
@@ -205,7 +205,7 @@ const initialEvents = [
 
 function HRDashboardContent() {
   const { user } = useAuth();
-  const { isAttendanceMarkedToday } = useAttendance();
+  const { attendance, getAttendanceStatus } = useAttendance();
   const { users } = useUsers();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -216,14 +216,24 @@ function HRDashboardContent() {
 
   // Check if attendance is marked for today
   useEffect(() => {
-    if (user && (user.role === 'hr' || user.role === 'admin')) {
-      const attendanceMarked = isAttendanceMarkedToday(user.id);
-      
+    if (user) {
+      // Load attendance status
+      getAttendanceStatus();
+    }
+  }, [user, getAttendanceStatus]);
+
+  useEffect(() => {
+    if (user && attendance) {
+      // Check if attendance is marked using the real attendance data
+      const attendanceMarked = attendance.hasAttendance && attendance.status !== 'not_marked';
       if (!attendanceMarked) {
         setShowAttendanceModal(true);
+      } else {
+        // Hide modal if attendance is marked
+        setShowAttendanceModal(false);
       }
     }
-  }, [user, isAttendanceMarkedToday]);
+  }, [user, attendance]);
   const [editingEmployee, setEditingEmployee] = useState(null);
   const [calendarEvents, setCalendarEvents] = useState(initialEvents);
   const [showCreateEvent, setShowCreateEvent] = useState(false);

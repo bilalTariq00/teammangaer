@@ -22,13 +22,24 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUsers } from "@/contexts/UsersContext";
-import { useAttendance } from "@/contexts/AttendanceContext";
+import { useAttendance } from "@/hooks/useAttendance";
 import { toast } from "sonner";
 
 export default function AdminAttendancePage() {
   const { user } = useAuth();
   const { users: contextUsers } = useUsers();
-  const { getAttendanceForDate, getAttendanceStats } = useAttendance();
+  const { 
+    attendance, 
+    isLoading: attendanceLoading, 
+    markAttendance, 
+    getAttendanceStatus, 
+    checkout, 
+    checkin,
+    getAttendanceRecords,
+    verifyAttendance,
+    getAttendanceStats,
+    isAttendanceMarkedToday 
+  } = useAttendance();
   
   // State for filters and data
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
@@ -39,72 +50,62 @@ export default function AdminAttendancePage() {
   const [isLoading, setIsLoading] = useState(false);
 
   // Get all users from both AuthContext and UsersContext
+  const [allUsers, setAllUsers] = useState([]);
+  const [isLoadingUsers, setIsLoadingUsers] = useState(false);
+
   const getAllUsers = useCallback(() => {
-    // Users from AuthContext (includes QC, HR, and other demo users)
-    const authUsers = [
-      {
-        id: 2,
-        name: "Muhammad Shahood",
-        email: "Shahood1@joyapps.net",
-        role: "manager",
-        workerType: "manager"
-      },
-      {
-        id: 8,
-        name: "Sarah Manager",
-        email: "manager@joyapps.com",
-        role: "manager",
-        workerType: "manager"
-      },
-      {
-        id: 3,
-        name: "John QC",
-        email: "qc@joyapps.com",
-        role: "qc",
-        workerType: "qc"
-      },
-      {
-        id: 4,
-        name: "Sarah HR",
-        email: "hr@joyapps.com",
-        role: "hr",
-        workerType: "hr"
-      },
-      {
-        id: 5,
-        name: "Hasan Abbas",
-        email: "hasan@joyapps.net",
-        role: "user",
-        workerType: "permanent-worker"
-      },
-      {
-        id: 6,
-        name: "Adnan Amir",
-        email: "adnan@joyapps.net",
-        role: "user",
-        workerType: "permanent-worker"
-      },
-      {
-        id: 7,
-        name: "Waleed Bin Shakeel",
-        email: "waleed@joyapps.net",
-        role: "user",
-        workerType: "trainee-worker"
+    return allUsers;
+  }, [allUsers]);
+
+  // Fetch users from database
+  const fetchUsers = useCallback(async () => {
+    setIsLoadingUsers(true);
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        console.error("No token found");
+        return;
       }
-    ];
 
-    // Users from UsersContext (workers and managers created by admin)
-    const contextUsersList = contextUsers || [];
+      const response = await fetch('/api/users', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      });
 
-    // Combine both lists and remove duplicates by email
-    const allUsers = [...authUsers, ...contextUsersList];
-    const uniqueUsers = allUsers.filter((user, index, self) => 
-      index === self.findIndex(u => u.email === user.email)
-    );
+      const result = await response.json();
+      
+      if (result.success) {
+        // Convert database users to the expected format
+        const users = result.data.map(user => ({
+          id: user.id || user._id, // Use id field from API response
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          workerType: user.workerType,
+          assignedUsers: user.assignedUsers || []
+        }));
 
     // Filter out admin users
-    return uniqueUsers.filter(u => u.role !== 'admin');
-  }, [contextUsers]);
+        const filteredUsers = users.filter(u => u.role !== 'admin');
+        
+        console.log('All users for admin attendance:', filteredUsers.map(u => ({ id: u.id, name: u.name, role: u.role, email: u.email })));
+        console.log('Total users:', filteredUsers.length);
+        
+        setAllUsers(filteredUsers);
+      } else {
+        console.error('Failed to fetch users:', result.error);
+        toast.error('Failed to fetch users');
+      }
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      toast.error('Failed to fetch users');
+    } finally {
+      setIsLoadingUsers(false);
+    }
+  }, []);
 
   const loadAttendanceData = useCallback(async () => {
     setIsLoading(true);
@@ -115,10 +116,36 @@ export default function AdminAttendancePage() {
       // Get all users (excluding admin) - filter inside the function to avoid dependency issues
       const allUsers = getAllUsers();
       
+      // If no users are loaded yet, return empty data
+      if (!allUsers || allUsers.length === 0) {
+        console.log('No users loaded yet, skipping attendance data load');
+        setAttendanceData([]);
+        setIsLoading(false);
+        return;
+      }
+      
+      // Get attendance records for the selected date
+      const attendanceRecords = await getAttendanceRecords(date);
+      
+      // Create a map of attendance records by user ID
+      const attendanceMap = {};
+      if (attendanceRecords) {
+        attendanceRecords.forEach(record => {
+          // Skip records with null userId
+          if (!record.userId) {
+            console.warn('Skipping attendance record with null userId:', record._id);
+            return;
+          }
+          const userId = record.userId._id || record.userId;
+          if (userId) {
+            attendanceMap[userId] = record;
+          }
+        });
+      }
+      
       // Get all users and their attendance data
       for (const user of allUsers) {
-        try {
-          const attendance = getAttendanceForDate(user.id, date);
+        const attendance = attendanceMap[user.id];
           data.push({
             id: user.id,
             name: user.name || 'Unknown',
@@ -128,29 +155,14 @@ export default function AdminAttendancePage() {
             status: attendance?.status || 'not_marked',
             checkIn: attendance?.checkIn || null,
             checkOut: attendance?.checkOut || null,
-            hours: attendance?.hours || 0,
+          hours: attendance?.totalHours || 0,
             markedAt: attendance?.markedAt || null,
             markedBy: attendance?.markedBy || null,
-            notes: attendance?.notes || null
-          });
-        } catch (userError) {
-          console.error(`Error loading attendance for user ${user.id}:`, userError);
-          // Add user with default values if there's an error
-          data.push({
-            id: user.id,
-            name: user.name || 'Unknown',
-            email: user.email || 'No email',
-            role: user.role || 'unknown',
-            workerType: user.workerType || user.type || 'N/A',
-            status: 'not_marked',
-            checkIn: null,
-            checkOut: null,
-            hours: 0,
-            markedAt: null,
-            markedBy: null,
-            notes: null
-          });
-        }
+          notes: attendance?.notes || null,
+          isVerified: attendance?.isVerified || false,
+          verifiedBy: attendance?.verifiedBy || null,
+          verifiedAt: attendance?.verifiedAt || null
+        });
       }
       
       setAttendanceData(data);
@@ -160,15 +172,27 @@ export default function AdminAttendancePage() {
     } finally {
       setIsLoading(false);
     }
-  }, [selectedDate, getAllUsers, getAttendanceForDate]);
+  }, [selectedDate]);
 
   // Get all users (excluding admin) for display
-  const allUsers = getAllUsers();
+  const allUsersList = getAllUsers();
+
+  // Fetch users when component mounts
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
 
   // Load attendance data for selected date
   useEffect(() => {
     loadAttendanceData();
-  }, [loadAttendanceData]);
+  }, [selectedDate]);
+
+  // Load attendance data when users are loaded
+  useEffect(() => {
+    if (allUsers.length > 0) {
+      loadAttendanceData();
+    }
+  }, [allUsers, loadAttendanceData]);
 
   // Filter data based on selected filters
   const filteredData = attendanceData.filter(item => {
@@ -262,6 +286,30 @@ export default function AdminAttendancePage() {
     { value: "hr", label: "HR" },
     { value: "worker", label: "Worker" }
   ];
+
+  // Check authentication
+  if (!user) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Access Denied</h2>
+          <p className="text-gray-600">Please log in to access this page.</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Check if user has admin role
+  if (user.role !== 'admin') {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Access Denied</h2>
+          <p className="text-gray-600">Admin role required to access this page.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <MainLayout>
@@ -423,10 +471,10 @@ export default function AdminAttendancePage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {isLoading ? (
+            {isLoading || isLoadingUsers ? (
               <div className="flex items-center justify-center py-8">
                 <RefreshCw className="h-6 w-6 animate-spin mr-2" />
-                Loading attendance data...
+                {isLoadingUsers ? 'Loading users...' : 'Loading attendance data...'}
               </div>
             ) : (
               <div className="overflow-x-auto">

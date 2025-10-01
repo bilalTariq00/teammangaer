@@ -13,7 +13,7 @@ import { CalendarIcon, TrendingUp, MousePointer, CheckCircle, Eye, Users, Clock,
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
-import { useAttendance } from "@/contexts/AttendanceContext";
+import { useAttendance } from "@/hooks/useAttendance";
 
 const quickDateRanges = [
   "Today",
@@ -246,7 +246,7 @@ const getUserMetrics = (userId, fromDate, toDate, selectedRange) => {
 
 export default function UserDashboardPage() {
   const { user } = useAuth();
-  const { isAttendanceMarkedToday } = useAttendance();
+  const { attendance, getAttendanceStatus } = useAttendance();
   const router = useRouter();
   const [fromDate, setFromDate] = useState(new Date());
   const [toDate, setToDate] = useState(new Date());
@@ -256,14 +256,24 @@ export default function UserDashboardPage() {
 
   // Check if attendance is marked for today
   useEffect(() => {
-    if (user && (user.role === 'worker' || user.role === 'user')) {
-      const attendanceMarked = isAttendanceMarkedToday(user.id);
-      
+    if (user) {
+      // Load attendance status
+      getAttendanceStatus();
+    }
+  }, [user, getAttendanceStatus]);
+
+  useEffect(() => {
+    if (user && attendance) {
+      // Check if attendance is marked using the real attendance data
+      const attendanceMarked = attendance.hasAttendance && attendance.status !== 'not_marked';
       if (!attendanceMarked) {
         setShowAttendanceModal(true);
+      } else {
+        // Hide modal if attendance is marked
+        setShowAttendanceModal(false);
       }
     }
-  }, [user, isAttendanceMarkedToday]);
+  }, [user, attendance]);
 
   // Get user-specific metrics based on current user and date range
   const userMetrics = getUserMetrics(user?.id, fromDate, toDate, selectedRange);
